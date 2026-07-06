@@ -1,0 +1,22 @@
+# Unity generated folders
+Library/
+Temp/
+Obj/
+Logs/
+UserSettings/
+
+# Local backups made before project edits
+ProjectBackups/
+
+# Unity generated IDE/project files
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.slnx
+
+# Build outputs and captures
+Build/
+Builds/
+MemoryCaptures/
+Recordings/

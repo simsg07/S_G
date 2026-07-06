@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &140000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 140001}
+  - component: {fileID: 140002}
+  m_Layer: 0
+  m_Name: SlimeHybe
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &140001
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 140000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &140002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 140000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3f2e6d1b4a5478fa0e2d3c4b5a69718, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bodySize: {x: 0.95, y: 0.62, z: 0.8}
+  maxHealth: 7
+  wanderSpeed: 0.85
+  fleeSpeed: 1.65
+  edgeProbeDistance: 0.18
+  groundProbeDepth: 0.16
+  wallProbeDistance: 0.12
+  detectionSize: 4.8
+  fleeDuration: 0.85
+  shakeDuration: 0.75
+  patternCooldown: 1.7
+  balloonSpawnCount: 2
+  mucusProjectileMin: 5
+  mucusProjectileMax: 6
+  mucusProjectileSpeed: 4.2
+  mucusProjectileLifetime: 2.5
+  mucusProjectileGravity: 3.5
+  mucusProjectileSize: {x: 0.24, y: 0.24, z: 0.8}
+  contactDamage: 1
+  contactDamageCooldown: 0.85
+  respawnDelay: 3
+  showRanges: 1
+  bodyColor: {r: 0.58, g: 0.72, b: 0.18, a: 1}
+  alertColor: {r: 0.78, g: 0.88, b: 0.25, a: 1}
+  detectionColor: {r: 1, g: 0.08, b: 0.04, a: 0.17}
+  mucusColor: {r: 0.55, g: 0.95, b: 0.25, a: 1}
