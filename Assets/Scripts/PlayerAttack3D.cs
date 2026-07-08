@@ -19,6 +19,7 @@ public class PlayerAttack3D : MonoBehaviour
 
     private PlatformerPlayer3D movement;
     private PlayerAttackAnimation3D attackAnimation;
+    private CameraAbilitySystem3D cameraAbilities;
     private GameObject hitboxVisual;
     private Transform hitboxTransform;
     private float attackTimer;
@@ -39,6 +40,7 @@ public class PlayerAttack3D : MonoBehaviour
     {
         ApplyDatabaseTuning();
         movement = GetComponent<PlatformerPlayer3D>();
+        cameraAbilities = GetComponent<CameraAbilitySystem3D>();
         attackAnimation = GetComponent<PlayerAttackAnimation3D>();
         if (attackAnimation == null)
         {
@@ -66,7 +68,7 @@ public class PlayerAttack3D : MonoBehaviour
         }
 
         Mouse mouse = Mouse.current;
-        if (mouse != null && mouse.leftButton.wasPressedThisFrame)
+        if (mouse != null && mouse.leftButton.wasPressedThisFrame && !IsPrimaryFireReservedForCamera())
         {
             TryStartAttack();
         }
@@ -82,6 +84,16 @@ public class PlayerAttack3D : MonoBehaviour
         {
             hitboxVisual.SetActive(false);
         }
+    }
+
+    private bool IsPrimaryFireReservedForCamera()
+    {
+        if (cameraAbilities == null)
+        {
+            cameraAbilities = GetComponent<CameraAbilitySystem3D>();
+        }
+
+        return cameraAbilities != null && cameraAbilities.BlocksLegacyAttackInput;
     }
 
     private void TryStartAttack()

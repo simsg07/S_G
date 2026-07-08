@@ -13,6 +13,7 @@ public class UnitBalanceDatabase3D : ScriptableObject
     [SerializeField] private PlayerAttackAnimationBalance3D playerAttackAnimation = new PlayerAttackAnimationBalance3D(); // 플레이어 기본 이미지와 공격 모션 표시 수치 묶음입니다.
 
     [Header("Monster")]
+    [SerializeField] private MonsterAni1Balance3D monsterAni1 = new MonsterAni1Balance3D(); // monster_ani1 유리관 오브젝트의 기본 수치 묶음입니다.
     [SerializeField] private SlimeBalance3D slime = new SlimeBalance3D(); // 기본 추적 슬라임 수치 묶음입니다.
     [SerializeField] private RangedSlimeBalance3D rangedSlime = new RangedSlimeBalance3D(); // 원거리 슬라임 수치 묶음입니다.
     [SerializeField] private ThornSlimeBalance3D thornSlime = new ThornSlimeBalance3D(); // 가시 슬라임 수치 묶음입니다.
@@ -28,6 +29,7 @@ public class UnitBalanceDatabase3D : ScriptableObject
     public RangedSlimeBalance3D RangedSlime => rangedSlime;
     public ThornSlimeBalance3D ThornSlime => thornSlime;
     public BalloonSlimeBalance3D BalloonSlime => balloonSlime;
+    public MonsterAni1Balance3D MonsterAni1 => monsterAni1;
     public SlimeHybeBalance3D SlimeHybe => slimeHybe;
     public ProjectileBalance3D Projectiles => projectiles;
 
@@ -59,12 +61,21 @@ public class PlayerMovementBalance3D
     public float knockbackHorizontalSpeed = 8f; // 피격 넉백의 가로 밀림 속도입니다.
     public float knockbackVerticalSpeed = 5f; // 피격 넉백의 위로 튀는 속도입니다.
     public float knockbackDuration = 0.28f; // 넉백 상태가 유지되는 시간입니다.
-    public float dashSpeed = 14f; // 우클릭 대쉬 이동 속도입니다.
+    public float dashSpeed = 14f; // 대쉬 이동 속도입니다.
     public float dashDuration = 0.14f; // 대쉬가 지속되는 시간입니다.
     public float dashCooldown = 0.4f; // 다음 대쉬를 다시 쓸 수 있을 때까지의 대기 시간입니다.
     public int maxAirJumps = 1; // 바닥 점프 이후 허용되는 추가 공중 점프 횟수입니다.
     public int maxAirDashes = 1; // 착지 전 허용되는 공중 대쉬 횟수입니다.
     public Vector3 colliderSize = new Vector3(0.8f, 1.2f, 1f); // 플레이어 충돌 박스와 몸 크기입니다.
+    public bool useRobotLegJump = true; // 스페이스를 누르는 동안 로봇 다리가 늘어나는 점프 방식을 사용할지 정합니다.
+    public float maxLegExtension = 10f; // 로봇 다리가 최대로 늘어날 수 있는 길이입니다.
+    public float legExtendSpeed = 4.8f; // 로봇 다리가 늘어나는 속도입니다.
+    public float legRetractSpeed = 8.5f; // 로봇 다리가 접히는 속도입니다.
+    public float legReleaseJumpHeight = 2f; // 로봇 다리가 접히기 시작할 때 추가로 적용할 점프 높이입니다.
+    public float ceilingCheckDistance = 0.08f; // 로봇 다리 상승 중 천장에 닿기 전에 멈추는 여유 거리입니다.
+    public float legObstacleClearance = 0.04f; // 로봇 다리가 발판이나 박스에 닿기 전에 남길 여유 거리입니다.
+    public bool showRobotLegVisual = true; // 로봇 다리 미리보기 박스를 화면에 표시할지 정합니다.
+    public Color robotLegColor = new Color(0.55f, 0.6f, 0.62f, 1f); // 로봇 다리 미리보기 박스 색상입니다.
 }
 
 [System.Serializable]
@@ -194,6 +205,24 @@ public class BalloonSlimeBalance3D
     public Color bodyColor = new Color(0.95f, 0.82f, 0.2f, 1f); // 평상시 풍선 슬라임 색상입니다.
     public Color chargeColor = new Color(1f, 0.45f, 0.18f, 1f); // 충전 또는 돌진 중 풍선 슬라임 색상입니다.
     public Color detectionColor = new Color(1f, 0.08f, 0.04f, 0.16f); // 인식 범위 미리보기 색상입니다.
+}
+
+[System.Serializable]
+public class MonsterAni1Balance3D
+{
+    public Vector3 tubeSize = new Vector3(2.05f, 3.41f, 0.8f); // 유리관 전체 표시 크기와 트리거 영역 크기입니다. 882:1467 비율에 맞춘 값입니다.
+    public Vector2 innerMonsterSize = new Vector2(0.9f, 2.37f); // 유리관 안에서 떠다니는 몬스터 그림 크기입니다. 368:969 비율에 맞춘 값입니다.
+    public Vector3 innerMonsterOffset = new Vector3(0.13f, -0.08f, -0.03f); // 유리관 중심 기준 내부 몬스터의 기본 위치입니다.
+    public float floatSpeed = 0.45f; // 내부 몬스터가 둥둥 떠다니는 속도입니다. 값을 올리면 더 빠르게 움직입니다.
+    public float floatHeight = 0.055f; // 내부 몬스터가 위아래로 움직이는 높이입니다.
+    public Vector2 bubbleSize = new Vector2(0.55f, 1.45f); // 유리관 안 물방울 묶음 표시 크기입니다.
+    public Vector3 bubbleOffset = new Vector3(0.13f, 0f, -0.03f); // 유리관 중심 기준 물방울 묶음의 기본 위치입니다.
+    public float bubbleFloatSpeed = 0.38f; // 물방울이 위아래로 움직이는 속도입니다. 괴물보다 살짝 느리게 둡니다.
+    public float bubbleFloatHeight = 0.06f; // 물방울이 위아래로 움직이는 높이입니다.
+    public bool useTriggerCollider = true; // 켜두면 플레이어를 막지 않고 감지만 가능한 트리거 오브젝트가 됩니다.
+    public Color tubeTintColor = Color.white; // 유리관 이미지에 곱해지는 색상입니다.
+    public Color innerMonsterTintColor = Color.white; // 내부 몬스터 이미지에 곱해지는 색상입니다.
+    public Color bubbleTintColor = Color.white; // 물방울 이미지에 곱해지는 색상입니다.
 }
 
 [System.Serializable]

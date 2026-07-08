@@ -33,9 +33,18 @@ MonoBehaviour:
     maxAirJumps: 1
     maxAirDashes: 1
     colliderSize: {x: 0.8, y: 1.2, z: 1}
+    useRobotLegJump: 1
+    maxLegExtension: 10
+    legExtendSpeed: 4.8
+    legRetractSpeed: 8.5
+    legReleaseJumpHeight: 2
+    ceilingCheckDistance: 0.08
+    legObstacleClearance: 0.04
+    showRobotLegVisual: 1
+    robotLegColor: {r: 0.55, g: 0.6, b: 0.62, a: 1}
   playerHealth:
-    maxHealth: 5
-    currentHealth: 5
+    maxHealth: 1
+    currentHealth: 1
     invincibilityDuration: 0.8
     invincibleBlinkInterval: 0.1
     slotSize: {x: 28, y: 18}
@@ -66,6 +75,20 @@ MonoBehaviour:
     pixelsPerUnit: 340
     localOffset: {x: 0.2, y: 0.04, z: -0.45}
     sortingOrder: 30
+  monsterAni1:
+    tubeSize: {x: 2.05, y: 3.41, z: 0.8}
+    innerMonsterSize: {x: 0.9, y: 2.37}
+    innerMonsterOffset: {x: 0.13, y: -0.08, z: -0.03}
+    floatSpeed: 0.45
+    floatHeight: 0.055
+    bubbleSize: {x: 0.55, y: 1.45}
+    bubbleOffset: {x: 0.13, y: 0, z: -0.03}
+    bubbleFloatSpeed: 0.38
+    bubbleFloatHeight: 0.06
+    useTriggerCollider: 1
+    tubeTintColor: {r: 1, g: 1, b: 1, a: 1}
+    innerMonsterTintColor: {r: 1, g: 1, b: 1, a: 1}
+    bubbleTintColor: {r: 1, g: 1, b: 1, a: 1}
   slime:
     bodySize: {x: 0.75, y: 0.55, z: 0.8}
     maxHealth: 4

@@ -841,6 +841,89 @@ MonoBehaviour:
   chaseColor: {r: 0.6, g: 0.96, b: 0.35, a: 1}
   detectionColor: {r: 1, g: 0.08, b: 0.04, a: 0.18}
   chaseRangeColor: {r: 1, g: 0.15, b: 0.78, a: 0.13}
+--- !u!1 &1300000701
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1300000702}
+  - component: {fileID: 1300000703}
+  m_Layer: 0
+  m_Name: MonsterAni1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1300000702
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300000701}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 7, y: -1.05, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1300000703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300000701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f13cbb3e4bb4f3fa9a3efe7bb9c53c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tubeSize: {x: 2.05, y: 3.41, z: 0.8}
+  innerMonsterSize: {x: 0.9, y: 2.37}
+  innerMonsterOffset: {x: 0.13, y: -0.08, z: -0.03}
+  floatSpeed: 0.45
+  floatHeight: 0.055
+  bubbleSize: {x: 0.55, y: 1.45}
+  bubbleOffset: {x: 0.13, y: 0, z: -0.03}
+  bubbleFloatSpeed: 0.38
+  bubbleFloatHeight: 0.06
+  useTriggerCollider: 1
+  textureResourcePath: MonsterAni1/skeleton
+  atlasTextureSize: {x: 1865, y: 1257}
+  tubeAtlasPixelRect:
+    serializedVersion: 2
+    x: 2
+    y: 372
+    width: 1467
+    height: 883
+  tubeRectUsesTopLeftOrigin: 1
+  tubeRegionRotatedClockwise: 1
+  innerMonsterAtlasPixelRect:
+    serializedVersion: 2
+    x: 2
+    y: 2
+    width: 969
+    height: 368
+  innerMonsterRectUsesTopLeftOrigin: 1
+  innerMonsterRegionRotatedClockwise: 1
+  bubbleAtlasPixelRect:
+    serializedVersion: 2
+    x: 1471
+    y: 335
+    width: 392
+    height: 920
+  bubbleRectUsesTopLeftOrigin: 1
+  bubbleRegionRotatedClockwise: 0
+  tubeTintColor: {r: 1, g: 1, b: 1, a: 1}
+  innerMonsterTintColor: {r: 1, g: 1, b: 1, a: 1}
+  bubbleTintColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -854,3 +937,4 @@ SceneRoots:
   - {fileID: 1300000402}
   - {fileID: 1300000502}
   - {fileID: 1300000602}
+  - {fileID: 1300000702}
