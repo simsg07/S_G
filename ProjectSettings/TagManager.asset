@@ -11,6 +11,10 @@ TagManager:
   - CameraNoFreeze
   - CameraInteract
   - CameraNoInteract
+  - SwitchableWorldObject
+  - PuzzleObject
+  - Door
+  - Platform
   layers:
   - Default
   - TransparentFX

@@ -1,0 +1,173 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bcf2e9a4d7a4deda3b68f7120e54c90, type: 3}
+  m_Name: UnitBalanceDatabase
+  m_EditorClassIdentifier: 
+  playerMovement:
+    moveSpeed: 6
+    jumpHeight: 3
+    gravityScale: 3
+    fallGravityMultiplier: 1.35
+    maxFallSpeed: 18
+    coyoteTime: 0.08
+    jumpBufferTime: 0.1
+    jumpCutMultiplier: 0.5
+    groundCheckDistance: 0.08
+    dropThroughDuration: 0.45
+    passThroughClearance: 0.05
+    maxAirJumps: 1
+    colliderSize: {x: 0.8, y: 1.2, z: 1}
+    useRobotLegJump: 1
+    maxLegExtension: 10
+    legExtendSpeed: 4.8
+    legRetractSpeed: 8.5
+    legReleaseJumpHeight: 2
+    ceilingCheckDistance: 0.08
+    legObstacleClearance: 0.04
+    showRobotLegVisual: 1
+    robotLegColor: {r: 0.55, g: 0.6, b: 0.62, a: 1}
+  playerAttackAnimation:
+    resourceFolder: PlayerAttack
+    frameNames:
+    - attack_01
+    - attack_02
+    - attack_03
+    - attack_04
+    frameDuration: 0.045
+    pixelsPerUnit: 340
+    localOffset: {x: 0.2, y: 0.04, z: -0.45}
+    sortingOrder: 30
+  monsterAni1:
+    tubeSize: {x: 2.05, y: 3.41, z: 0.8}
+    innerMonsterSize: {x: 0.9, y: 2.37}
+    innerMonsterOffset: {x: 0.13, y: -0.08, z: -0.03}
+    floatSpeed: 0.45
+    floatHeight: 0.055
+    bubbleSize: {x: 0.55, y: 1.45}
+    bubbleOffset: {x: 0.13, y: 0, z: -0.03}
+    bubbleFloatSpeed: 0.38
+    bubbleFloatHeight: 0.06
+    useTriggerCollider: 1
+    tubeTintColor: {r: 1, g: 1, b: 1, a: 1}
+    innerMonsterTintColor: {r: 1, g: 1, b: 1, a: 1}
+    bubbleTintColor: {r: 1, g: 1, b: 1, a: 1}
+  slime:
+    bodySize: {x: 0.75, y: 0.55, z: 0.8}
+    maxHealth: 4
+    patrolSpeed: 1.15
+    chaseSpeed: 2.1
+    edgeProbeDistance: 0.16
+    groundProbeDepth: 0.16
+    wallProbeDistance: 0.12
+    detectionSize: 4.2
+    chaseSize: 6.2
+    contactDamage: 1
+    contactDamageCooldown: 0.8
+    respawnDelay: 3
+    showRanges: 1
+    slimeColor: {r: 0.32, g: 0.82, b: 0.28, a: 1}
+    chaseColor: {r: 0.6, g: 0.96, b: 0.35, a: 1}
+    detectionColor: {r: 1, g: 0.08, b: 0.04, a: 0.18}
+    chaseRangeColor: {r: 1, g: 0.15, b: 0.78, a: 0.13}
+  rangedSlime:
+    slimeSize: {x: 0.7, y: 0.5, z: 0.8}
+    patrolSpeed: 0.85
+    edgeProbeDistance: 0.16
+    groundProbeDepth: 0.16
+    wallProbeDistance: 0.12
+    detectionSize: 6
+    attackWindupDuration: 0.55
+    attackCooldown: 1.4
+    respawnDelay: 3
+    projectileDamage: 1
+    projectileSpeed: 4.8
+    projectileLifetime: 3
+    projectileSize: {x: 0.28, y: 0.28, z: 0.8}
+    showRanges: 1
+    slimeColor: {r: 0.15, g: 0.75, b: 0.95, a: 1}
+    attackPoseColor: {r: 0.1, g: 1, b: 1, a: 1}
+    detectionColor: {r: 0.15, g: 0.85, b: 1, a: 0.16}
+    projectileColor: {r: 0.1, g: 0.95, b: 1, a: 1}
+  thornSlime:
+    bodySize: {x: 0.58, y: 0.38, z: 0.8}
+    maxHealth: 3
+    crawlSpeed: 1.35
+    detectionBoxSize: {x: 1.35, y: 0.75}
+    detectionOffset: 0.58
+    spikeBoxSize: {x: 1.1, y: 0.58}
+    spikeOffset: 0.62
+    attackWindupDuration: 0.28
+    attackActiveDuration: 0.22
+    attackCooldown: 1
+    contactDamage: 1
+    spikeDamage: 1
+    contactDamageCooldown: 0.8
+    respawnDelay: 3
+    showRanges: 1
+    slimeColor: {r: 0.18, g: 0.85, b: 0.35, a: 1}
+    attackPoseColor: {r: 0.55, g: 1, b: 0.25, a: 1}
+    detectionColor: {r: 1, g: 0.08, b: 0.04, a: 0.18}
+    spikeColor: {r: 0.05, g: 0.35, b: 1, a: 0.35}
+  balloonSlime:
+    bodySize: {x: 0.62, y: 0.62, z: 0.8}
+    maxHealth: 1
+    detectionSize: 5
+    hoverSpeed: 0.35
+    hoverFrequency: 2.1
+    hoverBobStrength: 0.12
+    chargeDuration: 1.2
+    dashSpeed: 7.2
+    dashDuration: 0.46
+    attackCooldown: 0.6
+    contactDamage: 1
+    respawnDelay: 3
+    showRanges: 1
+    bodyColor: {r: 0.95, g: 0.82, b: 0.2, a: 1}
+    chargeColor: {r: 1, g: 0.45, b: 0.18, a: 1}
+    detectionColor: {r: 1, g: 0.08, b: 0.04, a: 0.16}
+  slimeHybe:
+    bodySize: {x: 0.95, y: 0.62, z: 0.8}
+    maxHealth: 7
+    wanderSpeed: 0.85
+    fleeSpeed: 1.65
+    edgeProbeDistance: 0.18
+    groundProbeDepth: 0.16
+    wallProbeDistance: 0.12
+    detectionSize: 4.8
+    fleeDuration: 0.85
+    shakeDuration: 0.75
+    patternCooldown: 1.7
+    balloonSpawnCount: 2
+    mucusProjectileMin: 5
+    mucusProjectileMax: 6
+    mucusProjectileSpeed: 4.2
+    mucusProjectileLifetime: 2.5
+    mucusProjectileGravity: 3.5
+    mucusProjectileSize: {x: 0.24, y: 0.24, z: 0.8}
+    contactDamage: 1
+    contactDamageCooldown: 0.85
+    respawnDelay: 3
+    showRanges: 1
+    bodyColor: {r: 0.58, g: 0.72, b: 0.18, a: 1}
+    alertColor: {r: 0.78, g: 0.88, b: 0.25, a: 1}
+    detectionColor: {r: 1, g: 0.08, b: 0.04, a: 0.17}
+    mucusColor: {r: 0.55, g: 0.95, b: 0.25, a: 1}
+  projectiles:
+    rangedProjectileSize: {x: 0.28, y: 0.28, z: 0.8}
+    rangedProjectileDamage: 1
+    rangedProjectileLifetime: 3
+    rangedProjectileColor: {r: 0.1, g: 0.95, b: 1, a: 1}
+    mucusProjectileSize: {x: 0.24, y: 0.24, z: 0.8}
+    mucusProjectileDamage: 1
+    mucusProjectileLifetime: 2.5
+    mucusProjectileGravity: 3.5
+    mucusProjectileColor: {r: 0.5, g: 0.95, b: 0.25, a: 1}
