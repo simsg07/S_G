@@ -453,9 +453,11 @@ GameObject:
   - component: {fileID: 1300000005}
   - component: {fileID: 1300000006}
   - component: {fileID: 1300000007}
+  - component: {fileID: 1300000008}
+  - component: {fileID: 1300000009}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -566,6 +568,44 @@ MonoBehaviour:
   speedDampTime: 0
   yVelocityDampTime: 0
   disableRootMotion: 1
+--- !u!114 &1300000008
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7ab9b1becb68af4cb99122691482ea6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  infiniteHealth: 1
+  maxHp: 999
+  currentHp: 999
+  respawnPoint: {fileID: 0}
+  manualRespawnKey: 34
+  respawnImmediatelyOnDeath: 0
+  respawnDelay: 0.3
+  hitBlinkDuration: 0.3
+  hitBlinkInterval: 0.08
+  deathBlinkDuration: 0.8
+  deathBlinkInterval: 0.1
+  debugMode: 1
+--- !u!114 &1300000009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fce8e6076b9409781caac05ded34ea3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  movementController: {fileID: 1300000003}
+  debugMode: 1
 --- !u!1 &1300000101
 GameObject:
   m_ObjectHideFlags: 0

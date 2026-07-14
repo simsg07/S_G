@@ -145,21 +145,58 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8200000000000000000000000000005, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EyeballFlyAI
-  moveSpeed: 1
-  hoverAmplitude: 0.12
-  hoverFrequency: 2
-  fixedZPosition: 0
-  lightTarget: {fileID: 0}
+  detectPlayer: 1
+  detectLight: 1
+  canDetectLight: 1
   playerTarget: {fileID: 0}
-  lightTag: Light
+  lightTarget: {fileID: 0}
   playerTag: Player
-  lightDetectRange: 4
+  lightTag: Light
   playerDetectRange: 1.5
+  lightDetectRange: 4
+  targetKeepRange: 2.5
   attackRange: 0.5
-  attackDamage: 1
-  attackInterval: 1
+  requireLineOfSight: 1
+  obstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 64
+  lineOfSightStartOffset: {x: 0, y: 0, z: 0}
+  targetCheckOffset: {x: 0, y: 0, z: 0}
+  lostSightDelay: 0.2
+  debugLineOfSight: 1
+  movementType: 0
+  moveSpeed: 1
+  returnHomeSpeed: 1
+  returnHomeWhenTargetLost: 1
+  faceTargetOnlyWhenDetected: 1
+  setMoveAnimatorOnlyWhenMoving: 1
+  fixedZPosition: 0
+  blockMovementByObstacles: 1
+  movementObstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 64
+  collisionCheckRadius: 0.25
+  collisionCheckDistance: 0.1
+  useColliderBoundsForMovementCheck: 1
+  movementCastVerticalOffset: 0.2
+  ignoreGroundWhenCheckingHorizontalMovement: 1
+  useGravityForGround: 0
+  groundLayerMask:
+    serializedVersion: 2
+    m_Bits: 64
+  groundCheckDistance: 0.15
+  groundCheckRadius: 0.2
+  isGrounded: 0
+  groundOnlyMoveX: 1
+  autoSnapToGroundOnStart: 0
+  groundSnapMaxDistance: 1.5
+  groundSnapOffset: 0.05
   showGizmos: 1
   debugMode: 1
+  hoverAmplitude: 0.12
+  hoverFrequency: 2
+  attackDamage: 1
+  attackInterval: 1
   currentState: 0
   animationController: {fileID: 1354738533251832619}
   animator: {fileID: 6097026161853669191}

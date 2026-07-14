@@ -70,6 +70,28 @@ public class WorldSwitchable : MonoBehaviour
     }
     public ResearchWorldId CurrentWorld { get; private set; } = ResearchWorldId.WorldA;
 
+    public void SetCanSwitchByCamera(bool value)
+    {
+        canSwitchByCamera = value;
+    }
+
+    public void SetInitialWorld(ResearchWorldId world)
+    {
+        initializeFromGlobalWorld = false;
+        initialWorld = world;
+        CurrentWorld = world;
+    }
+
+    public void ConfigureSimpleSwitchPair(ResearchWorldId currentWorld, ResearchWorldId targetWorld)
+    {
+        WorldObjectState3D currentState = currentWorld == ResearchWorldId.WorldA ? worldA : worldB;
+        WorldObjectState3D targetState = targetWorld == ResearchWorldId.WorldA ? worldA : worldB;
+
+        currentState.enabledInWorld = true;
+        targetState.enabledInWorld = true;
+        SetInitialWorld(currentWorld);
+    }
+
     private void Awake()
     {
         CacheBaseTransform(false);

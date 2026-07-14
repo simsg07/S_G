@@ -50,6 +50,8 @@ public class PlatformerPlayer3D : MonoBehaviour
     private bool robotLegRetracting;
     private bool robotLegReleaseJumpUsed;
     private bool isGrounded;
+    private bool controlLocked;
+    private float externalMoveSpeedMultiplier = 1f;
     private Collider currentGround;
     private float currentLegExtension;
     private Transform leftLegVisual;
@@ -60,6 +62,31 @@ public class PlatformerPlayer3D : MonoBehaviour
     public float FacingDirection => facingDirection;
     public float HorizontalInput => horizontalInput;
     public float VerticalLookInput => verticalLookInput;
+
+    public void SetControlLocked(bool locked)
+    {
+        controlLocked = locked;
+        if (!Application.isPlaying || body == null)
+        {
+            return;
+        }
+
+        if (locked)
+        {
+            ClearBufferedInput();
+            StopPlayerVelocity();
+        }
+    }
+
+    public void SetExternalMoveSpeedMultiplier(float multiplier)
+    {
+        externalMoveSpeedMultiplier = Mathf.Max(0f, multiplier);
+        if (Application.isPlaying && body != null && Mathf.Approximately(externalMoveSpeedMultiplier, 0f))
+        {
+            ClearBufferedInput();
+            StopPlayerVelocity();
+        }
+    }
 
     private void Awake()
     {
@@ -84,6 +111,12 @@ public class PlatformerPlayer3D : MonoBehaviour
         }
 
         RestoreIgnoredPlatforms();
+        if (controlLocked)
+        {
+            ClearBufferedInput();
+            return;
+        }
+
         ReadMovementInput();
 
         if (jumpBufferCounter > 0f)
@@ -101,6 +134,14 @@ public class PlatformerPlayer3D : MonoBehaviour
 
         UpdatePassThroughPlatformCollisions();
         UpdateGroundedState();
+
+        if (controlLocked)
+        {
+            ClearBufferedInput();
+            StopPlayerVelocity();
+            LockToGameplayPlane();
+            return;
+        }
 
         bool isAnchoredByRobotLegs = UpdateRobotLegJump();
 
@@ -309,6 +350,29 @@ public class PlatformerPlayer3D : MonoBehaviour
 
     }
 
+    private void ClearBufferedInput()
+    {
+        horizontalInput = 0f;
+        verticalLookInput = 0f;
+        jumpBufferCounter = 0f;
+        jumpReleased = false;
+        robotLegInputHeld = false;
+        robotLegExtending = false;
+        robotLegAutoExtending = false;
+        robotLegRetracting = false;
+    }
+
+    private void StopPlayerVelocity()
+    {
+        if (body == null)
+        {
+            return;
+        }
+
+        body.linearVelocity = Vector3.zero;
+        body.angularVelocity = Vector3.zero;
+    }
+
     private void UpdateGroundedState()
     {
         Bounds bounds = playerCollider.bounds;
@@ -394,7 +458,7 @@ public class PlatformerPlayer3D : MonoBehaviour
     private void ApplyHorizontalMovement()
     {
         Vector3 velocity = body.linearVelocity;
-        velocity.x = horizontalInput * moveSpeed;
+        velocity.x = horizontalInput * moveSpeed * externalMoveSpeedMultiplier;
         velocity.z = 0f;
         body.linearVelocity = velocity;
     }

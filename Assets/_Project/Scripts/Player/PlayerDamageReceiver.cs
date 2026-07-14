@@ -13,10 +13,14 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
     [Header("Respawn")]
     [SerializeField] private Transform respawnPoint;
     [SerializeField] private Key manualRespawnKey = Key.T;
+    [SerializeField] private bool respawnImmediatelyOnDeath;
+    [SerializeField] private float respawnDelay = 0.3f;
 
     [Header("Hit Feedback")]
     [SerializeField] private float hitBlinkDuration = 0.3f;
     [SerializeField] private float hitBlinkInterval = 0.08f;
+    [SerializeField] private float deathBlinkDuration = 0.8f;
+    [SerializeField] private float deathBlinkInterval = 0.1f;
 
     [Header("Debug")]
     [SerializeField] private bool debugMode = true;
@@ -24,6 +28,8 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
     private Rigidbody body;
     private Renderer[] renderers;
     private Coroutine hitBlinkCoroutine;
+    private Coroutine deathRoutine;
+    private bool isDead;
 
     public int CurrentHp => currentHp;
 
@@ -39,6 +45,9 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         currentHp = Mathf.Clamp(currentHp, 0, maxHp);
         hitBlinkDuration = Mathf.Max(0f, hitBlinkDuration);
         hitBlinkInterval = Mathf.Max(0.01f, hitBlinkInterval);
+        deathBlinkDuration = Mathf.Max(0f, deathBlinkDuration);
+        deathBlinkInterval = Mathf.Max(0.01f, deathBlinkInterval);
+        respawnDelay = Mathf.Max(0f, respawnDelay);
     }
 
     private void Update()
@@ -58,12 +67,19 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         }
 
         Debug.Log($"[PlayerDamageReceiver] Player hit. Damage={damage}", this);
-        StartHitBlink();
 
-        if (!infiniteHealth)
+        if (infiniteHealth)
         {
-            currentHp = Mathf.Max(0, currentHp - damage);
+            StartHitBlink();
+            if (debugMode)
+            {
+                Debug.Log($"[PlayerDamageReceiver] Damage={damage}, InfiniteHealth=True, HP={currentHp}/{maxHp}", this);
+            }
+
+            return;
         }
+
+        currentHp = Mathf.Max(0, currentHp - damage);
 
         if (debugMode)
         {
@@ -72,12 +88,18 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 
         if (!infiniteHealth && currentHp <= 0)
         {
-            Respawn();
+            HandleDeath();
+            return;
         }
+
+        StartHitBlink();
     }
 
     public void Respawn()
     {
+        StopBlinkCoroutines(true);
+        SetRenderersEnabled(true);
+
         if (respawnPoint != null)
         {
             transform.position = respawnPoint.position;
@@ -89,6 +111,9 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 
         ResetVelocity();
         currentHp = maxHp;
+        isDead = false;
+
+        Debug.Log("[PlayerDamageReceiver] Player Respawned, HP restored", this);
 
         if (debugMode)
         {
@@ -128,6 +153,11 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 
     private void StartHitBlink()
     {
+        if (isDead)
+        {
+            return;
+        }
+
         CacheReferences();
 
         if (hitBlinkCoroutine != null)
@@ -139,21 +169,77 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         hitBlinkCoroutine = StartCoroutine(HitBlinkRoutine());
     }
 
+    private void HandleDeath()
+    {
+        if (isDead)
+        {
+            return;
+        }
+
+        isDead = true;
+        Debug.Log("[PlayerDamageReceiver] Player Dead", this);
+
+        StopBlinkCoroutines(true);
+
+        if (respawnImmediatelyOnDeath)
+        {
+            Respawn();
+            return;
+        }
+
+        deathRoutine = StartCoroutine(DeathAndRespawnRoutine());
+    }
+
+    private IEnumerator DeathAndRespawnRoutine()
+    {
+        yield return BlinkRoutine(deathBlinkDuration, deathBlinkInterval);
+
+        if (respawnDelay > 0f)
+        {
+            yield return new WaitForSeconds(respawnDelay);
+        }
+
+        deathRoutine = null;
+        Respawn();
+    }
+
     private IEnumerator HitBlinkRoutine()
+    {
+        yield return BlinkRoutine(hitBlinkDuration, hitBlinkInterval);
+        hitBlinkCoroutine = null;
+    }
+
+    private IEnumerator BlinkRoutine(float duration, float interval)
     {
         float elapsed = 0f;
         bool visible = true;
 
-        while (elapsed < hitBlinkDuration)
+        while (elapsed < duration)
         {
             visible = !visible;
             SetRenderersEnabled(visible);
-            yield return new WaitForSeconds(hitBlinkInterval);
-            elapsed += hitBlinkInterval;
+            yield return new WaitForSeconds(interval);
+            elapsed += interval;
         }
 
         SetRenderersEnabled(true);
-        hitBlinkCoroutine = null;
+    }
+
+    private void StopBlinkCoroutines(bool includeDeathRoutine)
+    {
+        if (hitBlinkCoroutine != null)
+        {
+            StopCoroutine(hitBlinkCoroutine);
+            hitBlinkCoroutine = null;
+        }
+
+        if (includeDeathRoutine && deathRoutine != null)
+        {
+            StopCoroutine(deathRoutine);
+            deathRoutine = null;
+        }
+
+        SetRenderersEnabled(true);
     }
 
     private void SetRenderersEnabled(bool value)
