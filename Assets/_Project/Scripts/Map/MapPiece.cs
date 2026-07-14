@@ -1,40 +1,61 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [ExecuteAlways]
 [DisallowMultipleComponent]
 public class MapPiece : MonoBehaviour
 {
+    [Header("Tile Type")]
+    [Tooltip("Defines this prefab's designer-facing map role and recommended defaults.")]
     [SerializeField] private MapPieceType pieceType;
+
+    [Header("Collision")]
+    [Tooltip("Enables the prefab's existing Collider. Visual-only Tile_Visual prefabs should keep this disabled.")]
     [SerializeField] private bool useCollider;
+    [Tooltip("Use Floor_Collision for the surface the player actually stands on.")]
+    [SerializeField] private bool isGround;
+    [Tooltip("Whether this object blocks player and monster movement when its LayerMask is configured.")]
+    [SerializeField] private bool blockMovement;
+
+    [Header("Placement")]
+    [Tooltip("Uses the recommended gameplay-plane Z for this piece type. Disable to preserve a custom Z.")]
     [SerializeField] private bool autoSetZ = true;
     [SerializeField] private float zPosition;
     [SerializeField] private bool snapToGrid = true;
     [SerializeField] private float gridSize = 1f;
     [SerializeField] private bool isInteractable;
-    [SerializeField] private bool blockMovement;
+
+    [Header("Detection Blocking")]
+    [Tooltip("Whether this object is intended to block monster sight. The assigned Layer must also be included in the monster obstacle LayerMask.")]
     [SerializeField] private bool blockLineOfSight;
-    [SerializeField] private bool autoSetObstacleLayer = true;
+    [Tooltip("Only validates the recommended Layer; code never changes Layers automatically.")]
+    [FormerlySerializedAs("autoSetObstacleLayer")]
+    [SerializeField] private bool validateObstacleLayer = true;
     [SerializeField] private string obstacleLayerName = "EnvironmentObstacle";
 
-    [Header("World Switch")]
+    [Header("World A / B")]
+    [Tooltip("Marks this piece as a camera-switchable World A/B target. Floor_Collision should normally remain disabled.")]
     [SerializeField] private bool canSwitchWorld;
     [SerializeField] private WorldSwitchCategory worldSwitchCategory = WorldSwitchCategory.Default;
-    [SerializeField] private WorldState currentWorldState = WorldState.Current;
-    [SerializeField] private WorldState targetWorldState = WorldState.Past;
+    [SerializeField] private WorldState currentWorldState = WorldState.WorldA;
+    [SerializeField] private WorldState targetWorldState = WorldState.WorldB;
     [SerializeField] private bool autoConfigureWorldSwitchable = true;
 
-    [Header("Optional Settings")]
+    [Header("Optional Settings / Debug")]
     [SerializeField] private MapLayerSettings layerSettings;
     [SerializeField] private bool debugMode;
 
     [SerializeField, HideInInspector] private MapPieceType previousPieceType;
     [SerializeField, HideInInspector] private bool initialized;
 
+    private bool layerWarningLogged;
+
     public MapPieceType PieceType => pieceType;
     public bool UseCollider => useCollider;
     public bool IsInteractable => isInteractable;
     public bool BlockMovement => blockMovement;
     public bool BlockLineOfSight => blockLineOfSight;
+    public bool IsGround => isGround;
     public bool CanSwitchWorld => canSwitchWorld;
     public WorldSwitchCategory WorldSwitchCategory => worldSwitchCategory;
     public WorldState CurrentWorldState => currentWorldState;
@@ -85,6 +106,8 @@ public class MapPiece : MonoBehaviour
         isInteractable = pieceType == MapPieceType.Object;
         blockMovement = GetDefaultBlocksMovement(pieceType);
         blockLineOfSight = GetDefaultBlocksLineOfSight(pieceType);
+        isGround = GetDefaultIsGround(pieceType);
+        obstacleLayerName = GetRecommendedLayerName(pieceType);
     }
 
     private void ApplySettings()
@@ -96,19 +119,25 @@ public class MapPiece : MonoBehaviour
 
         ApplyPositionRules();
         ApplyColliderRules();
-        ApplyObstacleLayerRules();
+        ValidateObstacleLayerRules();
         ApplyWorldSwitchRules();
 
         if (debugMode)
         {
             Debug.Log(
-                $"[MapPiece] Applied {pieceType}, Collider={useCollider}, Z={zPosition:0.###}, Snap={snapToGrid}, Interactable={isInteractable}, BlockMovement={blockMovement}, BlockLOS={blockLineOfSight}, CanSwitchWorld={canSwitchWorld}",
+                $"[MapPiece] Applied {pieceType}, Collider={useCollider}, Z={zPosition:0.###}, Snap={snapToGrid}, Interactable={isInteractable}, IsGround={isGround}, BlockMovement={blockMovement}, BlockLOS={blockLineOfSight}, CanSwitchWorld={canSwitchWorld}",
                 this);
         }
     }
 
     private void ApplyPositionRules()
     {
+        // Scene placement is authored in Edit Mode. Never move map geometry when Play starts.
+        if (Application.isPlaying)
+        {
+            return;
+        }
+
         Vector3 position = transform.position;
 
         if (snapToGrid)
@@ -148,10 +177,11 @@ public class MapPiece : MonoBehaviour
         }
     }
 
-    private void ApplyObstacleLayerRules()
+    private void ValidateObstacleLayerRules()
     {
-        if (!autoSetObstacleLayer || (!blockMovement && !blockLineOfSight) || string.IsNullOrWhiteSpace(obstacleLayerName))
+        if (!validateObstacleLayer || (!blockMovement && !blockLineOfSight) || string.IsNullOrWhiteSpace(obstacleLayerName))
         {
+            layerWarningLogged = false;
             return;
         }
 
@@ -166,16 +196,26 @@ public class MapPiece : MonoBehaviour
             return;
         }
 
-        SetLayerRecursive(transform, obstacleLayer);
-    }
-
-    private static void SetLayerRecursive(Transform target, int layer)
-    {
-        target.gameObject.layer = layer;
-        for (int i = 0; i < target.childCount; i++)
+        Transform[] targets = GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < targets.Length; i++)
         {
-            SetLayerRecursive(target.GetChild(i), layer);
+            if (targets[i].gameObject.layer == obstacleLayer)
+            {
+                continue;
+            }
+
+            if (!layerWarningLogged)
+            {
+                Debug.LogWarning(
+                    $"[MapPiece] '{name}' or a child is not on layer '{obstacleLayerName}'. Assign the layer manually in the Inspector.",
+                    this);
+                layerWarningLogged = true;
+            }
+
+            return;
         }
+
+        layerWarningLogged = false;
     }
 
     private void ApplyWorldSwitchRules()
@@ -198,7 +238,14 @@ public class MapPiece : MonoBehaviour
 
         if (switchable == null)
         {
-            switchable = gameObject.AddComponent<WorldSwitchable>();
+            if (debugMode)
+            {
+                Debug.LogWarning(
+                    $"[MapPiece] '{name}' canSwitchWorld is enabled, but WorldSwitchable is missing. Add it in the Inspector.",
+                    this);
+            }
+
+            return;
         }
 
         switchable.SetCanSwitchByCamera(true);
@@ -221,8 +268,10 @@ public class MapPiece : MonoBehaviour
             case MapPieceType.Object:
                 return -0.2f;
             case MapPieceType.Floor:
+            case MapPieceType.FloorCollision:
             case MapPieceType.Wall:
             case MapPieceType.Tile:
+            case MapPieceType.VisualTile:
             case MapPieceType.Platform:
             case MapPieceType.Structure:
             default:
@@ -242,6 +291,7 @@ public class MapPiece : MonoBehaviour
                 return true;
             case MapPieceType.BackgroundWall:
             case MapPieceType.Decoration:
+            case MapPieceType.VisualTile:
                 return false;
             case MapPieceType.Object:
             default:
@@ -253,10 +303,8 @@ public class MapPiece : MonoBehaviour
     {
         switch (type)
         {
-            case MapPieceType.Floor:
             case MapPieceType.Wall:
             case MapPieceType.Tile:
-            case MapPieceType.Platform:
             case MapPieceType.Structure:
                 return true;
             default:
@@ -273,14 +321,42 @@ public class MapPiece : MonoBehaviour
             case MapPieceType.Tile:
             case MapPieceType.Platform:
             case MapPieceType.Structure:
+            case MapPieceType.Object:
                 return true;
             default:
                 return false;
         }
     }
 
+    private static bool GetDefaultIsGround(MapPieceType type)
+    {
+        return type == MapPieceType.Floor ||
+            type == MapPieceType.FloorCollision ||
+            type == MapPieceType.Platform;
+    }
+
+    private static string GetRecommendedLayerName(MapPieceType type)
+    {
+        switch (type)
+        {
+            case MapPieceType.Floor:
+            case MapPieceType.FloorCollision:
+                return "Ground";
+            case MapPieceType.Wall:
+                return "Wall";
+            case MapPieceType.Tile:
+                return "TileObstacle";
+            case MapPieceType.Platform:
+                return "Platform";
+            case MapPieceType.VisualTile:
+                return "Default";
+            default:
+                return "EnvironmentObstacle";
+        }
+    }
+
     private static ResearchWorldId ToResearchWorldId(WorldState state)
     {
-        return state == WorldState.Current ? ResearchWorldId.WorldA : ResearchWorldId.WorldB;
+        return state == WorldState.WorldA ? ResearchWorldId.WorldA : ResearchWorldId.WorldB;
     }
 }

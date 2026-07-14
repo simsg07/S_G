@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2309526462935076432}
   - component: {fileID: 60273703406114183}
   - component: {fileID: 6963861622570674165}
-  m_Layer: 6
+  m_Layer: 9
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -100,9 +100,8 @@ GameObject:
   m_Component:
   - component: {fileID: 6190678179191517214}
   - component: {fileID: 8545238728473556057}
-  - component: {fileID: 5461250716895589360}
   - component: {fileID: 5869453194291784606}
-  m_Layer: 6
+  m_Layer: 9
   m_Name: Floor_Test
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -144,10 +143,11 @@ MonoBehaviour:
   snapToGrid: 1
   gridSize: 1
   isInteractable: 0
-  blockMovement: 1
+  blockMovement: 0
   blockLineOfSight: 1
-  autoSetObstacleLayer: 1
-  obstacleLayerName: EnvironmentObstacle
+  isGround: 1
+  validateObstacleLayer: 1
+  obstacleLayerName: Ground
   canSwitchWorld: 0
   worldSwitchCategory: 0
   currentWorldState: 0
@@ -157,27 +157,6 @@ MonoBehaviour:
   debugMode: 0
   previousPieceType: 1
   initialized: 1
---- !u!65 &5461250716895589360
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3979924054944008977}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!65 &5869453194291784606
 BoxCollider:
   m_ObjectHideFlags: 0

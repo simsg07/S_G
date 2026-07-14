@@ -32,6 +32,7 @@ public class WorldSwitchable : MonoBehaviour
     [SerializeField] private bool preferWorldVariant = true; // Uses WorldVariant3D membership data when no WorldStateObject3D is available.
     [SerializeField] private WorldStateObject3D worldStateObject; // Optional existing world-state component.
     [SerializeField] private WorldVariant3D worldVariant; // Optional existing world-variant component.
+    [SerializeField] private MapTileWorldVisual mapTileWorldVisual; // Optional World A/B visual slots used by map tiles.
 
     [Header("Local State")]
     [SerializeField] private bool includeChildRenderers = true; // Auto-controls child renderers when local state is used.
@@ -148,6 +149,7 @@ public class WorldSwitchable : MonoBehaviour
         }
 
         CurrentWorld = world;
+        ResolveMapTileWorldVisual()?.ApplyWorld(world);
 
         if (!Application.isPlaying)
         {
@@ -218,12 +220,15 @@ public class WorldSwitchable : MonoBehaviour
         {
             case WorldSwitchableEditorPreviewMode.PreviewWorldA:
                 ApplyLocalState(ResearchWorldId.WorldA);
+                ResolveMapTileWorldVisual()?.ApplyWorld(ResearchWorldId.WorldA);
                 break;
             case WorldSwitchableEditorPreviewMode.PreviewWorldB:
                 ApplyLocalState(ResearchWorldId.WorldB);
+                ResolveMapTileWorldVisual()?.ApplyWorld(ResearchWorldId.WorldB);
                 break;
             default:
                 ApplyAlwaysVisibleInEditor();
+                ResolveMapTileWorldVisual()?.ShowAllInEditor();
                 break;
         }
     }
@@ -371,6 +376,11 @@ public class WorldSwitchable : MonoBehaviour
             worldVariant = GetComponent<WorldVariant3D>();
         }
 
+        if (mapTileWorldVisual == null)
+        {
+            mapTileWorldVisual = GetComponent<MapTileWorldVisual>();
+        }
+
         cachedRenderers = includeChildRenderers
             ? MergeTargets(GetComponentsInChildren<Renderer>(true), extraRenderers)
             : MergeTargets(GetComponents<Renderer>(), extraRenderers);
@@ -404,6 +414,16 @@ public class WorldSwitchable : MonoBehaviour
         }
 
         return worldVariant;
+    }
+
+    private MapTileWorldVisual ResolveMapTileWorldVisual()
+    {
+        if (mapTileWorldVisual == null)
+        {
+            mapTileWorldVisual = GetComponent<MapTileWorldVisual>();
+        }
+
+        return mapTileWorldVisual;
     }
 
     private static void ApplyRendererColor(Renderer target, bool useColor, Color color)
@@ -484,7 +504,8 @@ public class WorldSwitchable : MonoBehaviour
             && !(target is WorldSystem3D)
             && !(target is WorldManager)
             && !(target is WorldVariant3D)
-            && !(target is WorldStateObject3D);
+            && !(target is WorldStateObject3D)
+            && !(target is MapTileWorldVisual);
     }
 
     private static void AddUnique<T>(T[] targets, ref int count, T target) where T : Component

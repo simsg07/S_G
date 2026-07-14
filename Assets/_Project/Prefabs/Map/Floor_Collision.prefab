@@ -1,0 +1,158 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3101
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3102}
+  - component: {fileID: 3103}
+  - component: {fileID: 3104}
+  - component: {fileID: 3105}
+  - component: {fileID: 3106}
+  - component: {fileID: 3107}
+  m_Layer: 9
+  m_Name: Floor_Collision
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3102
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3101}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 6, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20c6afa816e138444b049c01fc2569e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapPiece
+  pieceType: 8
+  useCollider: 1
+  isGround: 1
+  blockMovement: 0
+  autoSetZ: 1
+  zPosition: 0
+  snapToGrid: 0
+  gridSize: 1
+  isInteractable: 0
+  blockLineOfSight: 0
+  validateObstacleLayer: 1
+  obstacleLayerName: Ground
+  canSwitchWorld: 0
+  worldSwitchCategory: 1
+  currentWorldState: 0
+  targetWorldState: 1
+  autoConfigureWorldSwitchable: 0
+  layerSettings: {fileID: 0}
+  debugMode: 0
+  previousPieceType: 8
+  initialized: 1
+--- !u!114 &3104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6dcf447f86ee4c219865bb3c3e9c381a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FloorCollision
+  width: 4
+  colliderHeight: 0.08
+  colliderDepth: 0.3
+  alignToTopSurface: 1
+  visualTileHeight: 1
+  collisionYOffset: 0.02
+  snapToGrid: 1
+  gridSize: 1
+  showDebugVisual: 1
+  debugMode: 0
+--- !u!65 &3105
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3101}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4, y: 0.08, z: 0.3}
+  m_Center: {x: 0, y: 0.06, z: 0}
+--- !u!114 &3106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b87db1651d848f4bdb9cf8fa19ca201, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GridSnapper
+  enableSnap: 1
+  snapInEditMode: 1
+  snapInPlayMode: 0
+  gridSize: 1
+  snapX: 1
+  snapY: 1
+  snapZ: 0
+  zLockEnabled: 0
+  lockedZ: 0
+  offset: {x: 0, y: 0, z: 0}
+  debugMode: 0
+--- !u!114 &3107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a64ecf6e06b4895a03afd2bb58f5102, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapTile
+  placementNote: Walkable collision only. Place the root on the visible floor top
+    surface; the collider bottom starts 0.02 units above it.
+  tileSize: {x: 4, y: 0.08}
+  colliderDepth: 0.3
+  colliderCenter: {x: 0, y: 0.06, z: 0}
+  configureCollider: 0
+  warnForMultipleColliders: 1
+  showColliderGizmo: 0
+  worldVisual: {fileID: 0}

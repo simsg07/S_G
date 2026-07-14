@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8414971121609512558}
   - component: {fileID: 7484807748035947286}
   - component: {fileID: 5951481910401569433}
-  m_Layer: 6
+  m_Layer: 10
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -100,9 +100,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2739938224102457069}
   - component: {fileID: 3840696906929525859}
-  - component: {fileID: 8958260091374184486}
   - component: {fileID: 4998934713283430054}
-  m_Layer: 6
+  m_Layer: 10
   m_Name: Wall_Test
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -146,8 +145,8 @@ MonoBehaviour:
   isInteractable: 0
   blockMovement: 1
   blockLineOfSight: 1
-  autoSetObstacleLayer: 1
-  obstacleLayerName: EnvironmentObstacle
+  validateObstacleLayer: 1
+  obstacleLayerName: Wall
   canSwitchWorld: 0
   worldSwitchCategory: 0
   currentWorldState: 0
@@ -157,27 +156,6 @@ MonoBehaviour:
   debugMode: 0
   previousPieceType: 2
   initialized: 1
---- !u!65 &8958260091374184486
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2430753647144770810}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!65 &4998934713283430054
 BoxCollider:
   m_ObjectHideFlags: 0

@@ -1,5 +1,5 @@
 public enum WorldState
 {
-    Current,
-    Past
+    WorldA = 0,
+    WorldB = 1
 }

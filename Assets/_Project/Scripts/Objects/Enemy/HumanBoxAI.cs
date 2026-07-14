@@ -45,16 +45,14 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
     [Header("Visual / Animator")]
     [SerializeField] private Animator animator;
-    [SerializeField] private Transform visualRoot;
     [SerializeField] private bool facePlayerWhenDetected = true;
-    [SerializeField] private bool flipVisualByScale = true;
-    [SerializeField] private bool facingRight = true;
 
     [Header("Debug")]
     [SerializeField] private float logInterval = 0.5f;
 
     [SerializeField] private HumanBoxState currentState = HumanBoxState.Idle;
     private Collider[] colliders;
+    private HumanBoxHowling humanBoxHowling;
     private float stateEndTime;
     private float nextAttackTime;
     private float lastSeenTime = -999f;
@@ -119,6 +117,14 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
             ClampToFixedZ();
         }
 
+        if (currentState != HumanBoxState.Idle && !CanContinuePlayerEngagement())
+        {
+            LogDetectFailure($"Player in range but not visible. Line of sight blocked by {LastSightBlockedColliderName}");
+            ChangeState(HumanBoxState.Idle);
+            LogDebug("State remains Idle");
+            return;
+        }
+
         UpdateLineOfSightMemory();
 
         switch (currentState)
@@ -149,11 +155,13 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
         if (currentState != HumanBoxState.Walk)
         {
+            MaintainGroundExternalPushControl();
             return;
         }
 
         MoveTowardPlayer(Time.fixedDeltaTime);
         SetMoving(!setMoveAnimatorOnlyWhenMoving || IsMoving);
+        MaintainGroundExternalPushControl();
     }
 
     public void TakeDamage(int damage)
@@ -191,6 +199,11 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
             animator = GetComponentInChildren<Animator>(true);
         }
 
+        if (humanBoxHowling == null)
+        {
+            humanBoxHowling = GetComponent<HumanBoxHowling>();
+        }
+
         if (visualRoot == null)
         {
             if (animator != null)
@@ -213,13 +226,47 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
     private void SyncBaseSettings()
     {
         ApplyHumanBoxMovementDefaults();
-        detectPlayer = true;
+        detectPlayer = monsterDetection == null ||
+            (monsterDetection.enableDetection && monsterDetection.canDetectPlayer);
         detectLight = false;
         canDetectLight = false;
-        playerDetectRange = detectRange;
-        targetKeepRange = chaseRange;
+        if (monsterDetection == null)
+        {
+            playerDetectRange = detectRange;
+            targetKeepRange = chaseRange;
+        }
+        else
+        {
+            detectRange = monsterDetection.playerDetectRange;
+            chaseRange = monsterDetection.chaseRange;
+        }
+
         returnHomeWhenTargetLost = false;
         setMoveAnimatorOnlyWhenMoving = true;
+
+        if (monsterMovement != null)
+        {
+            testMoveSpeed = monsterMovement.testMoveSpeed;
+            useTestMoveSpeed = monsterMovement.useTestMoveSpeed;
+            moveSpeed = monsterMovement.moveSpeed;
+            stopDistance = monsterMovement.stopDistance;
+            lockZPosition = monsterMovement.lockZPosition;
+        }
+
+        if (monsterAttack != null)
+        {
+            attackRange = monsterAttack.attackRange;
+            attackDamage = monsterAttack.attackDamage;
+            attackWindup = monsterAttack.attackWindup;
+            attackCooldown = monsterAttack.attackCooldown;
+        }
+
+        if (humanBoxHowling != null)
+        {
+            howlDuration = humanBoxHowling.howlDuration;
+            howlStunDuration = humanBoxHowling.howlStunDuration;
+            howlOnlyOncePerDetection = humanBoxHowling.howlOnlyOncePerDetection;
+        }
     }
 
     private void ApplyHumanBoxMovementDefaults()
@@ -278,6 +325,12 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
         if (IsPlayerInsideAttackRange() && IsPlayerVisible() && Time.time >= nextAttackTime)
         {
+            if (monsterAttack != null && !monsterAttack.enableAttack)
+            {
+                LogDebug("Attack disabled by MonsterAttack.");
+                return;
+            }
+
             ChangeState(HumanBoxState.Attack);
         }
     }
@@ -427,33 +480,13 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
             return;
         }
 
-        if (!IsPlayerInsideDetectRange() || !CanSeePlayerNow())
+        if (!HasFinalPlayerDetection(chaseRange, true))
         {
             LogDetectFailure("FaceTarget skipped because player is not detected");
             return;
         }
 
-        float xDelta = playerTarget.position.x - transform.position.x;
-        if (Mathf.Abs(xDelta) <= 0.001f)
-        {
-            return;
-        }
-
-        bool shouldFaceRight = invertFacing ? xDelta < 0f : xDelta > 0f;
-        if (shouldFaceRight == facingRight)
-        {
-            return;
-        }
-
-        facingRight = shouldFaceRight;
-
-        if (flipVisualByScale)
-        {
-            Vector3 scale = visualRoot.localScale;
-            scale.x = Mathf.Abs(scale.x) * (facingRight ? 1f : -1f);
-            visualRoot.localScale = scale;
-            LogDebug($"Facing targetDirection.x={xDelta:0.###}, shouldFaceRight={shouldFaceRight}, visualScaleX={scale.x:0.###}, invertFacing={invertFacing}");
-        }
+        FaceTargetIfNeeded(playerTarget.position);
     }
 
     private void UpdateLineOfSightMemory()
@@ -472,34 +505,12 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
     private bool CanSeePlayerNow()
     {
-        if (playerTarget == null)
-        {
-            return false;
-        }
+        return HasFinalPlayerDetection(chaseRange, false);
+    }
 
-        if (!requireLineOfSight)
-        {
-            lastRayOrigin = transform.position + lineOfSightStartOffset;
-            lastRayEnd = playerTarget.position + targetCheckOffset;
-            return true;
-        }
-
-        Vector3 origin = transform.position + lineOfSightStartOffset;
-        Vector3 target = playerTarget.position + targetCheckOffset;
-        origin.z = fixedZPosition;
-        target.z = fixedZPosition;
-        Vector3 direction = target - origin;
-        float distance = direction.magnitude;
-
-        lastRayOrigin = origin;
-        lastRayEnd = target;
-
-        if (distance <= 0.001f)
-        {
-            return true;
-        }
-
-        return HasLineOfSightTo(playerTarget);
+    private bool CanContinuePlayerEngagement()
+    {
+        return HasFinalPlayerDetection(chaseRange, true);
     }
 
     private bool IsPlayerInsideDetectRange()
@@ -534,32 +545,52 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
     private bool CanDetectPlayerForHowling()
     {
-        if (currentState == HumanBoxState.Dead)
+        if (!HasFinalPlayerDetection(detectRange, true))
         {
-            LogDetectFailure("Dead state");
-            return false;
-        }
+            if (playerTarget != null && IsPlayerInsideDetectRange() && requireLineOfSight && !IsPlayerVisible())
+            {
+                LogDetectFailure($"Detection failed: line of sight blocked by {LastSightBlockedColliderName}. Player in range but not visible. State remains Idle");
+            }
+            else
+            {
+                LogDetectFailure("Detection failed: common MonsterDetection result is false. State remains Idle");
+            }
 
-        if (playerTarget == null)
-        {
-            LogDetectFailure("No player target");
-            return false;
-        }
-
-        if (!IsPlayerInsideDetectRange())
-        {
-            LogDetectFailure("Out of detect range");
-            return false;
-        }
-
-        if (requireLineOfSight && !IsPlayerVisible())
-        {
-            LogDetectFailure("Line of sight blocked");
             return false;
         }
 
         LogDebug("Player detected");
         return true;
+    }
+
+    private bool HasFinalPlayerDetection(float range, bool requireSelectedTarget)
+    {
+        if (currentState == HumanBoxState.Dead || !detectPlayer || playerTarget == null)
+        {
+            return false;
+        }
+
+        if (monsterDetection != null &&
+            (!monsterDetection.enableDetection || !monsterDetection.canDetectPlayer))
+        {
+            return false;
+        }
+
+        if (!IsPlayerInsideRange(range))
+        {
+            return false;
+        }
+
+        lastRayOrigin = transform.position + lineOfSightStartOffset;
+        lastRayEnd = playerTarget.position + targetCheckOffset;
+        if (requireLineOfSight && !IsPlayerVisible())
+        {
+            LogDetectFailure($"Detection failed: line of sight blocked by {LastSightBlockedColliderName}");
+            return false;
+        }
+
+        return !requireSelectedTarget ||
+            (CurrentTargetType == MonsterTargetType.Player && CurrentTarget == playerTarget);
     }
 
     private void LogDetectFailure(string reason)
@@ -639,6 +670,12 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
     private void TryStunPlayer()
     {
+        if (humanBoxHowling != null)
+        {
+            humanBoxHowling.TryStun(playerTarget);
+            return;
+        }
+
         IStunnable stunnable = FindPlayerComponent<IStunnable>();
         if (stunnable == null)
         {
@@ -697,21 +734,45 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
     private void SetMoving(bool value)
     {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        {
+            monsterAnimatorBridge.SetMoving(value);
+            return;
+        }
+
         SetBool(IsMovingHash, "IsMoving", value);
     }
 
     private void SetAttacking(bool value)
     {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        {
+            monsterAnimatorBridge.SetAttacking(value);
+            return;
+        }
+
         SetBool(IsAttackingHash, "IsAttacking", value);
     }
 
     private void SetHowling(bool value)
     {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        {
+            monsterAnimatorBridge.SetHowling(value);
+            return;
+        }
+
         SetBool(IsHowlingHash, "IsHowling", value);
     }
 
     private void SetAttackFalse(bool value)
     {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        {
+            monsterAnimatorBridge.SetAttackFalse(value);
+            return;
+        }
+
         SetBool(IsAttackFalseHash, "IsAttackFalse", value);
     }
 
@@ -722,11 +783,38 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
     private void SetInt(int hash, string parameterName, int value)
     {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge && parameterName == "State")
+        {
+            monsterAnimatorBridge.SetState(value);
+            return;
+        }
+
         SetAnimatorIntIfExists(animator, hash, value);
     }
 
     private void Trigger(int hash, string parameterName)
     {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        {
+            if (parameterName == "Attack")
+            {
+                monsterAnimatorBridge.TriggerAttack();
+                return;
+            }
+
+            if (parameterName == "Howling")
+            {
+                monsterAnimatorBridge.TriggerHowling();
+                return;
+            }
+
+            if (parameterName == "AttackFalse")
+            {
+                monsterAnimatorBridge.TriggerAttackFalse();
+                return;
+            }
+        }
+
         TriggerAnimatorIfExists(animator, hash);
     }
 
@@ -751,15 +839,22 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
         string playerName = playerTarget != null ? playerTarget.name : "None";
         float distance = GetPlayerDistance();
         bool inDetectRange = IsPlayerInsideDetectRange();
+        bool inChaseRange = IsPlayerInsideChaseRange();
+        bool inAttackRange = IsPlayerInsideAttackRange();
         bool lineOfSight = !requireLineOfSight || lastLineOfSight;
+        string constraints = body != null ? body.constraints.ToString() : "None";
+        bool useGravity = body != null && body.useGravity;
         Debug.Log(
             $"[HumanBoxAI] Player={playerName}, distance={distance:0.00}, detectRange={detectRange:0.##}, " +
             $"chaseRange={chaseRange:0.##}, attackRange={attackRange:0.##}, inDetectRange={inDetectRange}, " +
-            $"requireLineOfSight={requireLineOfSight}, lineOfSight={lineOfSight}, state={currentState}, HP={currentHp}/{maxHp}",
+            $"inChaseRange={inChaseRange}, inAttackRange={inAttackRange}, requireLineOfSight={requireLineOfSight}, " +
+            $"lineOfSight={lineOfSight}, state={currentState}, speed={ActiveMoveSpeed:0.##}, useTestMoveSpeed={useTestMoveSpeed}, " +
+            $"testMoveSpeed={testMoveSpeed:0.##}, movementType={movementType}, isGrounded={isGrounded}, useGravity={useGravity}, " +
+            $"constraints={constraints}, moveDir={lastMoveDirection}, blockedBy={LastBlockedColliderName}, HP={currentHp}/{maxHp}",
             this);
     }
 
-    private new void LogDebug(string message)
+    protected override void LogDebug(string message)
     {
         if (debugMode)
         {

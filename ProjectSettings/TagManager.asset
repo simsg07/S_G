@@ -25,10 +25,10 @@ TagManager:
   - 
   - 
   - EnvironmentObstacle
-  - 
-  - 
-  - 
-  - 
+  - Ground
+  - Wall
+  - TileObstacle
+  - Platform
   - 
   - 
   - 

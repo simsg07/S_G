@@ -100,6 +100,65 @@ public class EyeballFlyAI : MonsterAIBase
         }
     }
 
+    protected override void UpdateTargetSelection()
+    {
+        Transform previousTarget = currentTarget;
+        MonsterTargetType previousTargetType = currentTargetType;
+
+        // Preserve automatic target lookup, then enforce EyeballFly's strict LOS result.
+        base.UpdateTargetSelection();
+
+        bool detectionEnabled = monsterDetection == null || monsterDetection.enableDetection;
+        bool playerDetected = detectionEnabled && detectPlayer &&
+            IsStrictTargetDetected(playerTarget, playerDetectRange, false, out _);
+        bool playerKept = detectionEnabled && detectPlayer &&
+            previousTargetType == MonsterTargetType.Player && previousTarget != null &&
+            IsStrictTargetDetected(previousTarget, targetKeepRange, false, out _);
+        bool lightDetected = detectionEnabled && detectLight && canDetectLight && IsLightAvailable(lightTarget) &&
+            IsStrictTargetDetected(lightTarget, lightDetectRange, true, out _);
+        bool lightKept = detectionEnabled && detectLight && canDetectLight &&
+            previousTargetType == MonsterTargetType.Light && previousTarget != null && IsLightAvailable(previousTarget) &&
+            IsStrictTargetDetected(previousTarget, targetKeepRange, true, out _);
+
+        if (playerDetected)
+        {
+            currentTarget = playerTarget;
+            currentTargetType = MonsterTargetType.Player;
+            isReturningHome = false;
+            return;
+        }
+
+        if (playerKept)
+        {
+            currentTarget = previousTarget;
+            currentTargetType = MonsterTargetType.Player;
+            isReturningHome = false;
+            return;
+        }
+
+        if (lightDetected)
+        {
+            currentTarget = lightTarget;
+            currentTargetType = MonsterTargetType.Light;
+            isReturningHome = false;
+            return;
+        }
+
+        if (lightKept)
+        {
+            currentTarget = previousTarget;
+            currentTargetType = MonsterTargetType.Light;
+            isReturningHome = false;
+            return;
+        }
+
+        currentTarget = null;
+        currentTargetType = returnHomeWhenTargetLost ? MonsterTargetType.Home : MonsterTargetType.None;
+        Vector3 homeDelta = homePosition - moveAnchorPosition;
+        homeDelta.z = 0f;
+        isReturningHome = returnHomeWhenTargetLost && homeDelta.sqrMagnitude > 0.0001f;
+    }
+
     protected override void FixedUpdate()
     {
         if (dead || currentState == EyeballFlyState.DEAD)
@@ -140,7 +199,7 @@ public class EyeballFlyAI : MonsterAIBase
 
     protected override void UpdateBaseMovement(float deltaTime)
     {
-        if (currentState == EyeballFlyState.ATTACK)
+        if (currentState != EyeballFlyState.MOVE)
         {
             lastMoveDirection = Vector3.zero;
             ApplyPosition(moveAnchorPosition + GetMovementOffset());
@@ -161,6 +220,13 @@ public class EyeballFlyAI : MonsterAIBase
         {
             animator = GetComponentInChildren<Animator>(true);
         }
+
+        if (monsterAttack != null)
+        {
+            attackDamage = monsterAttack.attackDamage;
+            attackInterval = monsterAttack.attackInterval;
+            attackRange = monsterAttack.attackRange;
+        }
     }
 
     private void InitializeHover()
@@ -170,13 +236,15 @@ public class EyeballFlyAI : MonsterAIBase
 
     private void UpdateState()
     {
-        if (IsTargetInAttackRange)
+        bool hasVisibleTarget = HasVisibleSelectedTarget();
+
+        if (hasVisibleTarget && IsTargetInAttackRange)
         {
             ChangeState(EyeballFlyState.ATTACK);
             return;
         }
 
-        if (HasTarget || IsReturningHome)
+        if ((HasTarget && hasVisibleTarget) || IsReturningHome)
         {
             ChangeState(EyeballFlyState.MOVE);
             return;
@@ -187,6 +255,20 @@ public class EyeballFlyAI : MonsterAIBase
 
     private void AttackTarget()
     {
+        if (!HasVisibleSelectedTarget())
+        {
+            SetAttackingVisual(false);
+            LogDebug("Attack cancelled because the selected target is no longer visible.");
+            return;
+        }
+
+        if (monsterAttack != null && !monsterAttack.enableAttack)
+        {
+            SetAttackingVisual(false);
+            LogDebug("Attack disabled by MonsterAttack.");
+            return;
+        }
+
         if (Time.time < nextAttackTime)
         {
             return;
@@ -197,6 +279,43 @@ public class EyeballFlyAI : MonsterAIBase
         LogDebug($"Attack Target: {CurrentTargetType}");
         LogDebug($"Attack Trigger Fired={attackTriggered}, TargetType={CurrentTargetType}, InAttackRange={IsTargetInAttackRange}");
         TryApplyPlayerDamage();
+    }
+
+    private bool HasVisibleSelectedTarget()
+    {
+        if (CurrentTargetType == MonsterTargetType.Player)
+        {
+            return CurrentTarget == playerTarget &&
+                IsStrictTargetDetected(playerTarget, Mathf.Max(playerDetectRange, targetKeepRange), false, out _);
+        }
+
+        if (CurrentTargetType == MonsterTargetType.Light)
+        {
+            return CurrentTarget == lightTarget && IsLightAvailable(lightTarget) &&
+                IsStrictTargetDetected(lightTarget, Mathf.Max(lightDetectRange, targetKeepRange), true, out _);
+        }
+
+        return false;
+    }
+
+    private bool IsStrictTargetDetected(
+        Transform target,
+        float range,
+        bool requireEnabledLight,
+        out Collider blockingCollider)
+    {
+        if (monsterDetection != null)
+        {
+            return monsterDetection.IsTargetDetected(
+                transform,
+                target,
+                range,
+                requireEnabledLight,
+                out blockingCollider);
+        }
+
+        blockingCollider = null;
+        return IsTargetDetected(target, range);
     }
 
     private void TryApplyPlayerDamage()
@@ -257,6 +376,12 @@ public class EyeballFlyAI : MonsterAIBase
     private bool SetMovingVisual(bool value)
     {
         bool wrapperSet = animationController != null && animationController.SetMovingVisual(value);
+        if (!wrapperSet && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        {
+            monsterAnimatorBridge.SetMoving(value);
+            return true;
+        }
+
         bool directSet = !wrapperSet && SetAnimatorBool(IsMovingHash, "IsMoving", value);
         return wrapperSet || directSet;
     }
@@ -264,6 +389,12 @@ public class EyeballFlyAI : MonsterAIBase
     private bool SetAttackingVisual(bool value)
     {
         bool wrapperSet = animationController != null && animationController.SetAttackingVisual(value);
+        if (!wrapperSet && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        {
+            monsterAnimatorBridge.SetAttacking(value);
+            return true;
+        }
+
         bool directSet = !wrapperSet && SetAnimatorBool(IsAttackingHash, "IsAttacking", value);
         return wrapperSet || directSet;
     }
@@ -271,6 +402,12 @@ public class EyeballFlyAI : MonsterAIBase
     private bool SetDeadVisual(bool value)
     {
         bool wrapperSet = animationController != null && animationController.SetDeadVisual(value);
+        if (!wrapperSet && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        {
+            monsterAnimatorBridge.SetDead(value);
+            return true;
+        }
+
         bool directSet = !wrapperSet && SetAnimatorBool(IsDeadHash, "IsDead", value);
         return wrapperSet || directSet;
     }
@@ -278,6 +415,12 @@ public class EyeballFlyAI : MonsterAIBase
     private bool PlayAttackVisual()
     {
         bool wrapperSet = animationController != null && animationController.PlayAttack();
+        if (!wrapperSet && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        {
+            monsterAnimatorBridge.TriggerAttack();
+            return true;
+        }
+
         bool directSet = !wrapperSet && SetAnimatorTrigger(AttackHash, "Attack");
         return wrapperSet || directSet;
     }

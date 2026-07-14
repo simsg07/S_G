@@ -15,12 +15,13 @@ public abstract class MonsterAIBase : MonoBehaviour
     [SerializeField] protected float lightDetectRange = 4f;
     [SerializeField] protected float targetKeepRange = 6f;
     [SerializeField] protected float attackRange = 0.5f;
-    [SerializeField] protected bool requireLineOfSight;
+    [SerializeField] protected bool requireLineOfSight = true;
     [SerializeField] protected LayerMask obstacleLayerMask;
     [SerializeField] protected Vector3 lineOfSightStartOffset;
     [SerializeField] protected Vector3 targetCheckOffset;
     [SerializeField] protected float lostSightDelay = 0.2f;
     [SerializeField] protected bool debugLineOfSight = true;
+    [SerializeField] protected float detectionLogInterval = 0.5f;
 
     [Header("Movement")]
     [SerializeField] protected MonsterMovementType movementType = MonsterMovementType.Ground;
@@ -46,10 +47,16 @@ public abstract class MonsterAIBase : MonoBehaviour
     [SerializeField] protected bool autoSnapToGroundOnStart;
     [SerializeField] protected float groundSnapMaxDistance = 1.5f;
     [SerializeField] protected float groundSnapOffset = 0.05f;
+    [SerializeField] protected bool preventExternalPush = true;
+    [SerializeField] protected float groundLinearDamping = 5f;
+    [SerializeField] protected bool stopHorizontalVelocityWhenIdle = true;
 
     [Header("Visual Facing")]
+    [SerializeField] protected Transform visualRoot;
+    [SerializeField] protected bool flipVisualByScale = true;
+    [SerializeField] protected bool visualFacesRightByDefault = true;
     [SerializeField] protected Transform facingVisualRoot;
-    [SerializeField] protected bool invertFacing = true;
+    [SerializeField] protected bool invertFacing;
     [SerializeField] protected bool useVisualScaleFacing = true;
 
     [Header("Debug")]
@@ -64,6 +71,14 @@ public abstract class MonsterAIBase : MonoBehaviour
     protected Vector3 lastMoveDirection;
     protected bool isReturningHome;
 
+    protected MonsterCore monsterCore;
+    protected MonsterDetection monsterDetection;
+    protected MonsterMovement monsterMovement;
+    protected MonsterFacing monsterFacing;
+    protected MonsterAttack monsterAttack;
+    protected MonsterAnimatorBridge monsterAnimatorBridge;
+    protected MonsterDebugInfo monsterDebugInfo;
+
     private Collider movementCollider;
     private float facingVisualBaseScaleX;
     private bool homeInitialized;
@@ -74,6 +89,7 @@ public abstract class MonsterAIBase : MonoBehaviour
     private bool warnedLightTargetMissing;
     private bool warnedObstacleMaskMissing;
     private bool warnedMovementMaskMissing;
+    private bool warnedGroundMaskMissing;
     private bool warnedMovementColliderMissing;
     private Vector3 lastMovementCastStart;
     private Vector3 lastMovementCastEnd;
@@ -81,6 +97,17 @@ public abstract class MonsterAIBase : MonoBehaviour
     private Vector3 lastGroundCheckEnd;
     private Vector3 lastBlockedPoint;
     private Collider lastBlockedCollider;
+    private Vector3 lastPlayerSightStart;
+    private Vector3 lastPlayerSightEnd;
+    private Vector3 lastLightSightStart;
+    private Vector3 lastLightSightEnd;
+    private Vector3 lastSightBlockedPoint;
+    private Collider lastSightBlockedCollider;
+    private Collider lastPlayerSightBlockedCollider;
+    private Collider lastLightSightBlockedCollider;
+    private bool lastPlayerLineOfSight = true;
+    private bool lastLightLineOfSight = true;
+    private float nextLineOfSightDebugLogTime;
 
     public Transform CurrentTarget => currentTarget;
     public MonsterTargetType CurrentTargetType => currentTargetType;
@@ -89,6 +116,8 @@ public abstract class MonsterAIBase : MonoBehaviour
     public bool IsMoving => lastMoveDirection.sqrMagnitude > 0.0001f;
     public bool IsTargetInAttackRange => currentTarget != null && IsInRange(currentTarget, attackRange);
     public bool IsPlayerInAttackRange => IsInRange(playerTarget, attackRange);
+    protected string LastBlockedColliderName => lastBlockedCollider != null ? lastBlockedCollider.name : "None";
+    protected string LastSightBlockedColliderName => lastSightBlockedCollider != null ? lastSightBlockedCollider.name : "None";
 
     protected virtual void Awake()
     {
@@ -130,6 +159,8 @@ public abstract class MonsterAIBase : MonoBehaviour
         groundCheckRadius = Mathf.Max(0.01f, groundCheckRadius);
         groundSnapMaxDistance = Mathf.Max(0.01f, groundSnapMaxDistance);
         groundSnapOffset = Mathf.Max(0f, groundSnapOffset);
+        groundLinearDamping = Mathf.Max(0f, groundLinearDamping);
+        detectionLogInterval = Mathf.Max(0.05f, detectionLogInterval);
         ConfigureObstacleMasks();
         CacheBaseReferences();
     }
@@ -155,6 +186,7 @@ public abstract class MonsterAIBase : MonoBehaviour
 
         UpdateGroundCheck();
         UpdateBaseMovement(Time.fixedDeltaTime);
+        MaintainGroundExternalPushControl();
     }
 
     public virtual void ResetMonster()
@@ -174,31 +206,180 @@ public abstract class MonsterAIBase : MonoBehaviour
             body = GetComponent<Rigidbody>();
         }
 
+        CacheFunctionalComponents();
+        ApplyFunctionalComponentSettings();
+
         if (movementCollider == null)
         {
             movementCollider = GetPrimaryMovementCollider();
         }
 
-        if (facingVisualRoot == null)
+        if (visualRoot == null && facingVisualRoot != null)
+        {
+            visualRoot = facingVisualRoot;
+        }
+
+        if (visualRoot == null)
         {
             Animator childAnimator = GetComponentInChildren<Animator>(true);
             if (childAnimator != null)
             {
-                facingVisualRoot = childAnimator.transform;
+                visualRoot = childAnimator.transform;
             }
             else
             {
                 Renderer childRenderer = GetComponentInChildren<Renderer>(true);
-                facingVisualRoot = childRenderer != null ? childRenderer.transform : transform;
+                visualRoot = childRenderer != null ? childRenderer.transform : transform;
             }
         }
 
-        if (facingVisualRoot != null && Mathf.Abs(facingVisualBaseScaleX) <= 0.0001f)
+        if (facingVisualRoot == null)
         {
-            facingVisualBaseScaleX = Mathf.Abs(facingVisualRoot.localScale.x);
+            facingVisualRoot = visualRoot;
+        }
+
+        if (visualRoot != null && Mathf.Abs(facingVisualBaseScaleX) <= 0.0001f)
+        {
+            facingVisualBaseScaleX = Mathf.Abs(visualRoot.localScale.x);
         }
 
         ConfigureObstacleMasks();
+    }
+
+    protected void CacheFunctionalComponents()
+    {
+        if (monsterCore == null)
+        {
+            monsterCore = GetComponent<MonsterCore>();
+        }
+
+        if (monsterDetection == null)
+        {
+            monsterDetection = GetComponent<MonsterDetection>();
+        }
+
+        if (monsterMovement == null)
+        {
+            monsterMovement = GetComponent<MonsterMovement>();
+        }
+
+        if (monsterFacing == null)
+        {
+            monsterFacing = GetComponent<MonsterFacing>();
+        }
+
+        if (monsterAttack == null)
+        {
+            monsterAttack = GetComponent<MonsterAttack>();
+        }
+
+        if (monsterAnimatorBridge == null)
+        {
+            monsterAnimatorBridge = GetComponent<MonsterAnimatorBridge>();
+        }
+
+        if (monsterDebugInfo == null)
+        {
+            monsterDebugInfo = GetComponent<MonsterDebugInfo>();
+        }
+    }
+
+    protected virtual void ApplyFunctionalComponentSettings()
+    {
+        if (monsterCore != null)
+        {
+            monsterCore.AutoFill();
+            if (monsterCore.monsterRigidbody != null)
+            {
+                body = monsterCore.monsterRigidbody;
+            }
+
+            if (monsterCore.mainCollider != null)
+            {
+                movementCollider = monsterCore.mainCollider;
+            }
+
+            if (monsterCore.playerTarget != null)
+            {
+                playerTarget = monsterCore.playerTarget;
+            }
+
+            if (monsterCore.lightTarget != null)
+            {
+                lightTarget = monsterCore.lightTarget;
+            }
+
+            if (monsterCore.visualRoot != null)
+            {
+                visualRoot = monsterCore.visualRoot;
+                facingVisualRoot = monsterCore.visualRoot;
+            }
+
+            debugMode = debugMode || monsterCore.debugMode;
+        }
+
+        if (monsterDetection != null)
+        {
+            detectPlayer = monsterDetection.enableDetection && monsterDetection.canDetectPlayer;
+            detectLight = monsterDetection.enableDetection && monsterDetection.canDetectLight;
+            canDetectLight = monsterDetection.enableDetection && monsterDetection.canDetectLight;
+            playerDetectRange = monsterDetection.playerDetectRange;
+            lightDetectRange = monsterDetection.lightDetectRange;
+            targetKeepRange = monsterDetection.chaseRange;
+            requireLineOfSight = monsterDetection.requireLineOfSight;
+            obstacleLayerMask = monsterDetection.obstacleLayerMask;
+            lineOfSightStartOffset = monsterDetection.lineOfSightStartOffset;
+            targetCheckOffset = monsterDetection.targetCheckOffset;
+            debugLineOfSight = monsterDetection.debugLineOfSight;
+            detectionLogInterval = monsterDetection.logInterval;
+            showGizmos = showGizmos || monsterDetection.showGizmos;
+            debugMode = debugMode || monsterDetection.debugMode;
+        }
+
+        if (monsterMovement != null)
+        {
+            movementType = monsterMovement.movementType;
+            moveSpeed = monsterMovement.ActiveMoveSpeed;
+            returnHomeSpeed = monsterMovement.returnSpeed;
+            returnHomeWhenTargetLost = monsterMovement.returnToHomeWhenLost;
+            blockMovementByObstacles = monsterMovement.enableMovement && monsterMovement.blockMovementByObstacles;
+            movementObstacleLayerMask = monsterMovement.movementObstacleLayerMask;
+            groundLayerMask = monsterMovement.groundLayerMask;
+            groundOnlyMoveX = monsterMovement.groundOnlyMoveX;
+            useGravityForGround = monsterMovement.useGravityForGround;
+            preventExternalPush = monsterMovement.preventExternalPush;
+            groundLinearDamping = monsterMovement.groundLinearDamping;
+            stopHorizontalVelocityWhenIdle = monsterMovement.stopHorizontalVelocityWhenIdle;
+            showGizmos = showGizmos || monsterMovement.showGizmos;
+            debugMode = debugMode || monsterMovement.debugMode;
+        }
+
+        if (monsterFacing != null)
+        {
+            faceTargetOnlyWhenDetected = monsterFacing.faceOnlyWhenDetected;
+            visualFacesRightByDefault = monsterFacing.visualFacesRightByDefault;
+            invertFacing = monsterFacing.invertFacing;
+            if (monsterFacing.visualRoot != null)
+            {
+                visualRoot = monsterFacing.visualRoot;
+                facingVisualRoot = monsterFacing.visualRoot;
+            }
+
+            debugMode = debugMode || monsterFacing.debugMode;
+        }
+
+        if (monsterAttack != null)
+        {
+            attackRange = monsterAttack.attackRange;
+            showGizmos = showGizmos || monsterAttack.showGizmos;
+            debugMode = debugMode || monsterAttack.debugMode;
+        }
+
+        if (monsterDebugInfo != null)
+        {
+            showGizmos = showGizmos || monsterDebugInfo.showGizmos;
+            debugMode = debugMode || monsterDebugInfo.debugMode;
+        }
     }
 
     protected virtual void ConfigureBaseRigidbody()
@@ -211,6 +392,11 @@ public abstract class MonsterAIBase : MonoBehaviour
 
         body.useGravity = movementType == MonsterMovementType.Ground && useGravityForGround;
         body.isKinematic = movementType == MonsterMovementType.Flying;
+        if (movementType == MonsterMovementType.Ground)
+        {
+            body.linearDamping = groundLinearDamping;
+        }
+
         body.constraints &= ~RigidbodyConstraints.FreezePositionX;
         body.constraints &= ~RigidbodyConstraints.FreezePositionY;
         body.constraints |= TwoPointFiveDUtility3D.SideViewRigidbodyConstraints;
@@ -283,6 +469,13 @@ public abstract class MonsterAIBase : MonoBehaviour
 
     protected virtual void UpdateBaseMovement(float deltaTime)
     {
+        if (monsterMovement != null && !monsterMovement.enableMovement)
+        {
+            lastMoveDirection = Vector3.zero;
+            LogDebug("Movement disabled by MonsterMovement.");
+            return;
+        }
+
         if (currentTarget != null)
         {
             MoveTowardPosition(ProjectToFixedZ(currentTarget.position), moveSpeed, deltaTime);
@@ -355,11 +548,16 @@ public abstract class MonsterAIBase : MonoBehaviour
         moveAnchorPosition = ProjectToFixedZ(currentPosition);
 
         float xDelta = targetPosition.x - moveAnchorPosition.x;
-        if (Mathf.Abs(xDelta) <= 0.001f || !isGrounded)
+        if (Mathf.Abs(xDelta) <= 0.001f)
         {
             lastMoveDirection = Vector3.zero;
             ApplyPosition(moveAnchorPosition);
             return;
+        }
+
+        if (!isGrounded)
+        {
+            LogDebug("Ground move X only while not grounded. Y velocity preserved.");
         }
 
         Vector3 direction = groundOnlyMoveX
@@ -423,6 +621,22 @@ public abstract class MonsterAIBase : MonoBehaviour
         moveAnchorPosition.z = fixedZPosition;
     }
 
+    protected void MaintainGroundExternalPushControl()
+    {
+        if (body == null || movementType != MonsterMovementType.Ground || !preventExternalPush)
+        {
+            return;
+        }
+
+        Vector3 velocity = body.linearVelocity;
+        bool shouldStopHorizontal = stopHorizontalVelocityWhenIdle || !IsMoving;
+        if (shouldStopHorizontal && Mathf.Abs(velocity.x) > 0.001f)
+        {
+            velocity.x = 0f;
+            body.linearVelocity = velocity;
+        }
+    }
+
     protected void UpdateGroundCheck()
     {
         if (movementType != MonsterMovementType.Ground)
@@ -433,7 +647,9 @@ public abstract class MonsterAIBase : MonoBehaviour
 
         if (groundLayerMask.value == 0)
         {
-            groundLayerMask = movementObstacleLayerMask;
+            isGrounded = false;
+            WarnMissingGroundMask();
+            return;
         }
 
         Vector3 origin = transform.position;
@@ -547,16 +763,34 @@ public abstract class MonsterAIBase : MonoBehaviour
             return false;
         }
 
-        return !requireLineOfSight || HasLineOfSightTo(target);
+        if (!requireLineOfSight)
+        {
+            RecordLineOfSight(target, true, transform.position + lineOfSightStartOffset, target.position + targetCheckOffset, null, target.position);
+            return true;
+        }
+
+        return HasLineOfSightTo(target);
     }
 
     protected bool IsPlayerDetected()
     {
+        if (monsterDetection != null && !monsterDetection.enableDetection)
+        {
+            LogDebug("Detection disabled by MonsterDetection.");
+            return false;
+        }
+
         return detectPlayer && IsTargetDetected(playerTarget, playerDetectRange);
     }
 
     protected bool IsLightDetected()
     {
+        if (monsterDetection != null && !monsterDetection.enableDetection)
+        {
+            LogDebug("Detection disabled by MonsterDetection.");
+            return false;
+        }
+
         return detectLight && canDetectLight && IsLightAvailable(lightTarget) && IsTargetDetected(lightTarget, lightDetectRange);
     }
 
@@ -615,12 +849,23 @@ public abstract class MonsterAIBase : MonoBehaviour
 
     protected bool IsPlayerVisible()
     {
-        return detectPlayer && playerTarget != null && (!requireLineOfSight || HasLineOfSightTo(playerTarget));
+        return detectPlayer && playerTarget != null && IsTargetVisible(playerTarget);
     }
 
     protected bool IsLightVisible()
     {
-        return detectLight && canDetectLight && IsLightAvailable(lightTarget) && (!requireLineOfSight || HasLineOfSightTo(lightTarget));
+        return detectLight && canDetectLight && IsLightAvailable(lightTarget) && IsTargetVisible(lightTarget);
+    }
+
+    private bool IsTargetVisible(Transform target)
+    {
+        if (!requireLineOfSight)
+        {
+            RecordLineOfSight(target, true, transform.position + lineOfSightStartOffset, target.position + targetCheckOffset, null, target.position);
+            return true;
+        }
+
+        return HasLineOfSightTo(target);
     }
 
     protected bool HasLineOfSightTo(Transform target, LayerMask obstacleMask)
@@ -632,6 +877,13 @@ public abstract class MonsterAIBase : MonoBehaviour
 
         if (requireLineOfSight && obstacleMask.value == 0)
         {
+            RecordLineOfSight(
+                target,
+                true,
+                transform.position + lineOfSightStartOffset,
+                target.position + targetCheckOffset,
+                null,
+                target.position);
             WarnMissingObstacleMask();
             return true;
         }
@@ -645,32 +897,97 @@ public abstract class MonsterAIBase : MonoBehaviour
 
         if (distance <= 0.001f)
         {
+            RecordLineOfSight(target, true, origin, destination, null, destination);
             return true;
         }
 
         RaycastHit[] hits = Physics.RaycastAll(origin, direction.normalized, distance, obstacleMask, QueryTriggerInteraction.Ignore);
+        Collider nearestBlockingCollider = null;
+        Vector3 nearestBlockingPoint = destination;
+        float nearestBlockingDistance = float.PositiveInfinity;
         for (int i = 0; i < hits.Length; i++)
         {
             Collider hitCollider = hits[i].collider;
-            if (hitCollider == null ||
-                hitCollider.transform.IsChildOf(transform) ||
-                hitCollider.transform.IsChildOf(target))
+            if (hitCollider == null || BelongsToHierarchy(hitCollider.transform, transform) || BelongsToHierarchy(hitCollider.transform, target))
             {
                 continue;
             }
 
-            if (debugMode && debugLineOfSight)
+            MapPiece mapPiece = hitCollider.GetComponentInParent<MapPiece>();
+            if (mapPiece != null && !mapPiece.BlockLineOfSight)
             {
-                LogDebug($"Line of sight blocked by {hitCollider.name}. Target={target.name}");
+                continue;
             }
 
+            if (hits[i].distance < nearestBlockingDistance)
+            {
+                nearestBlockingDistance = hits[i].distance;
+                nearestBlockingCollider = hitCollider;
+                nearestBlockingPoint = hits[i].point;
+            }
+        }
+
+        bool hasLineOfSight = nearestBlockingCollider == null;
+        RecordLineOfSight(target, hasLineOfSight, origin, destination, nearestBlockingCollider, nearestBlockingPoint);
+
+        if (!hasLineOfSight && debugMode && debugLineOfSight && Time.time >= nextLineOfSightDebugLogTime)
+        {
+            nextLineOfSightDebugLogTime = Time.time + detectionLogInterval;
+            LogDebug($"Line of sight blocked by {nearestBlockingCollider.name}. Target={target.name}");
+        }
+
+        if (!hasLineOfSight)
+        {
             return false;
         }
 
         return true;
     }
 
-    private bool IsMovementBlocked(Vector3 delta, out Collider blockedCollider, out Vector3 blockedPoint)
+    private static bool BelongsToHierarchy(Transform candidate, Transform hierarchyRoot)
+    {
+        return candidate != null && hierarchyRoot != null &&
+            (candidate == hierarchyRoot || candidate.IsChildOf(hierarchyRoot) || hierarchyRoot.IsChildOf(candidate));
+    }
+
+    private void RecordLineOfSight(
+        Transform target,
+        bool hasLineOfSight,
+        Vector3 origin,
+        Vector3 destination,
+        Collider blockingCollider,
+        Vector3 blockingPoint)
+    {
+        origin.z = fixedZPosition;
+        destination.z = fixedZPosition;
+
+        if (target == playerTarget)
+        {
+            lastPlayerSightStart = origin;
+            lastPlayerSightEnd = destination;
+            lastPlayerLineOfSight = hasLineOfSight;
+            lastPlayerSightBlockedCollider = blockingCollider;
+        }
+        else if (target == lightTarget)
+        {
+            lastLightSightStart = origin;
+            lastLightSightEnd = destination;
+            lastLightLineOfSight = hasLineOfSight;
+            lastLightSightBlockedCollider = blockingCollider;
+        }
+
+        if (!hasLineOfSight)
+        {
+            lastSightBlockedCollider = blockingCollider;
+            lastSightBlockedPoint = blockingPoint;
+        }
+        else if (blockingCollider == null && lastSightBlockedCollider != null && target == currentTarget)
+        {
+            lastSightBlockedCollider = null;
+        }
+    }
+
+    protected bool IsMovementBlocked(Vector3 delta, out Collider blockedCollider, out Vector3 blockedPoint)
     {
         blockedCollider = null;
         blockedPoint = moveAnchorPosition;
@@ -817,53 +1134,23 @@ public abstract class MonsterAIBase : MonoBehaviour
 
     private void ConfigureObstacleMasks()
     {
-        if (obstacleLayerMask.value != 0)
+        int sightMask = LayerMask.GetMask("Ground", "Wall", "TileObstacle", "Platform", "EnvironmentObstacle");
+        int movementMask = LayerMask.GetMask("Wall", "TileObstacle", "EnvironmentObstacle");
+        int defaultGroundMask = LayerMask.GetMask("Ground", "Floor", "Platform");
+
+        if (sightMask != 0)
         {
-            if (movementObstacleLayerMask.value == 0)
-            {
-                movementObstacleLayerMask = obstacleLayerMask;
-            }
-
-            if (groundLayerMask.value == 0)
-            {
-                groundLayerMask = obstacleLayerMask;
-            }
-
-            return;
+            obstacleLayerMask |= sightMask;
         }
 
-        if (movementObstacleLayerMask.value != 0)
+        if (movementObstacleLayerMask.value == 0 && movementMask != 0)
         {
-            obstacleLayerMask = movementObstacleLayerMask;
-            if (groundLayerMask.value == 0)
-            {
-                groundLayerMask = movementObstacleLayerMask;
-            }
-
-            return;
+            movementObstacleLayerMask = movementMask;
         }
 
-        int environmentObstacleMask = LayerMask.GetMask("EnvironmentObstacle");
-        if (environmentObstacleMask != 0)
+        if (groundLayerMask.value == 0 && defaultGroundMask != 0)
         {
-            obstacleLayerMask = environmentObstacleMask;
-            if (movementObstacleLayerMask.value == 0)
-            {
-                movementObstacleLayerMask = environmentObstacleMask;
-            }
-
-            if (groundLayerMask.value == 0)
-            {
-                groundLayerMask = environmentObstacleMask;
-            }
-        }
-        else if (movementObstacleLayerMask.value == 0)
-        {
-            movementObstacleLayerMask = obstacleLayerMask;
-            if (groundLayerMask.value == 0)
-            {
-                groundLayerMask = obstacleLayerMask;
-            }
+            groundLayerMask = defaultGroundMask;
         }
     }
 
@@ -941,7 +1228,7 @@ public abstract class MonsterAIBase : MonoBehaviour
         return true;
     }
 
-    protected void LogDebug(string message)
+    protected virtual void LogDebug(string message)
     {
         if (debugMode)
         {
@@ -1009,7 +1296,13 @@ public abstract class MonsterAIBase : MonoBehaviour
 
     protected virtual void FaceTargetIfNeeded(Vector3 targetPosition)
     {
-        if (!faceTargetOnlyWhenDetected)
+        if (monsterFacing != null && !monsterFacing.enableFacing)
+        {
+            LogDebug("Facing disabled by MonsterFacing.");
+            return;
+        }
+
+        if (faceTargetOnlyWhenDetected && currentTarget == null && !isReturningHome)
         {
             return;
         }
@@ -1020,25 +1313,31 @@ public abstract class MonsterAIBase : MonoBehaviour
             return;
         }
 
-        bool shouldFaceRight = invertFacing ? xDelta < 0f : xDelta > 0f;
-
-        if (useVisualScaleFacing && facingVisualRoot != null)
+        bool desiredFaceRight = xDelta > 0f;
+        bool usePositiveScale = desiredFaceRight == visualFacesRightByDefault;
+        if (invertFacing)
         {
-            Vector3 scale = facingVisualRoot.localScale;
+            usePositiveScale = !usePositiveScale;
+        }
+
+        Transform targetVisualRoot = visualRoot != null ? visualRoot : facingVisualRoot;
+        if (flipVisualByScale && useVisualScaleFacing && targetVisualRoot != null && targetVisualRoot != transform)
+        {
+            Vector3 scale = targetVisualRoot.localScale;
             float baseScaleX = facingVisualBaseScaleX > 0.0001f ? facingVisualBaseScaleX : Mathf.Abs(scale.x);
-            scale.x = baseScaleX * (shouldFaceRight ? 1f : -1f);
-            facingVisualRoot.localScale = scale;
+            scale.x = baseScaleX * (usePositiveScale ? 1f : -1f);
+            targetVisualRoot.localScale = scale;
 
             if (debugMode)
             {
-                LogDebug($"Facing targetDirection.x={xDelta:0.###}, shouldFaceRight={shouldFaceRight}, visualScaleX={scale.x:0.###}, invertFacing={invertFacing}");
+                LogDebug($"Facing targetDirection.x={xDelta:0.###}, desiredFaceRight={desiredFaceRight}, visualFacesRightByDefault={visualFacesRightByDefault}, invertFacing={invertFacing}, finalScaleX={scale.x:0.###}");
             }
 
             return;
         }
 
         SpriteRenderer[] spriteRenderers = GetComponentsInChildren<SpriteRenderer>(true);
-        bool flipX = !shouldFaceRight;
+        bool flipX = !usePositiveScale;
         for (int i = 0; i < spriteRenderers.Length; i++)
         {
             if (spriteRenderers[i] != null)
@@ -1049,7 +1348,7 @@ public abstract class MonsterAIBase : MonoBehaviour
 
         if (debugMode)
         {
-            LogDebug($"Facing targetDirection.x={xDelta:0.###}, shouldFaceRight={shouldFaceRight}, spriteFlipX={flipX}, invertFacing={invertFacing}");
+            LogDebug($"Facing targetDirection.x={xDelta:0.###}, desiredFaceRight={desiredFaceRight}, visualFacesRightByDefault={visualFacesRightByDefault}, invertFacing={invertFacing}, spriteFlipX={flipX}");
         }
     }
 
@@ -1060,18 +1359,55 @@ public abstract class MonsterAIBase : MonoBehaviour
             return;
         }
 
-        nextDebugLogTime = Time.time + 0.5f;
+        nextDebugLogTime = Time.time + detectionLogInterval;
         string targetName = currentTarget != null ? currentTarget.name : "None";
         float distance = currentTarget != null ? GetPlanarDistance(currentTarget) : -1f;
         float playerDistance = playerTarget != null ? GetPlanarDistance(playerTarget) : -1f;
         float lightDistance = lightTarget != null ? GetPlanarDistance(lightTarget) : -1f;
+        bool playerInRange = IsInRange(playerTarget, playerDetectRange);
+        bool lightInRange = IsInRange(lightTarget, lightDetectRange);
+        bool playerLineOfSight = playerTarget != null && (!requireLineOfSight || HasLineOfSightTo(playerTarget));
+        bool lightLineOfSight = lightTarget != null && (!requireLineOfSight || HasLineOfSightTo(lightTarget));
+        bool playerDetected = detectPlayer && playerInRange && playerLineOfSight;
+        bool lightDetected = detectLight && canDetectLight && IsLightAvailable(lightTarget) && lightInRange && lightLineOfSight;
+        string playerFailure = GetDetectionFailureReason(playerTarget, playerInRange, playerLineOfSight, false);
+        string lightFailure = GetDetectionFailureReason(lightTarget, lightInRange, lightLineOfSight, true);
         Debug.Log(
             $"[{GetType().Name}] TargetType={currentTargetType}, Target={targetName}, Distance={distance:0.00}, " +
-            $"PlayerDetected={IsPlayerDetected()}, PlayerDistance={playerDistance:0.00}, " +
-            $"LightDetected={IsLightDetected()}, LightDistance={lightDistance:0.00}, " +
+            $"PlayerDistance={playerDistance:0.00}, PlayerInRange={playerInRange}, PlayerLOS={playerLineOfSight}, PlayerDetected={playerDetected}, PlayerReason='{playerFailure}', " +
+            $"LightDistance={lightDistance:0.00}, LightInRange={lightInRange}, LightLOS={lightLineOfSight}, LightDetected={lightDetected}, LightReason='{lightFailure}', " +
             $"AttackInRange={IsTargetInAttackRange}, Moving={IsMoving}, MovementType={movementType}, IsGrounded={isGrounded}, " +
+            $"ObstacleMask={obstacleLayerMask.value}, SightBlockedBy={(lastSightBlockedCollider != null ? lastSightBlockedCollider.name : "None")}, " +
             $"MoveDirection={lastMoveDirection}, BlockedBy={(lastBlockedCollider != null ? lastBlockedCollider.name : "None")}, ReturningHome={isReturningHome}, Reason='{targetSelectionReason}'",
             this);
+    }
+
+    private string GetDetectionFailureReason(Transform target, bool inRange, bool lineOfSight, bool isLight)
+    {
+        if (target == null)
+        {
+            return "No target";
+        }
+
+        if (isLight && !IsLightAvailable(target))
+        {
+            return "Light inactive";
+        }
+
+        if (!inRange)
+        {
+            return "Out of range";
+        }
+
+        if (!lineOfSight)
+        {
+            Collider blockingCollider = isLight ? lastLightSightBlockedCollider : lastPlayerSightBlockedCollider;
+            return blockingCollider != null
+                ? $"Line of sight blocked by {blockingCollider.name}"
+                : "Line of sight blocked";
+        }
+
+        return "Detected";
     }
 
     private void LogInitialDebugInfo()
@@ -1125,6 +1461,17 @@ public abstract class MonsterAIBase : MonoBehaviour
         Debug.LogWarning($"[{GetType().Name}] movementObstacleLayerMask is empty. Movement will not be blocked by map obstacles.", this);
     }
 
+    private void WarnMissingGroundMask()
+    {
+        if (warnedGroundMaskMissing || movementType != MonsterMovementType.Ground || groundLayerMask.value != 0)
+        {
+            return;
+        }
+
+        warnedGroundMaskMissing = true;
+        Debug.LogWarning($"[{GetType().Name}] groundLayerMask is empty. Ground detection is disabled until Ground or Platform is assigned.", this);
+    }
+
     private void WarnMissingMovementCollider()
     {
         if (warnedMovementColliderMissing || !blockMovementByObstacles || movementCollider != null)
@@ -1162,6 +1509,28 @@ public abstract class MonsterAIBase : MonoBehaviour
         {
             Gizmos.color = Color.white;
             Gizmos.DrawLine(center, currentTarget.position);
+        }
+
+        if (playerTarget != null)
+        {
+            Gizmos.color = lastPlayerLineOfSight ? Color.green : Color.red;
+            Vector3 playerRayStart = Application.isPlaying ? lastPlayerSightStart : transform.position + lineOfSightStartOffset;
+            Vector3 playerRayEnd = Application.isPlaying ? lastPlayerSightEnd : playerTarget.position + targetCheckOffset;
+            Gizmos.DrawLine(playerRayStart, playerRayEnd);
+        }
+
+        if (lightTarget != null)
+        {
+            Gizmos.color = lastLightLineOfSight ? Color.yellow : Color.red;
+            Vector3 lightRayStart = Application.isPlaying ? lastLightSightStart : transform.position + lineOfSightStartOffset;
+            Vector3 lightRayEnd = Application.isPlaying ? lastLightSightEnd : lightTarget.position + targetCheckOffset;
+            Gizmos.DrawLine(lightRayStart, lightRayEnd);
+        }
+
+        if (lastSightBlockedCollider != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(lastSightBlockedPoint, 0.08f);
         }
 
         if (Application.isPlaying)

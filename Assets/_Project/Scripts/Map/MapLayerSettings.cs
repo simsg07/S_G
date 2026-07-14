@@ -23,6 +23,7 @@ public class MapLayerSettings : ScriptableObject
             case MapPieceType.Object:
                 return objectZ;
             case MapPieceType.Floor:
+            case MapPieceType.FloorCollision:
                 return floorZ;
             case MapPieceType.Wall:
                 return wallZ;
@@ -31,6 +32,7 @@ public class MapLayerSettings : ScriptableObject
             case MapPieceType.Structure:
                 return structureZ;
             case MapPieceType.Tile:
+            case MapPieceType.VisualTile:
             default:
                 return tileZ;
         }
