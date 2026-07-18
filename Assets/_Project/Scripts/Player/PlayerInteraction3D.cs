@@ -5,10 +5,15 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlatformerPlayer3D))]
 public class PlayerInteraction3D : MonoBehaviour
 {
-    [SerializeField] private Key interactKey = Key.F; // 플레이어가 주변 오브젝트와 상호작용하는 키입니다.
-    [SerializeField] private float interactRange = 1.05f; // 플레이어 기준 상호작용 판정을 띄우는 거리입니다.
-    [SerializeField] private Vector3 interactBoxSize = new Vector3(1.1f, 1.1f, 1f); // 상호작용 대상 탐색 박스 크기입니다.
-    [SerializeField] private LayerMask interactMask = ~0; // 상호작용 가능한 오브젝트를 찾을 레이어 범위입니다.
+    [Header("Interaction - Designer Settings")]
+    [Tooltip("플레이어가 주변 오브젝트와 상호작용할 때 사용하는 키입니다.")]
+    [SerializeField] private Key interactKey = Key.F;
+    [Tooltip("플레이어 기준 상호작용 판정을 앞으로 밀어내는 거리입니다.")]
+    [SerializeField] private float interactRange = 1.05f;
+    [Tooltip("상호작용 가능한 대상을 찾는 박스 크기입니다.")]
+    [SerializeField] private Vector3 interactBoxSize = new Vector3(1.1f, 1.1f, 1f);
+    [Tooltip("상호작용 가능한 오브젝트를 찾을 LayerMask입니다. 비워두면 감지되지 않을 수 있습니다.")]
+    [SerializeField] private LayerMask interactMask = ~0;
 
     private readonly Collider[] interactionHits = new Collider[16];
 

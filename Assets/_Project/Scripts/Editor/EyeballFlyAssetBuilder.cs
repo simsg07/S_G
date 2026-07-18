@@ -6,9 +6,9 @@ using UnityEngine;
 public static class EyeballFlyAssetBuilder
 {
     private const string AutoBuildSessionKey = "EyeballFlyAssetBuilder.AutoBuildQueued";
-    private const string SpriteFolder = "Assets/_Project/Art/Sprites/Objects/Enemy/EyeballFly";
-    private const string AnimationFolder = "Assets/_Project/Animations/EyeballFly";
-    private const string PrefabPath = "Assets/_Project/Prefabs/Objects/Enemy/EyeballFly.prefab";
+    private const string SpriteFolder = "Assets/_Project/Art/Enemies/EyeballFly";
+    private const string AnimationFolder = "Assets/_Project/Animations/Enemies/EyeballFly";
+    private const string PrefabPath = "Assets/_Project/Prefabs/Enemies/EyeballFly.prefab";
     private const string ControllerPath = AnimationFolder + "/EyeballFly.controller";
 
     private static readonly string[] IdleSprites =
@@ -95,7 +95,7 @@ public static class EyeballFlyAssetBuilder
 
     private static void EnsureFolders()
     {
-        CreateFolderIfMissing("Assets/_Project/Art/Sprites/Objects/Enemy");
+        CreateFolderIfMissing("Assets/_Project/Art/Enemies");
         CreateFolderIfMissing(SpriteFolder);
         CreateFolderIfMissing(AnimationFolder);
         CreateFolderIfMissing("Assets/_Project/Prefabs/Objects/Enemy");

@@ -87,6 +87,7 @@ public class WorldManager : MonoBehaviour
         if (!force && currentWorld == nextWorld)
         {
             ApplyRootActiveState();
+            WorldPresenceRegistry.RefreshAllFromScene(currentWorld);
             return;
         }
 
@@ -96,6 +97,7 @@ public class WorldManager : MonoBehaviour
 
         SyncLegacyWorldSystem();
         ApplyRootActiveState();
+        WorldPresenceRegistry.RefreshAllFromScene(currentWorld);
 
         afterWorldChanged.Invoke(currentWorld);
         WorldChanged?.Invoke(previousWorld, currentWorld);

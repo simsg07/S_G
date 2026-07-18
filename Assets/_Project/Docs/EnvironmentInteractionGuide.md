@@ -1,9 +1,9 @@
-# Environment Interaction Guide
+﻿# Environment Interaction Guide
 
 ## Stone (G_OBJ_001)
 
-1. `Prefabs/Objects/Environment/Stone.prefab`을 천장 위치에 배치한다.
-2. `Prefabs/Objects/Environment/StoneTrigger.prefab`을 플레이어가 지나갈 영역에 배치한다.
+1. `Prefabs/Objects/Stone/Stone.prefab`을 천장 위치에 배치한다.
+2. `Prefabs/Objects/Stone/StoneTrigger.prefab`을 플레이어가 지나갈 영역에 배치한다.
 3. `StoneTrigger.targetStone`에 씬의 Stone 인스턴스를 연결한다.
 4. Stone의 `damageLayerMask`에는 Player와 Enemy/Monster 레이어를 지정한다.
 5. Stone의 `groundLayerMask`에는 Ground 레이어를 지정한다.
@@ -35,3 +35,5 @@ Controller: `Animations/Objects/Stone/Stone.controller`
 - `State` Int
 
 Animator의 Apply Root Motion은 꺼져 있으며 실제 낙하는 `StoneTrap`과 Rigidbody가 담당한다.
+
+

@@ -16,6 +16,8 @@ public class FloorCollision : MonoBehaviour
     [SerializeField] private float colliderDepth = 0.3f;
 
     [Header("Top Surface Placement")]
+    [Tooltip("When enabled, the root is the left/start coordinate of the floor segment and the collider extends to the right by Width.")]
+    [SerializeField] private bool useGridCellOrigin = true;
     [FormerlySerializedAs("useCollisionYOffset")]
     [Tooltip("Treat this object's origin as the visible floor tile's top surface.")]
     [SerializeField] private bool alignToTopSurface = true;
@@ -38,7 +40,10 @@ public class FloorCollision : MonoBehaviour
     public Vector3 Size => new Vector3(width, colliderHeight, colliderDepth);
     public float AppliedCollisionYOffset => alignToTopSurface ? collisionYOffset : 0f;
     public float VisualTileHeight => visualTileHeight;
-    public Vector3 ColliderCenter => new Vector3(0f, AppliedCollisionYOffset + colliderHeight * 0.5f, 0f);
+    public Vector3 ColliderCenter => new Vector3(
+        useGridCellOrigin ? width * 0.5f : 0f,
+        AppliedCollisionYOffset + colliderHeight * 0.5f,
+        0f);
 
     private void Reset()
     {

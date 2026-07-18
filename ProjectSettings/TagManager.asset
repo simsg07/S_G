@@ -15,6 +15,7 @@ TagManager:
   - PuzzleObject
   - Door
   - Platform
+  - Player
   layers:
   - Default
   - TransparentFX
@@ -29,7 +30,7 @@ TagManager:
   - Wall
   - TileObstacle
   - Platform
-  - 
+  - Player
   - 
   - 
   - 

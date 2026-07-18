@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 100001}
   - component: {fileID: 100002}
   - component: {fileID: 100003}
+  - component: {fileID: 8078119531542347856}
   m_Layer: 0
   m_Name: FlashTarget
   m_TagString: Target
@@ -63,3 +64,30 @@ MonoBehaviour:
   revealObjects: []
   idleColor: {r: 1, g: 0.82, b: 0.15, a: 1}
   activeColor: {r: 0.2, g: 1, b: 0.55, a: 1}
+--- !u!114 &8078119531542347856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f371114fcf524086a7890501c10c4652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  presenceMode: 0
+  applyOnStart: 1
+  affectRootActive: 0
+  affectRenderers: 1
+  affectColliders: 1
+  affectBehaviours: 0
+  affectMonsterAI: 1
+  affectRigidbody: 1
+  targetRenderers: []
+  targetColliders: []
+  targetBehaviours: []
+  targetRigidbody: {fileID: 0}
+  visualRoot: {fileID: 0}
+  debugMode: 1
+  showGizmos: 1

@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &453750868725942280
+--- !u!1 &1903644843593420142
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,46 +8,156 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2309526462935076432}
-  - component: {fileID: 60273703406114183}
-  - component: {fileID: 6963861622570674165}
-  m_Layer: 9
+  - component: {fileID: 8046059027830109889}
+  - component: {fileID: 1287442876987592081}
+  - component: {fileID: 1314939326922154913}
+  - component: {fileID: 2635261875002284784}
+  m_Layer: 8
+  m_Name: Floor_Test
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8046059027830109889
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1903644843593420142}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1771298808593514649}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1287442876987592081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1903644843593420142}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20c6afa816e138444b049c01fc2569e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapPiece
+  pieceType: 1
+  useCollider: 1
+  isGround: 1
+  blockMovement: 0
+  autoSetZ: 1
+  zPosition: 0
+  snapToGrid: 1
+  gridSize: 1
+  isInteractable: 0
+  blockLineOfSight: 1
+  validateObstacleLayer: 1
+  obstacleLayerName: Ground
+  canSwitchWorld: 0
+  worldSwitchCategory: 0
+  currentWorldState: 0
+  targetWorldState: 1
+  autoConfigureWorldSwitchable: 1
+  layerSettings: {fileID: 0}
+  debugMode: 0
+  previousPieceType: 1
+  initialized: 1
+--- !u!65 &1314939326922154913
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1903644843593420142}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!65 &2635261875002284784
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1903644843593420142}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4, y: 1, z: 0.3}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &7144877586023529569
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1771298808593514649}
+  - component: {fileID: 7715052863040262276}
+  - component: {fileID: 6024738899047718969}
+  m_Layer: 8
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2309526462935076432
+--- !u!4 &1771298808593514649
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 453750868725942280}
+  m_GameObject: {fileID: 7144877586023529569}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 4, y: 1, z: 0.3}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 6190678179191517214}
+  m_Father: {fileID: 8046059027830109889}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &60273703406114183
+--- !u!33 &7715052863040262276
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 453750868725942280}
-  m_Mesh: {fileID: 4300000, guid: a53ed21ff5587cc4e809c18bbd89a161, type: 2}
---- !u!23 &6963861622570674165
+  m_GameObject: {fileID: 7144877586023529569}
+  m_Mesh: {fileID: 4300000, guid: 365b18ee5c4ac8f428734eeedc05319d, type: 2}
+--- !u!23 &6024738899047718969
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 453750868725942280}
+  m_GameObject: {fileID: 7144877586023529569}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -66,7 +176,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 1e6ae59ef3e33c246bfb06415c4de1e9, type: 2}
+  - {fileID: 2100000, guid: 11f3c8ff3b3534e4ca6496999301cf8a, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -90,91 +200,3 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &3979924054944008977
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 6190678179191517214}
-  - component: {fileID: 8545238728473556057}
-  - component: {fileID: 5869453194291784606}
-  m_Layer: 9
-  m_Name: Floor_Test
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &6190678179191517214
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3979924054944008977}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2309526462935076432}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8545238728473556057
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3979924054944008977}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 20c6afa816e138444b049c01fc2569e3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MapPiece
-  pieceType: 1
-  useCollider: 1
-  autoSetZ: 1
-  zPosition: 0
-  snapToGrid: 1
-  gridSize: 1
-  isInteractable: 0
-  blockMovement: 0
-  blockLineOfSight: 1
-  isGround: 1
-  validateObstacleLayer: 1
-  obstacleLayerName: Ground
-  canSwitchWorld: 0
-  worldSwitchCategory: 0
-  currentWorldState: 0
-  targetWorldState: 1
-  autoConfigureWorldSwitchable: 1
-  layerSettings: {fileID: 0}
-  debugMode: 0
-  previousPieceType: 1
-  initialized: 1
---- !u!65 &5869453194291784606
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3979924054944008977}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 4, y: 1, z: 0.3}
-  m_Center: {x: 0, y: 0, z: 0}

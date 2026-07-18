@@ -1,0 +1,142 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &100000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 100001}
+  - component: {fileID: 100002}
+  - component: {fileID: 100003}
+  - component: {fileID: 100004}
+  - component: {fileID: 7275912483803516936}
+  m_Layer: 0
+  m_Name: Shutter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &100001
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &100002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a73a487d9c34871a34b21b44b2e9120, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  platformSize: {x: 0.45, y: 2.2, z: 1}
+  dropThrough: 0
+  surfaceColor: {r: 0.72, g: 0.28, b: 0.24, a: 1}
+--- !u!114 &100003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f56e3b0d1b9478f9e4b2c0a2a5d1f90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  previewInEditMode: 0
+  includeChildRenderers: 1
+  includeChildColliders: 1
+  includeChildBehaviours: 0
+  extraRenderers: []
+  extraColliders: []
+  extraBehaviours: []
+  extraObjects: []
+  worldA:
+    enabledInWorld: 1
+    rendererEnabled: 1
+    collisionEnabled: 1
+    operationEnabled: 1
+    useColorOverride: 1
+    colorOverride: {r: 0.72, g: 0.28, b: 0.24, a: 1}
+    doorOpen: 0
+    doorOpenLocalOffset: {x: 0, y: 0, z: 0}
+    useLocalPositionOffset: 0
+    localPositionOffset: {x: 0, y: 0, z: 0}
+    useLocalScaleOverride: 0
+    localScaleOverride: {x: 1, y: 1, z: 1}
+  worldB:
+    enabledInWorld: 1
+    rendererEnabled: 1
+    collisionEnabled: 0
+    operationEnabled: 0
+    useColorOverride: 1
+    colorOverride: {r: 0.25, g: 0.75, b: 0.45, a: 1}
+    doorOpen: 1
+    doorOpenLocalOffset: {x: 0, y: 2.3, z: 0}
+    useLocalPositionOffset: 0
+    localPositionOffset: {x: 0, y: 0, z: 0}
+    useLocalScaleOverride: 0
+    localScaleOverride: {x: 1, y: 1, z: 1}
+--- !u!114 &100004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f9f4c60f8714f059b1f2f34a7190821, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 0}
+  gateSource: {fileID: 0}
+  worldStateSource: {fileID: 100003}
+  isOpen: 0
+  disableRootMotion: 1
+--- !u!114 &7275912483803516936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f371114fcf524086a7890501c10c4652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  presenceMode: 0
+  applyOnStart: 1
+  affectRootActive: 0
+  affectRenderers: 1
+  affectColliders: 1
+  affectBehaviours: 0
+  affectMonsterAI: 1
+  affectRigidbody: 1
+  targetRenderers: []
+  targetColliders: []
+  targetBehaviours: []
+  targetRigidbody: {fileID: 0}
+  visualRoot: {fileID: 0}
+  debugMode: 1
+  showGizmos: 1

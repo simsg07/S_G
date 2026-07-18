@@ -1,0 +1,144 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &130001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 130002}
+  - component: {fileID: 130003}
+  - component: {fileID: 130004}
+  - component: {fileID: 130006}
+  - component: {fileID: 130005}
+  m_Layer: 11
+  m_Name: Block_SightBlock
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &130002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 130001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &130003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 130001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac6323d191fd4bd98a6414d4b24c9a7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DataDrivenObjectController
+  objectData: {fileID: 11400000, guid: 49db352281a448fba7da39eaf063657a, type: 2}
+  applyOnAwake: 1
+  applyOnStart: 0
+  damageDealer: {fileID: 0}
+  hitReceiver: {fileID: 0}
+  gravityObject: {fileID: 0}
+  pausablePhysicsObject: {fileID: 0}
+  breakableObject: {fileID: 0}
+  openPathOnBreak: {fileID: 0}
+  connectedObjectLink: {fileID: 0}
+  triggerZone: {fileID: 0}
+  blockObject: {fileID: 130004}
+  debugMode: 0
+--- !u!114 &130004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 130001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 412a9787c44148e59dfeac52b96c5d32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BlockObject
+  blockType: 3
+  isBroken: 0
+  canBlockPlayer: 1
+  canBlockMonster: 1
+  canBlockSight: 1
+  canBlockLight: 1
+  removeColliderOnBreak: 0
+  hideVisualOnBreak: 0
+  delayHideVisual: 1
+  visualHideDelay: 0.25
+  clearPlayerOverlapOnBreak: 0
+  playerLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  safePushDistance: 0.25
+  overlapCheckPadding: 0.05
+  dataController: {fileID: 130003}
+  hitReceiver: {fileID: 0}
+  breakableObject: {fileID: 0}
+  openPathOnBreak: {fileID: 0}
+  mainCollider: {fileID: 130005}
+  renderers: []
+  animator: {fileID: 0}
+  debugMode: 0
+--- !u!114 &130006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 130001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d89fb95b59f04a71ad2be2edff793dc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GridPlaceableObject3D
+  cellSize: 1
+  widthCells: 1
+  heightCells: 1
+  depth: 1
+  snapPositionOnValidate: 1
+  applyColliderSizeOnValidate: 1
+  applyVisualScaleOnValidate: 0
+  useBottomLeftPivot: 1
+  colliderCenterOffset: {x: 0, y: 0, z: 0}
+  boxCollider: {fileID: 130005}
+  visualRoot: {fileID: 0}
+  showGizmo: 1
+  debugMode: 1
+--- !u!65 &130005
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 130001}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0.5, y: 0.5, z: 0}

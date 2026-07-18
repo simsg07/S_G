@@ -21,6 +21,8 @@ GameObject:
   - component: {fileID: 110009}
   - component: {fileID: 100103}
   - component: {fileID: 100104}
+  - component: {fileID: 110010}
+  - component: {fileID: 8379647905918372171}
   m_Layer: 0
   m_Name: Human_Box
   m_TagString: Untagged
@@ -66,11 +68,15 @@ MonoBehaviour:
   playerDetectRange: 3
   lightDetectRange: 4
   targetKeepRange: 5
-  attackRange: 0.5
+  attackRange: 3
   requireLineOfSight: 1
   obstacleLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 7936
+  useSeparateLightObstacleMask: 0
+  lightObstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   lineOfSightStartOffset: {x: 0, y: 0.5, z: 0}
   targetCheckOffset: {x: 0, y: 0.5, z: 0}
   lostSightDelay: 0.2
@@ -95,7 +101,7 @@ MonoBehaviour:
   useGravityForGround: 1
   groundLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4608
   groundCheckDistance: 0.15
   groundCheckRadius: 0.2
   isGrounded: 0
@@ -176,7 +182,11 @@ MonoBehaviour:
   requireLineOfSight: 1
   obstacleLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 7936
+  useSeparateLightObstacleMask: 0
+  lightObstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   lineOfSightStartOffset: {x: 0, y: 0.5, z: 0}
   targetCheckOffset: {x: 0, y: 0.5, z: 0}
   debugMode: 1
@@ -249,7 +259,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableAttack: 1
-  attackRange: 0.5
+  attackRange: 3
   attackDamage: 1
   attackInterval: 1
   attackWindup: 0.5
@@ -376,6 +386,74 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 2.4, z: 0.2}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8379647905918372171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f371114fcf524086a7890501c10c4652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  presenceMode: 0
+  applyOnStart: 1
+  autoCollectRenderers: 1
+  autoCollectColliders: 1
+  autoCollectRigidbodies: 1
+  autoCollectAnimators: 1
+  disableControlledBehavioursWhenAbsent: 1
+  autoCollectMonsterBehaviours: 1
+  controlledRenderers:
+  - {fileID: 100202}
+  controlledColliders:
+  - {fileID: 100104}
+  controlledBehaviours:
+  - {fileID: 100102}
+  - {fileID: 110001}
+  - {fileID: 110002}
+  - {fileID: 110003}
+  - {fileID: 110004}
+  - {fileID: 110005}
+  - {fileID: 110006}
+  - {fileID: 110007}
+  - {fileID: 110008}
+  - {fileID: 110009}
+  primaryRigidbody: {fileID: 100103}
+  controlledRigidbodies:
+  - {fileID: 100103}
+  controlledAnimators:
+  - {fileID: 100203}
+  debugMode: 1
+  showGizmos: 1
+  legacyAffectRootActive: 0
+  legacyVisualRoot: {fileID: 0}
+  legacyAffectMonsterAI: 1
+  legacyAffectBehaviours: 0
+--- !u!114 &110010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f964e216bc834e6ab921468a0434a9f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DataDrivenMonsterController
+  monsterData: {fileID: 11400000, guid: 80f3c458c32d4b679b87b7f1f40ddae6, type: 2}
+  applyOnAwake: 1
+  applyOnStart: 0
+  detection: {fileID: 110002}
+  movement: {fileID: 110003}
+  attack: {fileID: 110005}
+  health: {fileID: 0}
+  animatorBridge: {fileID: 110006}
+  brain: {fileID: 100102}
+  debugMode: 1
 --- !u!1 &100200
 GameObject:
   m_ObjectHideFlags: 0

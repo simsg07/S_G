@@ -122,6 +122,8 @@ public class WorldSystem3D : MonoBehaviour
                 variants[i].Refresh(currentWorld);
             }
         }
+
+        WorldPresenceRegistry.RefreshAllFromScene(currentWorld);
     }
 
     private void ResolveWorldRoots()

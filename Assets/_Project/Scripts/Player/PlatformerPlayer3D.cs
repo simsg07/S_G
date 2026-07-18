@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 [ExecuteAlways]
 public class PlatformerPlayer3D : MonoBehaviour
 {
+    [Header("Movement - Designer Settings")]
     [SerializeField] private float moveSpeed = 6f; // 플레이어 좌우 이동 속도입니다.
     [SerializeField] private float jumpHeight = 3f; // 점프 높이입니다. 값을 올리면 더 높게 뜁니다.
     [SerializeField] private float gravityScale = 3f; // 플레이어에게 적용되는 중력 배율입니다. 값을 올리면 상승과 낙하가 빨라집니다.
@@ -17,8 +18,14 @@ public class PlatformerPlayer3D : MonoBehaviour
     [SerializeField] private float dropThroughDuration = 0.45f; // S+스페이스로 발판을 내려갈 때 충돌을 무시하는 최소 시간입니다.
     [SerializeField] private float passThroughClearance = 0.05f; // 내려가기 발판 충돌을 복구하기 전에 필요한 여유 거리입니다.
     [SerializeField] private int maxAirJumps = 1; // 바닥 점프 이후 허용되는 추가 공중 점프 횟수입니다.
+
+    [Header("Collision - Advanced")]
+    [Tooltip("플레이어 충돌 박스와 몸 크기입니다. 값 변경 시 바닥/벽 충돌 느낌이 크게 달라집니다.")]
     [SerializeField] private Vector3 colliderSize = new Vector3(0.8f, 1.2f, 1f); // 플레이어 충돌 박스와 몸 크기입니다.
+    [Tooltip("2.5D 규칙상 플레이어가 고정될 Z축 위치입니다. 보통 수정하지 않습니다.")]
     [SerializeField] private float gameplayPlaneZ = TwoPointFiveDUtility3D.GameplayPlaneZ; // 2.5D 규칙상 플레이어가 고정될 Z축 위치입니다.
+
+    [Header("Robot Leg Jump - Designer Settings")]
     [SerializeField] private bool useRobotLegJump = true; // 스페이스를 누르는 동안 로봇 다리가 늘어나는 점프 방식을 사용할지 정합니다.
     [SerializeField] private float maxLegExtension = 10f; // Space를 누르고 있을 때 플레이어가 상승할 수 있는 최대 다리 길이입니다.
     [SerializeField] private float legExtendSpeed = 4.8f; // 스페이스를 누르고 있을 때 다리가 늘어나는 속도입니다.
@@ -26,6 +33,8 @@ public class PlatformerPlayer3D : MonoBehaviour
     [SerializeField] private float legReleaseJumpHeight = 2f; // Space를 떼는 순간 현재 높이에서 추가로 뛰어오르는 목표 높이입니다.
     [SerializeField] private float ceilingCheckDistance = 0.08f; // 다리 상승 중 천장에 닿기 전에 멈추기 위한 여유 거리입니다.
     [SerializeField] private float legObstacleClearance = 0.04f; // 로봇 다리가 발판이나 박스에 닿기 전에 남길 여유 거리입니다.
+
+    [Header("Robot Leg Visual")]
     [SerializeField] private bool showRobotLegVisual = true; // 늘어난 다리를 간단한 회색 박스로 표시할지 정합니다.
     [SerializeField] private Color robotLegColor = new Color(0.55f, 0.6f, 0.62f, 1f); // 로봇 다리 표시 색상입니다.
 

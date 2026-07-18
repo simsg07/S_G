@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb7a215de13248d6b4b26f38e2df20c7, type: 3}
+  m_Name: WireData
+  m_EditorClassIdentifier: 
+  objectId: R_OBJ_001
+  displayName: Wire
+  objectKind: 3
+  canBeTargeted: 1
+  maxHitCount: 2
+  triggerOnce: 1
+  acceptGenericHit: 1
+  acceptEyeballFlyAttack: 1
+  acceptBoomberContact: 0
+  acceptBoomberExplosion: 0
+  acceptMonsterAttack: 0
+  damage: 0
+  canDamagePlayer: 0
+  canDamageMonster: 0
+  damageOncePerTarget: 1
+  useGravity: 0
+  startAttached: 1
+  disableGravityOnStart: 1
+  dropSpeed: 0
+  lockXWhileFalling: 1
+  lockZPosition: 1
+  breakOnGroundHit: 0
+  remainAsPlatformOnGround: 0
+  canPauseByCamera: 0
+  canPauseByShutter: 0
+  becomePlatformWhenPaused: 0
+  breakMode: 1
+  breakDelay: 0
+  destroyDelay: 0.3
+  disableColliderOnBreak: 1
+  disableRendererOnBreak: 0
+  onHitAction: 0
+  onMaxHitAction: 1
+  onBreakAction: 0
+  debugMode: 1

@@ -21,6 +21,8 @@ GameObject:
   - component: {fileID: 5112}
   - component: {fileID: 5113}
   - component: {fileID: 5114}
+  - component: {fileID: 5115}
+  - component: {fileID: 4674820730425042070}
   m_Layer: 0
   m_Name: Boomber
   m_TagString: Untagged
@@ -185,8 +187,28 @@ MonoBehaviour:
   targetCheckOffset: {x: 0, y: 0.3, z: 0}
   debugMode: 1
   showGizmos: 1
-  debugLineOfSight: 1
-  logInterval: 0.5
+--- !u!114 &5115
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f964e216bc834e6ab921468a0434a9f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DataDrivenMonsterController
+  monsterData: {fileID: 11400000, guid: 69a9e5908d484c73b840d622fe93e835, type: 2}
+  applyOnAwake: 1
+  applyOnStart: 0
+  detection: {fileID: 5105}
+  movement: {fileID: 5106}
+  attack: {fileID: 5109}
+  health: {fileID: 5108}
+  animatorBridge: {fileID: 5110}
+  brain: {fileID: 5103}
+  debugMode: 1
 --- !u!114 &5106
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -325,7 +347,8 @@ MonoBehaviour:
   affectBreakableObjects: 1
   breakableLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 2048
+  affectHitReceivers: 1
   debugMode: 1
   showGizmos: 1
 --- !u!54 &5112
@@ -505,3 +528,30 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &4674820730425042070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f371114fcf524086a7890501c10c4652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  presenceMode: 0
+  applyOnStart: 1
+  affectRootActive: 0
+  affectRenderers: 1
+  affectColliders: 1
+  affectBehaviours: 0
+  affectMonsterAI: 1
+  affectRigidbody: 1
+  targetRenderers: []
+  targetColliders: []
+  targetBehaviours: []
+  targetRigidbody: {fileID: 0}
+  visualRoot: {fileID: 0}
+  debugMode: 1
+  showGizmos: 1

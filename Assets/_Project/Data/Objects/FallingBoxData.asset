@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb7a215de13248d6b4b26f38e2df20c7, type: 3}
+  m_Name: FallingBoxData
+  m_EditorClassIdentifier: 
+  objectId: G_OBJ_BOX_001
+  displayName: Falling Box
+  objectKind: 2
+  canBeTargeted: 0
+  maxHitCount: 1
+  triggerOnce: 1
+  acceptGenericHit: 1
+  acceptEyeballFlyAttack: 0
+  acceptBoomberContact: 0
+  acceptBoomberExplosion: 0
+  acceptMonsterAttack: 0
+  damage: 1
+  canDamagePlayer: 1
+  canDamageMonster: 1
+  damageOncePerTarget: 1
+  useGravity: 1
+  startAttached: 1
+  disableGravityOnStart: 1
+  dropSpeed: 0
+  lockXWhileFalling: 1
+  lockZPosition: 1
+  breakOnGroundHit: 0
+  remainAsPlatformOnGround: 1
+  instantKillPlayerOnFallingHit: 1
+  useGravityDropSensor: 1
+  gravityDetectionCenterOffset: {x: 0, y: -2, z: 0}
+  gravityDetectionBoxSize: {x: 3, y: 4, z: 1}
+  gravityDetectOnlyOnce: 1
+  usePlayerTagFallback: 1
+  playerTag: Player
+  canPauseByCamera: 1
+  canPauseByShutter: 1
+  becomePlatformWhenPaused: 1
+  breakMode: 0
+  breakDelay: 0
+  destroyDelay: 0.5
+  disableColliderOnBreak: 0
+  disableRendererOnBreak: 0
+  blockType: 5
+  canBlockPlayer: 1
+  canBlockMonster: 1
+  canBlockSight: 0
+  canBlockLight: 0
+  removeColliderOnBreak: 1
+  hideVisualOnBreak: 0
+  delayHideVisual: 1
+  visualHideDelay: 0.25
+  clearPlayerOverlapOnBreak: 1
+  safePushDistance: 0.25
+  onHitAction: 0
+  onMaxHitAction: 0
+  onBreakAction: 0
+  debugMode: 1

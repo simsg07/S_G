@@ -24,6 +24,8 @@ GameObject:
   - component: {fileID: 6210000000000001002}
   - component: {fileID: 6210000000000001003}
   - component: {fileID: 6210000000000001004}
+  - component: {fileID: 6210000000000001201}
+  - component: {fileID: 6233771058886700303}
   m_Layer: 0
   m_Name: EyeballFly
   m_TagString: Untagged
@@ -168,6 +170,10 @@ MonoBehaviour:
   obstacleLayerMask:
     serializedVersion: 2
     m_Bits: 7936
+  useSeparateLightObstacleMask: 0
+  lightObstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   lineOfSightStartOffset: {x: 0, y: 0, z: 0}
   targetCheckOffset: {x: 0, y: 0, z: 0}
   lostSightDelay: 0.2
@@ -192,7 +198,7 @@ MonoBehaviour:
   useGravityForGround: 0
   groundLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4608
   groundCheckDistance: 0.15
   groundCheckRadius: 0.2
   isGrounded: 0
@@ -215,6 +221,16 @@ MonoBehaviour:
   hoverFrequency: 2
   attackDamage: 1
   attackInterval: 1
+  attackDuration: 0.5
+  attackPlayer: 1
+  attackLight: 1
+  attackObjects: 1
+  canAttackHitReceivers: 1
+  objectAttackRange: 0.5
+  objectAttackLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  debugAttackHit: 1
   currentState: 0
   animationController: {fileID: 1354738533251832619}
   animator: {fileID: 6097026161853669191}
@@ -259,6 +275,10 @@ MonoBehaviour:
   obstacleLayerMask:
     serializedVersion: 2
     m_Bits: 7936
+  useSeparateLightObstacleMask: 0
+  lightObstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   lineOfSightStartOffset: {x: 0, y: 0, z: 0}
   targetCheckOffset: {x: 0, y: 0, z: 0}
   debugMode: 1
@@ -457,3 +477,72 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 0.2}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6210000000000001201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8398327653414921045}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f964e216bc834e6ab921468a0434a9f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DataDrivenMonsterController
+  monsterData: {fileID: 11400000, guid: 41a06d05bff94654907f883f50d9e7cb, type: 2}
+  applyOnAwake: 1
+  applyOnStart: 0
+  detection: {fileID: 6210000000000001102}
+  movement: {fileID: 6210000000000001103}
+  attack: {fileID: 6210000000000001105}
+  health: {fileID: 0}
+  animatorBridge: {fileID: 6210000000000001106}
+  brain: {fileID: 6210000000000001001}
+  debugMode: 1
+--- !u!114 &6233771058886700303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8398327653414921045}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f371114fcf524086a7890501c10c4652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  presenceMode: 0
+  applyOnStart: 1
+  autoCollectRenderers: 1
+  autoCollectColliders: 1
+  autoCollectRigidbodies: 1
+  autoCollectAnimators: 1
+  disableControlledBehavioursWhenAbsent: 1
+  autoCollectMonsterBehaviours: 1
+  controlledRenderers:
+  - {fileID: 2041736700435350562}
+  controlledColliders:
+  - {fileID: 6210000000000001004}
+  controlledBehaviours:
+  - {fileID: 1354738533251832619}
+  - {fileID: 6210000000000001001}
+  - {fileID: 6210000000000001101}
+  - {fileID: 6210000000000001102}
+  - {fileID: 6210000000000001103}
+  - {fileID: 6210000000000001104}
+  - {fileID: 6210000000000001105}
+  - {fileID: 6210000000000001106}
+  - {fileID: 6210000000000001107}
+  - {fileID: 6210000000000001108}
+  - {fileID: 6210000000000001002}
+  primaryRigidbody: {fileID: 6210000000000001003}
+  controlledRigidbodies:
+  - {fileID: 6210000000000001003}
+  controlledAnimators:
+  - {fileID: 6097026161853669191}
+  debugMode: 1
+  showGizmos: 1
+  legacyAffectRootActive: 0
+  legacyVisualRoot: {fileID: 0}
+  legacyAffectMonsterAI: 1
+  legacyAffectBehaviours: 0

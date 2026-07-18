@@ -1,0 +1,51 @@
+using UnityEngine;
+using UnityEngine.Tilemaps;
+
+[DisallowMultipleComponent]
+public class TilemapDebugVisibility : MonoBehaviour
+{
+    [Header("Visibility")]
+    [Tooltip("Play 중에는 기능 Tilemap Renderer를 숨깁니다.")]
+    [SerializeField] private bool hideOnPlay = true;
+
+    [Tooltip("에디터에서는 기능 Tilemap을 보이게 해서 기획자가 배치를 확인할 수 있게 합니다.")]
+    [SerializeField] private bool showInEditor = true;
+
+    [Tooltip("숨기거나 보일 TilemapRenderer입니다.")]
+    [SerializeField] private TilemapRenderer targetRenderer;
+
+    private void Reset()
+    {
+        targetRenderer = GetComponent<TilemapRenderer>();
+    }
+
+    private void OnEnable()
+    {
+        ApplyVisibility();
+    }
+
+    private void Start()
+    {
+        ApplyVisibility();
+    }
+
+    private void OnValidate()
+    {
+        if (targetRenderer == null)
+        {
+            targetRenderer = GetComponent<TilemapRenderer>();
+        }
+
+        ApplyVisibility();
+    }
+
+    public void ApplyVisibility()
+    {
+        if (targetRenderer == null)
+        {
+            return;
+        }
+
+        targetRenderer.enabled = Application.isPlaying ? !hideOnPlay : showInEditor;
+    }
+}

@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class PlayerAttack3D : MonoBehaviour
 {
+    [Header("Legacy Visual")]
+    [Tooltip("Keeps the temporary player idle sprite while combat attacks stay removed. Turn off only when the final Player visual replaces it.")]
     [SerializeField] private bool keepLegacyIdleSprite = true; // Keeps the temporary player idle sprite while combat attacks stay removed.
 
     private void Awake()

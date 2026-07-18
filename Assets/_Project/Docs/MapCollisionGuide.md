@@ -1,4 +1,4 @@
-# Map Collision Guide
+﻿# Map Collision Guide
 
 Use the `EnvironmentObstacle` layer for map pieces that should block monster sight and movement.
 
@@ -33,8 +33,10 @@ If a mask is empty, monster sight or movement blocking cannot work reliably.
 
 Unity creates these test prefabs through `MapTestPrefabBuilder`:
 
-- `Assets/_Project/Prefabs/Map/Wall_Test.prefab`
-- `Assets/_Project/Prefabs/Map/Tile_Test.prefab`
-- `Assets/_Project/Prefabs/Map/Floor_Test.prefab`
+- `Assets/_Project/_Deprecated/Prefabs/Map/Wall_Test.prefab`
+- `Assets/_Project/_Deprecated/Prefabs/Map/Tile_Test.prefab`
+- `Assets/_Project/_Deprecated/Prefabs/Map/Floor_Test.prefab`
 
 Use them between a monster and Player/Light to test detection blocking and movement blocking.
+
+

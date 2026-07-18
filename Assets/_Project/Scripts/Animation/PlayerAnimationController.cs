@@ -9,12 +9,21 @@ public class PlayerAnimationController : MonoBehaviour
     private static readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
     private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
 
-    [SerializeField] private Animator animator; // Visual-only Animator. It must not drive player movement or collision.
-    [SerializeField] private PlatformerPlayer3D movement; // Source of grounded and movement-facing state from code.
-    [SerializeField] private Rigidbody body; // Source of current velocity from code physics.
-    [SerializeField] private float speedDampTime; // Optional smoothing time for the Speed animator parameter.
-    [SerializeField] private float yVelocityDampTime; // Optional smoothing time for the YVelocity animator parameter.
-    [SerializeField] private bool disableRootMotion = true; // Keeps Animator from moving the player transform.
+    [Header("Animator Bridge - References")]
+    [Tooltip("Visual 자식에 있는 Animator입니다. 이동/충돌은 Root의 Player 스크립트가 담당합니다.")]
+    [SerializeField] private Animator animator;
+    [Tooltip("읽기용 참조입니다. 비워두면 같은 오브젝트의 PlatformerPlayer3D를 자동으로 찾습니다.")]
+    [SerializeField] private PlatformerPlayer3D movement;
+    [Tooltip("읽기용 참조입니다. 속도 값을 Animator 파라미터로 전달할 때 사용합니다.")]
+    [SerializeField] private Rigidbody body;
+
+    [Header("Animator Bridge - Designer Settings")]
+    [Tooltip("Speed Animator 파라미터가 부드럽게 변하는 시간입니다.")]
+    [SerializeField] private float speedDampTime;
+    [Tooltip("YVelocity Animator 파라미터가 부드럽게 변하는 시간입니다.")]
+    [SerializeField] private float yVelocityDampTime;
+    [Tooltip("Animator Root Motion이 Player 위치를 직접 움직이지 못하게 합니다.")]
+    [SerializeField] private bool disableRootMotion = true;
 
     private bool hasSpeed;
     private bool hasYVelocity;

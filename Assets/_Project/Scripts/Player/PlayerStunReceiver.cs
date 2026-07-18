@@ -5,7 +5,11 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class PlayerStunReceiver : MonoBehaviour, IStunnable
 {
+    [Header("Stun - References")]
+    [Tooltip("Movement controller to pause during stun. Usually PlatformerPlayer3D; leave empty to auto-fill.")]
     [SerializeField] private MonoBehaviour movementController;
+    [Header("Debug")]
+    [Tooltip("Print stun start/end and control-lock details in the Console.")]
     [SerializeField] private bool debugMode;
 
     private Rigidbody body;
