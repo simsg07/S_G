@@ -5,8 +5,13 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class FallingBoxObject : MonoBehaviour
 {
-    [Header("Rules")]
+    [Header("State")]
+    [SerializeField] private bool isDropped;
+    [SerializeField] private bool isLanded;
+    [InspectorName("Can Become Platform")]
     [SerializeField] private bool remainAsPlatformOnGround = true;
+
+    [Header("Ground Check")]
     [SerializeField] private LayerMask groundLayerMask;
 
     [Header("References")]
@@ -24,8 +29,6 @@ public class FallingBoxObject : MonoBehaviour
     private bool wasSpawnedBySpawner;
     private Vector3 startPosition;
     private Quaternion startRotation;
-    private bool isDropped;
-    private bool isLanded;
 
     public bool IsFalling => isDropped && !isLanded;
     public bool HasLanded => isLanded;

@@ -1,12 +1,26 @@
 using UnityEngine;
 
+public enum ObjectDataApplyMode
+{
+    ManualOnly,
+    ApplyOnAwake,
+    ApplyOnStart,
+    ApplyOnValidateEditorOnly
+}
+
 [DisallowMultipleComponent]
 public class DataDrivenObjectController : MonoBehaviour
 {
     [Header("Data")]
+    [Tooltip("Template used to initialize component values. Prefab component values remain the runtime source of truth.")]
     [SerializeField] private ObjectData objectData;
-    [SerializeField] private bool applyOnAwake = true;
-    [SerializeField] private bool applyOnStart;
+
+    [Header("Apply Settings")]
+    [SerializeField] private ObjectDataApplyMode applyMode = ObjectDataApplyMode.ManualOnly;
+    [SerializeField] private bool applyOnlyOnce = true;
+    [SerializeField] private bool hasAppliedData;
+    [Tooltip("Explicit opt-in required before Awake or Start can overwrite component values at runtime.")]
+    [SerializeField] private bool allowRuntimeOverwrite;
 
     [Header("Target Components")]
     [SerializeField] private DamageDealer damageDealer;
@@ -23,7 +37,7 @@ public class DataDrivenObjectController : MonoBehaviour
     [SerializeField] private FallingBoxObject fallingBoxObject;
 
     [Header("Debug")]
-    [SerializeField] private bool debugMode;
+    [SerializeField] private bool debugMode = true;
 
     private void Reset()
     {
@@ -33,34 +47,92 @@ public class DataDrivenObjectController : MonoBehaviour
     private void Awake()
     {
         AutoFill();
-        if (applyOnAwake)
+        if (applyMode == ObjectDataApplyMode.ApplyOnAwake)
         {
-            ApplyData();
+            TryAutomaticRuntimeApply("Awake");
+        }
+        else if (applyMode == ObjectDataApplyMode.ManualOnly)
+        {
+            Log("Apply mode is ManualOnly. Runtime auto apply skipped.");
         }
     }
 
     private void Start()
     {
-        if (applyOnStart)
+        if (applyMode == ObjectDataApplyMode.ApplyOnStart)
         {
-            ApplyData();
+            TryAutomaticRuntimeApply("Start");
         }
     }
 
     private void OnValidate()
     {
         AutoFill();
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying && applyMode == ObjectDataApplyMode.ApplyOnValidateEditorOnly)
+        {
+            ApplyObjectDataOnce();
+        }
+#endif
     }
 
-    [ContextMenu("Apply Object Data")]
+    [ContextMenu("Apply Object Data Once")]
+    public void ApplyObjectDataOnce()
+    {
+        if (applyOnlyOnce && hasAppliedData)
+        {
+            Log("ObjectData apply skipped because the applied flag is already set.");
+            return;
+        }
+
+        if (ApplyDataInternal())
+        {
+            hasAppliedData = true;
+            Log("ObjectData applied once to prefab components.");
+        }
+    }
+
+    // Kept for existing component integrations. New designer workflow uses Apply Object Data Once.
     public void ApplyData()
+    {
+        ApplyObjectDataOnce();
+    }
+
+    [ContextMenu("Reset Applied Flag")]
+    public void ResetAppliedFlag()
+    {
+        hasAppliedData = false;
+        Log("Applied flag reset. Component values were not changed.");
+    }
+
+    [ContextMenu("Print Current Object Values")]
+    public void PrintCurrentObjectValues()
+    {
+        AutoFill();
+        Debug.Log(
+            "[DataDrivenObjectController] Current Object Values\n" +
+            $"- Object: {name}\n" +
+            $"- ObjectData: {(objectData != null ? objectData.name : "None")}\n" +
+            $"- ApplyMode: {applyMode}\n" +
+            $"- ApplyOnlyOnce: {applyOnlyOnce}\n" +
+            $"- HasAppliedData: {hasAppliedData}\n" +
+            $"- AllowRuntimeOverwrite: {allowRuntimeOverwrite}\n" +
+            $"- BlockObject: {(blockObject != null ? JsonUtility.ToJson(blockObject) : "None")}\n" +
+            $"- GravityDropSensor: {(gravityDropSensor != null ? JsonUtility.ToJson(gravityDropSensor) : "None")}\n" +
+            $"- StoneObject: {(stoneObject != null ? JsonUtility.ToJson(stoneObject) : "None")}\n" +
+            $"- FallingBoxObject: {(fallingBoxObject != null ? JsonUtility.ToJson(fallingBoxObject) : "None")}",
+            this);
+    }
+
+    private bool ApplyDataInternal()
     {
         AutoFill();
 
         if (objectData == null)
         {
             Debug.LogWarning("[DataDrivenObjectController] ObjectData is not assigned.", this);
-            return;
+            return false;
         }
 
         ApplyHitReceiver();
@@ -75,6 +147,18 @@ public class DataDrivenObjectController : MonoBehaviour
         ApplyObjectSpecificData();
 
         Log($"Applied ObjectData: {objectData.displayName} ({objectData.objectKind})");
+        return true;
+    }
+
+    private void TryAutomaticRuntimeApply(string timing)
+    {
+        if (!allowRuntimeOverwrite)
+        {
+            Log($"Runtime overwrite disabled. {timing} auto apply skipped.");
+            return;
+        }
+
+        ApplyObjectDataOnce();
     }
 
     [ContextMenu("Validate Object Data Setup")]

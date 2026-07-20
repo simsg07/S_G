@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: b022750ce44635e4f80cf1e32ceda15d
+guid: 49f204e97771f5f488aa2d341dfa7c33
 importerOverride:
   nativeImporterType: 2089858483
   scriptedImporterType:
@@ -88,7 +88,7 @@ ScriptedImporter:
       y: 0
       width: 0
       height: 0
-    spriteID: 84850fd4873ae974bac82d72c5359ab5
+    spriteID: c6d6a39f064a9ce44b4301c7c9213c83
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -100,7 +100,95 @@ ScriptedImporter:
     spritePosition: {x: 0, y: 0}
   multiSpriteImportData: []
   layeredSpriteImportData:
-  - name: cable car
+  - name: rail_support_02
+    originalName: 
+    pivot: {x: 0.5, y: 0.5}
+    alignment: 0
+    border: {x: 0, y: 0, z: 0, w: 0}
+    customData: 
+    rect:
+      serializedVersion: 2
+      x: 678
+      y: 655
+      width: 162
+      height: 176
+    spriteID: 5282e1f763bc54d42ae4042f75dd0eb3
+    spriteBone: []
+    spriteOutline: []
+    vertices: []
+    spritePhysicsOutline: []
+    indices: 
+    edges: []
+    tessellationDetail: 0
+    uvTransform: {x: 678, y: 655}
+    spritePosition: {x: 1305, y: 505}
+  - name: rail_support_01
+    originalName: 
+    pivot: {x: 0.5, y: 0.5}
+    alignment: 0
+    border: {x: 0, y: 0, z: 0, w: 0}
+    customData: 
+    rect:
+      serializedVersion: 2
+      x: 678
+      y: 470
+      width: 249
+      height: 177
+    spriteID: 44c605df7396e14478c5c9e6dfb2869e
+    spriteBone: []
+    spriteOutline: []
+    vertices: []
+    spritePhysicsOutline: []
+    indices: 
+    edges: []
+    tessellationDetail: 0
+    uvTransform: {x: 678, y: 470}
+    spritePosition: {x: 700, y: 504}
+  - name: rail_middle_01
+    originalName: 
+    pivot: {x: 0.5, y: 0.5}
+    alignment: 0
+    border: {x: 0, y: 0, z: 0, w: 0}
+    customData: 
+    rect:
+      serializedVersion: 2
+      x: 4
+      y: 909
+      width: 501
+      height: 313
+    spriteID: da618a979fcfe3943ae2ea2aeffac5ee
+    spriteBone: []
+    spriteOutline: []
+    vertices: []
+    spritePhysicsOutline: []
+    indices: 
+    edges: []
+    tessellationDetail: 0
+    uvTransform: {x: 4, y: 909}
+    spritePosition: {x: 990, y: 246}
+  - name: rail_end
+    originalName: 
+    pivot: {x: 0.5, y: 0.5}
+    alignment: 0
+    border: {x: 0, y: 0, z: 0, w: 0}
+    customData: 
+    rect:
+      serializedVersion: 2
+      x: 4
+      y: 470
+      width: 666
+      height: 431
+    spriteID: cb2d4c44bfa994840a889186786da1a5
+    spriteBone: []
+    spriteOutline: []
+    vertices: []
+    spritePhysicsOutline: []
+    indices: 
+    edges: []
+    tessellationDetail: 0
+    uvTransform: {x: 4, y: 470}
+    spritePosition: {x: 1475, y: 103}
+  - name: rail_start
     originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
@@ -110,9 +198,9 @@ ScriptedImporter:
       serializedVersion: 2
       x: 4
       y: 4
-      width: 640
-      height: 616
-    spriteID: 037f16e82080b984a8c5dfa6336aa82d
+      width: 951
+      height: 458
+    spriteID: 57d231cf2c5bb004da549067f0f68a11
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -121,73 +209,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 4, y: 4}
-    spritePosition: {x: 318, y: 43}
-  - name: hook
-    originalName: 
-    pivot: {x: 0.5, y: 0.5}
-    alignment: 0
-    border: {x: 0, y: 0, z: 0, w: 0}
-    customData: 
-    rect:
-      serializedVersion: 2
-      x: 652
-      y: 233
-      width: 84
-      height: 148
-    spriteID: 4ad9cf82fce666c4da9fa21af8abc2a9
-    spriteBone: []
-    spriteOutline: []
-    vertices: []
-    spritePhysicsOutline: []
-    indices: 
-    edges: []
-    tessellationDetail: 0
-    uvTransform: {x: 652, y: 233}
-    spritePosition: {x: 563, y: 645}
-  - name: wire
-    originalName: 
-    pivot: {x: 0.5, y: 0.5}
-    alignment: 0
-    border: {x: 0, y: 0, z: 0, w: 0}
-    customData: 
-    rect:
-      serializedVersion: 2
-      x: 652
-      y: 389
-      width: 14
-      height: 218
-    spriteID: 1807535afe730aa4ead44a3888ba2525
-    spriteBone: []
-    spriteOutline: []
-    vertices: []
-    spritePhysicsOutline: []
-    indices: 
-    edges: []
-    tessellationDetail: 0
-    uvTransform: {x: 652, y: 389}
-    spritePosition: {x: 598, y: 786}
-  - name: Hoist
-    originalName: 
-    pivot: {x: 0.5, y: 0.5}
-    alignment: 0
-    border: {x: 0, y: 0, z: 0, w: 0}
-    customData: 
-    rect:
-      serializedVersion: 2
-      x: 652
-      y: 4
-      width: 145
-      height: 221
-    spriteID: 756bc08691b096d4eb4b7176acb33eb4
-    spriteBone: []
-    spriteOutline: []
-    vertices: []
-    spritePhysicsOutline: []
-    indices: 
-    edges: []
-    tessellationDetail: 0
-    uvTransform: {x: 652, y: 4}
-    spritePosition: {x: 549, y: 1004}
+    spritePosition: {x: 39, y: 111}
   spriteImportData: []
   rigSpriteImportData: []
   sharedRigSpriteImportData: []
@@ -219,106 +241,76 @@ ScriptedImporter:
   resliceFromLayer: 0
   pSDLayerImportSetting: []
   psdLayers:
-  - name: "\uAC74\uB4E4\uC9C0\uB9C8\uC2DC\uC624"
-    spriteName: 
-    isGroup: 1
+  - name: rail_support_02
+    spriteName: rail_support_02
+    isGroup: 0
     parentIndex: -1
-    spriteID: 863bc2a7125c0f748ab1deca0f6ed52e
-    layerID: 20
+    spriteID: 5282e1f763bc54d42ae4042f75dd0eb3
+    layerID: 11
+    mosaicPosition: {x: 678, y: 655}
+    flatten: 0
+    isImported: 1
+    isVisible: 1
+  - name: rail_support_01
+    spriteName: rail_support_01
+    isGroup: 0
+    parentIndex: -1
+    spriteID: 44c605df7396e14478c5c9e6dfb2869e
+    layerID: 4
+    mosaicPosition: {x: 678, y: 470}
+    flatten: 0
+    isImported: 1
+    isVisible: 1
+  - name: rail_middle_02
+    spriteName: 
+    isGroup: 0
+    parentIndex: -1
+    spriteID: c69662b9d6075e140aa3d2ca5fd58a03
+    layerID: 12
     mosaicPosition: {x: 0, y: 0}
     flatten: 0
     isImported: 0
     isVisible: 0
-  - name: Layer 3
-    spriteName: 
-    isGroup: 0
-    parentIndex: 0
-    spriteID: 6b51cfe0a47af314ba1cb3a740c68252
-    layerID: 5
-    mosaicPosition: {x: 0, y: 0}
-    flatten: 0
-    isImported: 0
-    isVisible: 1
-  - name: Layer 4
-    spriteName: 
-    isGroup: 0
-    parentIndex: 0
-    spriteID: b2bd07ea2df5a974580d9f34617197c9
-    layerID: 15
-    mosaicPosition: {x: 0, y: 0}
-    flatten: 0
-    isImported: 0
-    isVisible: 1
-  - name: Layer 6
-    spriteName: 
-    isGroup: 0
-    parentIndex: 0
-    spriteID: abfcef75b8acbc54091804e9d641f78d
-    layerID: 19
-    mosaicPosition: {x: 0, y: 0}
-    flatten: 0
-    isImported: 0
-    isVisible: 1
-  - name: Layer 5
-    spriteName: 
-    isGroup: 0
-    parentIndex: 0
-    spriteID: db9b902d1a493f3409d6c3842e8a39a8
-    layerID: 17
-    mosaicPosition: {x: 0, y: 0}
-    flatten: 0
-    isImported: 0
-    isVisible: 1
-  - name: Layer 1
-    spriteName: 
-    isGroup: 0
-    parentIndex: 0
-    spriteID: 33c7890a766398044b67937a12299067
-    layerID: 2
-    mosaicPosition: {x: 0, y: 0}
-    flatten: 0
-    isImported: 0
-    isVisible: 1
-  - name: cable car
-    spriteName: cable car
+  - name: rail_middle_01
+    spriteName: rail_middle_01
     isGroup: 0
     parentIndex: -1
-    spriteID: 037f16e82080b984a8c5dfa6336aa82d
-    layerID: 38
+    spriteID: da618a979fcfe3943ae2ea2aeffac5ee
+    layerID: 6
+    mosaicPosition: {x: 4, y: 909}
+    flatten: 0
+    isImported: 1
+    isVisible: 1
+  - name: rail_end
+    spriteName: rail_end
+    isGroup: 0
+    parentIndex: -1
+    spriteID: cb2d4c44bfa994840a889186786da1a5
+    layerID: 9
+    mosaicPosition: {x: 4, y: 470}
+    flatten: 0
+    isImported: 1
+    isVisible: 1
+  - name: rail_start
+    spriteName: rail_start
+    isGroup: 0
+    parentIndex: -1
+    spriteID: 57d231cf2c5bb004da549067f0f68a11
+    layerID: 2
     mosaicPosition: {x: 4, y: 4}
     flatten: 0
     isImported: 1
     isVisible: 1
-  - name: hook
-    spriteName: hook
+  - name: Layer 0
+    spriteName: 
     isGroup: 0
     parentIndex: -1
-    spriteID: 4ad9cf82fce666c4da9fa21af8abc2a9
-    layerID: 25
-    mosaicPosition: {x: 652, y: 233}
+    spriteID: 24ffbfdc729ad7e429d5ab20386298c1
+    layerID: 10
+    mosaicPosition: {x: 0, y: 0}
     flatten: 0
-    isImported: 1
-    isVisible: 1
-  - name: wire
-    spriteName: wire
-    isGroup: 0
-    parentIndex: -1
-    spriteID: 1807535afe730aa4ead44a3888ba2525
-    layerID: 29
-    mosaicPosition: {x: 652, y: 389}
-    flatten: 0
-    isImported: 1
-    isVisible: 1
-  - name: Hoist
-    spriteName: Hoist
-    isGroup: 0
-    parentIndex: -1
-    spriteID: 756bc08691b096d4eb4b7176acb33eb4
-    layerID: 3
-    mosaicPosition: {x: 652, y: 4}
-    flatten: 0
-    isImported: 1
-    isVisible: 1
+    isImported: 0
+    isVisible: 0
   mosaicPSDLayers: []
   rigPSDLayers: []
   sharedRigPSDLayers: []

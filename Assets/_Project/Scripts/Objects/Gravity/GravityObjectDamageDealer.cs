@@ -3,11 +3,13 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class GravityObjectDamageDealer : MonoBehaviour
 {
-    [Header("Player Hit")]
+    [Header("Damage")]
     [SerializeField] private bool instantKillPlayer = true;
+    [SerializeField] private bool damageOnlyWhileFalling = true;
+
+    [Header("Target")]
     [SerializeField] private LayerMask playerLayerMask;
     [SerializeField] private string playerTag = "Player";
-    [SerializeField] private bool damageOnlyWhileFalling = true;
 
     [Header("References")]
     [SerializeField] private StoneObject stoneObject;

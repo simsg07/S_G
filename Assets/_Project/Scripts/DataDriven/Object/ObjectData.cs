@@ -37,6 +37,7 @@ public enum ObjectTriggerAction
 [CreateAssetMenu(menuName = "_Project/Data/Object Data", fileName = "ObjectData")]
 public class ObjectData : ScriptableObject
 {
+    [Tooltip("Initial setup template only. Runtime behavior uses the values serialized on prefab components after applying once.")]
     [Header("Identity")]
     public string objectId;
     public string displayName;

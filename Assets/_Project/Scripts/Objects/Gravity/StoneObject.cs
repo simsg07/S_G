@@ -6,10 +6,16 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class StoneObject : MonoBehaviour
 {
-    [Header("Rules")]
+    [Header("State")]
+    [SerializeField] private bool isDropped;
+    [SerializeField] private bool isBroken;
+
+    [Header("Ground Check")]
+    [SerializeField] private LayerMask groundLayerMask;
+
+    [Header("Break")]
     [SerializeField] private bool breakOnGroundHit = true;
     [SerializeField] private float destroyDelay = 0.5f;
-    [SerializeField] private LayerMask groundLayerMask;
 
     [Header("References")]
     [SerializeField] private GravityObject3D gravityObject;
@@ -28,8 +34,6 @@ public class StoneObject : MonoBehaviour
     private bool wasSpawnedBySpawner;
     private Vector3 startPosition;
     private Quaternion startRotation;
-    private bool isDropped;
-    private bool isBroken;
     private Coroutine removeRoutine;
 
     public bool IsFalling => isDropped && !isBroken;

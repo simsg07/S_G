@@ -37,8 +37,8 @@ MonoBehaviour:
   remainAsPlatformOnGround: 1
   instantKillPlayerOnFallingHit: 1
   useGravityDropSensor: 1
-  gravityDetectionCenterOffset: {x: 0, y: -2, z: 0}
-  gravityDetectionBoxSize: {x: 3, y: 4, z: 1}
+  gravityDetectionCenterOffset: {x: 0, y: -5.5, z: 0}
+  gravityDetectionBoxSize: {x: 1, y: 10, z: 1}
   gravityDetectOnlyOnce: 1
   usePlayerTagFallback: 1
   playerTag: Player

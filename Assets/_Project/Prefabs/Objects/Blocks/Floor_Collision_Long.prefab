@@ -48,8 +48,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DataDrivenObjectController
   objectData: {fileID: 11400000, guid: 19b62d7f2d5e4411b7fa2f8222f38a10, type: 2}
-  applyOnAwake: 1
-  applyOnStart: 0
+  applyMode: 0
+  applyOnlyOnce: 1
+  hasAppliedData: 0
+  allowRuntimeOverwrite: 0
   damageDealer: {fileID: 0}
   hitReceiver: {fileID: 0}
   gravityObject: {fileID: 0}

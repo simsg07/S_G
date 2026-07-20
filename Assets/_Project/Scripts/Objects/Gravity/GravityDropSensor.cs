@@ -4,8 +4,7 @@ using UnityEngine.Serialization;
 [DisallowMultipleComponent]
 public class GravityDropSensor : MonoBehaviour
 {
-    [Header("Detection")]
-    [SerializeField] private LayerMask playerLayerMask;
+    [Header("Detection From Prefab")]
     [FormerlySerializedAs("boxCenterOffset")]
     [SerializeField] private Vector3 detectionCenterOffset = new Vector3(0f, -2f, 0f);
     [FormerlySerializedAs("boxSize")]
@@ -13,9 +12,14 @@ public class GravityDropSensor : MonoBehaviour
     [SerializeField] private bool usePlayerTagFallback = true;
     [SerializeField] private string playerTag = "Player";
     [SerializeField] private bool detectOnlyOnce = true;
+
+    [Header("State")]
     [SerializeField] private bool hasDetected;
 
-    [Header("Targets")]
+    [Header("Layer")]
+    [SerializeField] private LayerMask playerLayerMask;
+
+    [Header("Target")]
     [SerializeField] private StoneObject stoneObject;
     [SerializeField] private FallingBoxObject fallingBoxObject;
 

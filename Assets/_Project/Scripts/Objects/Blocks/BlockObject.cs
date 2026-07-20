@@ -11,14 +11,13 @@ public class BlockObject : MonoBehaviour
     [SerializeField] private BlockObjectType blockType;
     [SerializeField] private bool isBroken;
 
-    [Header("Collision")]
+    [Header("Block Rules")]
     [SerializeField] private bool canBlockPlayer = true;
     [SerializeField] private bool canBlockMonster = true;
     [SerializeField] private bool canBlockSight;
     [SerializeField] private bool canBlockLight;
+    [Header("Break Settings")]
     [SerializeField] private bool removeColliderOnBreak = true;
-
-    [Header("Break")]
     [SerializeField] private bool hideVisualOnBreak;
     [SerializeField] private bool delayHideVisual = true;
     [SerializeField] private float visualHideDelay = 0.25f;

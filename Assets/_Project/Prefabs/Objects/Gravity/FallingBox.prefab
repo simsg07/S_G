@@ -54,8 +54,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DataDrivenObjectController
   objectData: {fileID: 11400000, guid: f64ec017726b4c4cbef782a053d26f88, type: 2}
-  applyOnAwake: 1
-  applyOnStart: 0
+  applyMode: 0
+  applyOnlyOnce: 1
+  hasAppliedData: 0
+  allowRuntimeOverwrite: 0
   damageDealer: {fileID: 220006}
   hitReceiver: {fileID: 0}
   gravityObject: {fileID: 220004}
@@ -143,11 +145,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GravityObjectDamageDealer
   instantKillPlayer: 1
+  damageOnlyWhileFalling: 1
   playerLayerMask:
     serializedVersion: 2
     m_Bits: 0
   playerTag: Player
-  damageOnlyWhileFalling: 1
   stoneObject: {fileID: 0}
   fallingBoxObject: {fileID: 220007}
   debugMode: 1
@@ -163,6 +165,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc156c3ffef04be89b7cd2806a107d56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FallingBoxObject
+  isDropped: 0
+  isLanded: 0
   remainAsPlatformOnGround: 1
   groundLayerMask:
     serializedVersion: 2
@@ -186,15 +190,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b0510e8c0e8a487b921acb30aa0cb04e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GravityDropSensor
-  playerLayerMask:
-    serializedVersion: 2
-    m_Bits: 0
-  detectionCenterOffset: {x: 0, y: -2, z: 0}
-  detectionBoxSize: {x: 3, y: 4, z: 1}
+  detectionCenterOffset: {x: 0, y: -5.5, z: 0}
+  detectionBoxSize: {x: 1, y: 10, z: 1}
   usePlayerTagFallback: 1
   playerTag: Player
   detectOnlyOnce: 1
   hasDetected: 0
+  playerLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   stoneObject: {fileID: 0}
   fallingBoxObject: {fileID: 220007}
   showGizmo: 1
