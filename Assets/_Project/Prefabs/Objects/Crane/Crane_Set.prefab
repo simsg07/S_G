@@ -335,6 +335,9 @@ MonoBehaviour:
   startPoint: 0
   startAtPointA: 1
   snapToStartOnPlay: 1
+  moveAxis: 0
+  keepXFromRailPoint: 1
+  keepYFromRailPoint: 1
   cabinYOffset: -3
   lockZ: 1
   fixedZ: 0
@@ -353,6 +356,11 @@ MonoBehaviour:
   rb: {fileID: 200002}
   mainCollider: {fileID: 200003}
   carryZone: {fileID: 240002}
+  applyColliderOnStart: 0
+  applyColliderOnValidate: 0
+  preserveManualColliderSettings: 1
+  colliderSetupCenter: {x: 0, y: 0, z: 0}
+  colliderSetupSize: {x: 1, y: 1, z: 1}
   isMoving: 0
   isStopped: 1
   isPaused: 0
@@ -385,8 +393,10 @@ MonoBehaviour:
   trolleyYOffset: 0
   cabinVisualOffset: {x: 0, y: 0, z: 0}
   trolleyVisualOffset: {x: 0, y: 0, z: 0.05}
-  updateEveryFrame: 1
-  alignOnStart: 1
+  alignVisualsOnStart: 0
+  alignVisualsOnValidate: 0
+  updateCableEveryFrame: 1
+  preserveManualVisualOffsets: 1
   debugMode: 1
 --- !u!1 &210000
 GameObject:

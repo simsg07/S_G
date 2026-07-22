@@ -192,6 +192,9 @@ MonoBehaviour:
   startPoint: 0
   startAtPointA: 1
   snapToStartOnPlay: 1
+  moveAxis: 0
+  keepXFromRailPoint: 1
+  keepYFromRailPoint: 1
   cabinYOffset: -3
   lockZ: 1
   fixedZ: 0
@@ -210,6 +213,11 @@ MonoBehaviour:
   rb: {fileID: 8609855916847421245}
   mainCollider: {fileID: 3327349421450906262}
   carryZone: {fileID: 2796424106507497693}
+  applyColliderOnStart: 0
+  applyColliderOnValidate: 0
+  preserveManualColliderSettings: 1
+  colliderSetupCenter: {x: 0, y: 0, z: 0}
+  colliderSetupSize: {x: 1, y: 1, z: 1}
   isMoving: 0
   isStopped: 1
   isPaused: 0

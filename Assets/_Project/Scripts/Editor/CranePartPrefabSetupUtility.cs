@@ -51,6 +51,101 @@ public static class CranePartPrefabSetupUtility
         Debug.Log("[CranePartPrefabSetupUtility] Opaque functional debug prefabs created. No PSD or Sprite assets were imported.");
     }
 
+    [MenuItem("Tools/_Project/Crane/Create Vertical Crane Prefabs")]
+    public static void CreateVerticalCranePrefabs()
+    {
+        EnsureFolders();
+        CreateVerticalRailPathPrefab();
+        CreateVerticalBodyPrefab();
+        DisableAutomaticCraneOverrides("Assets/_Project/Prefabs/Objects/Crane/Crane_Set.prefab");
+        DisableAutomaticCraneOverrides($"{PrefabFolder}/Crane_Body.prefab");
+        DisableAutomaticCraneOverrides($"{PrefabFolder}/Crane_Vertical.prefab");
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("[CranePartPrefabSetupUtility] Vertical Crane prefabs created and automatic Visual/Collider overrides disabled.");
+    }
+
+    private static void CreateVerticalRailPathPrefab()
+    {
+        const string source = "Assets/_Project/Prefabs/Objects/Dynamic/Crane/Crane_RailPath.prefab";
+        string destination = $"{PrefabFolder}/Crane_RailPath_Vertical.prefab";
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(destination) == null) AssetDatabase.CopyAsset(source, destination);
+        GameObject root = PrefabUtility.LoadPrefabContents(destination);
+        try
+        {
+            root.name = "Crane_RailPath_Vertical";
+            CraneRailPath3D path = root.GetComponent<CraneRailPath3D>();
+            if (path != null && path.IsValid)
+            {
+                path.PointATransform.localPosition = new Vector3(0f, -3f, 0f);
+                path.PointBTransform.localPosition = new Vector3(0f, 3f, 0f);
+                Transform visual = root.transform.Find("Rail_Debug_Visual");
+                if (visual != null)
+                {
+                    visual.localPosition = Vector3.zero;
+                    visual.localScale = new Vector3(0.15f, 6f, 0.15f);
+                }
+            }
+            PrefabUtility.SaveAsPrefabAsset(root, destination);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void CreateVerticalBodyPrefab()
+    {
+        const string source = "Assets/_Project/Prefabs/Objects/Dynamic/Crane/Crane_Body.prefab";
+        string destination = $"{PrefabFolder}/Crane_Vertical.prefab";
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(destination) == null) AssetDatabase.CopyAsset(source, destination);
+        GameObject root = PrefabUtility.LoadPrefabContents(destination);
+        try
+        {
+            root.name = "Crane_Vertical";
+            CraneObject crane = root.GetComponent<CraneObject>();
+            if (crane != null)
+            {
+                SerializedObject data = new SerializedObject(crane);
+                data.FindProperty("moveAxis").enumValueIndex = (int)CraneMoveAxis.Vertical;
+                data.FindProperty("keepXFromRailPoint").boolValue = true;
+                data.FindProperty("keepYFromRailPoint").boolValue = true;
+                data.FindProperty("cabinYOffset").floatValue = 0f;
+                data.FindProperty("applyColliderOnStart").boolValue = false;
+                data.FindProperty("applyColliderOnValidate").boolValue = false;
+                data.FindProperty("preserveManualColliderSettings").boolValue = true;
+                data.ApplyModifiedPropertiesWithoutUndo();
+            }
+            PrefabUtility.SaveAsPrefabAsset(root, destination);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void DisableAutomaticCraneOverrides(string path)
+    {
+        GameObject root = PrefabUtility.LoadPrefabContents(path);
+        if (root == null) return;
+        try
+        {
+            foreach (CraneObject crane in root.GetComponentsInChildren<CraneObject>(true))
+            {
+                SerializedObject data = new SerializedObject(crane);
+                data.FindProperty("applyColliderOnStart").boolValue = false;
+                data.FindProperty("applyColliderOnValidate").boolValue = false;
+                data.FindProperty("preserveManualColliderSettings").boolValue = true;
+                data.ApplyModifiedPropertiesWithoutUndo();
+            }
+            foreach (CraneMovingVisualAligner3D aligner in root.GetComponentsInChildren<CraneMovingVisualAligner3D>(true))
+            {
+                SerializedObject data = new SerializedObject(aligner);
+                data.FindProperty("alignVisualsOnStart").boolValue = false;
+                data.FindProperty("alignVisualsOnValidate").boolValue = false;
+                data.FindProperty("updateCableEveryFrame").boolValue = true;
+                data.FindProperty("preserveManualVisualOffsets").boolValue = true;
+                data.ApplyModifiedPropertiesWithoutUndo();
+            }
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
     private static void CreateRailPathPrefab(Material railMaterial, Material pointMaterial)
     {
         GameObject root = new GameObject("Crane_RailPath");

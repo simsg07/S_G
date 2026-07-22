@@ -7,6 +7,13 @@ public enum CraneStartPoint
     PointB
 }
 
+public enum CraneMoveAxis
+{
+    Horizontal,
+    Vertical,
+    CustomLine
+}
+
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(100)]
 [RequireComponent(typeof(Rigidbody))]
@@ -23,6 +30,9 @@ public class CraneObject : MonoBehaviour, IShutterFreezable3D
     [FormerlySerializedAs("snapToStartPoint")]
     [FormerlySerializedAs("snapToStartPointOnStart")]
     [SerializeField] private bool snapToStartOnPlay = true;
+    [SerializeField] private CraneMoveAxis moveAxis = CraneMoveAxis.Horizontal;
+    [SerializeField] private bool keepXFromRailPoint = true;
+    [SerializeField] private bool keepYFromRailPoint = true;
 
     [Header("Cabin Offset From Rail")]
     [Tooltip("Vertical world-space distance from the upper rail to the hanging cabin. Usually negative.")]
@@ -52,6 +62,13 @@ public class CraneObject : MonoBehaviour, IShutterFreezable3D
     [SerializeField] private Rigidbody rb;
     [SerializeField] private Collider mainCollider;
     [SerializeField] private CraneCarryZone3D carryZone;
+
+    [Header("Manual Collider Settings")]
+    [SerializeField] private bool applyColliderOnStart;
+    [SerializeField] private bool applyColliderOnValidate;
+    [SerializeField] private bool preserveManualColliderSettings = true;
+    [SerializeField] private Vector3 colliderSetupCenter;
+    [SerializeField] private Vector3 colliderSetupSize = Vector3.one;
 
     [Header("Runtime State")]
     [SerializeField] private bool isMoving;
@@ -86,6 +103,8 @@ public class CraneObject : MonoBehaviour, IShutterFreezable3D
         ConfigureBody();
         SyncStartPointFromBool();
 
+        if (applyColliderOnStart && !preserveManualColliderSettings) ApplyColliderSetupOnce();
+
         if (snapToStartOnPlay && railPath != null && railPath.IsValid)
         {
             targetIsPointB = startPoint == CraneStartPoint.PointB;
@@ -105,6 +124,7 @@ public class CraneObject : MonoBehaviour, IShutterFreezable3D
         obstacleCheckPadding = Mathf.Max(0f, obstacleCheckPadding);
         SyncStartPointFromBool();
         CacheReferences();
+        if (applyColliderOnValidate && !preserveManualColliderSettings) ApplyColliderSetupOnce();
     }
 
     private void Update()
@@ -174,8 +194,8 @@ public class CraneObject : MonoBehaviour, IShutterFreezable3D
         else
         {
             Vector3 position = rb != null ? rb.position : transform.position;
-            float distanceToA = Mathf.Abs(position.x - railPath.GetRailPointA().x);
-            float distanceToB = Mathf.Abs(position.x - railPath.GetRailPointB().x);
+            float distanceToA = GetAxisDistance(position, GetCabinPoint(false));
+            float distanceToB = GetAxisDistance(position, GetCabinPoint(true));
             targetIsPointB = distanceToA <= distanceToB;
         }
 
@@ -357,6 +377,28 @@ public class CraneObject : MonoBehaviour, IShutterFreezable3D
             $"[CraneObject] Rigidbody={(rb != null)}, Collider={(mainCollider != null)}, CarryZone={(carryZone != null)}, CabinYOffset={cabinYOffset}", this);
     }
 
+    [ContextMenu("Apply Collider Setup Once")]
+    public void ApplyColliderSetupOnce()
+    {
+        CacheReferences();
+        if (!(mainCollider is BoxCollider boxCollider)) return;
+        boxCollider.center = colliderSetupCenter;
+        boxCollider.size = new Vector3(
+            Mathf.Max(0.01f, colliderSetupSize.x),
+            Mathf.Max(0.01f, colliderSetupSize.y),
+            Mathf.Max(0.01f, colliderSetupSize.z));
+    }
+
+    [ContextMenu("Validate Collider Setup")]
+    public void ValidateColliderSetup()
+    {
+        CacheReferences();
+        if (mainCollider is BoxCollider boxCollider)
+            Debug.Log($"[CraneObject] BoxCollider Center={boxCollider.center}, Size={boxCollider.size}, PreserveManual={preserveManualColliderSettings}", this);
+        else
+            Debug.LogWarning("[CraneObject] BoxCollider is missing.", this);
+    }
+
     private bool HasObstacle(Vector3 current, Vector3 delta)
     {
         if (!stopOnObstacle || obstacleLayerMask.value == 0 || delta.sqrMagnitude <= Mathf.Epsilon)
@@ -434,9 +476,26 @@ public class CraneObject : MonoBehaviour, IShutterFreezable3D
     {
         if (railPath == null) return transform.position;
         Vector3 point = pointB ? railPath.GetRailPointB() : railPath.GetRailPointA();
-        point.y += cabinYOffset;
+        if (moveAxis == CraneMoveAxis.Horizontal) point.y += cabinYOffset;
+        else if (moveAxis == CraneMoveAxis.Vertical)
+        {
+            Vector3 current = transform.position;
+            if (!keepXFromRailPoint) point.x = current.x;
+            if (!keepYFromRailPoint) point.y = current.y;
+            point.y += cabinYOffset;
+        }
         if (lockZ) point.z = fixedZ;
         return point;
+    }
+
+    private float GetAxisDistance(Vector3 position, Vector3 point)
+    {
+        switch (moveAxis)
+        {
+            case CraneMoveAxis.Horizontal: return Mathf.Abs(position.x - point.x);
+            case CraneMoveAxis.Vertical: return Mathf.Abs(position.y - point.y);
+            default: return Vector3.Distance(position, point);
+        }
     }
 
     private Vector3 ClampToCabinSegment(Vector3 position)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [ExecuteAlways]
 [DisallowMultipleComponent]
@@ -19,8 +20,12 @@ public class CraneMovingVisualAligner3D : MonoBehaviour
     [SerializeField] private float trolleyYOffset;
     [SerializeField] private Vector3 cabinVisualOffset;
     [SerializeField] private Vector3 trolleyVisualOffset;
-    [SerializeField] private bool updateEveryFrame = true;
-    [SerializeField] private bool alignOnStart = true;
+    [FormerlySerializedAs("alignOnStart")]
+    [SerializeField] private bool alignVisualsOnStart;
+    [SerializeField] private bool alignVisualsOnValidate;
+    [FormerlySerializedAs("updateEveryFrame")]
+    [SerializeField] private bool updateCableEveryFrame = true;
+    [SerializeField] private bool preserveManualVisualOffsets = true;
     [SerializeField] private bool debugMode = true;
 
     private void Reset()
@@ -30,16 +35,21 @@ public class CraneMovingVisualAligner3D : MonoBehaviour
 
     private void Start()
     {
-        if (alignOnStart) AlignVisuals();
+        if (alignVisualsOnStart) AlignVisualsOnce();
     }
 
     private void LateUpdate()
     {
-        if (updateEveryFrame) AlignVisuals();
+        if (updateCableEveryFrame) RefreshCableOnly();
     }
 
-    [ContextMenu("Align Visuals")]
-    public void AlignVisuals()
+    private void OnValidate()
+    {
+        if (alignVisualsOnValidate) AlignVisualsOnce();
+    }
+
+    [ContextMenu("Align Visuals Once")]
+    public void AlignVisualsOnce()
     {
         if (!HasRequiredAlignmentReferences(false)) return;
 
@@ -47,19 +57,22 @@ public class CraneMovingVisualAligner3D : MonoBehaviour
         float railY = railPath.GetRailPointA().y;
         Vector3 trolleyPosition = new Vector3(cabinPosition.x, railY + trolleyYOffset, cabinPosition.z) + trolleyVisualOffset;
 
-        trolleyVisual.position = trolleyPosition;
-        if (upperConnectorVisual != null)
+        if (!preserveManualVisualOffsets)
         {
-            upperConnectorVisual.position = trolleyPosition + new Vector3(0f, -0.45f, 0f);
-        }
+            trolleyVisual.position = trolleyPosition;
+            if (upperConnectorVisual != null)
+            {
+                upperConnectorVisual.position = trolleyPosition + new Vector3(0f, -0.45f, 0f);
+            }
 
-        cabinVisual.localPosition = cabinVisualOffset;
-        if (trolleyCablePoint != null) trolleyCablePoint.position = trolleyPosition;
-        RefreshCableLine();
+            cabinVisual.localPosition = cabinVisualOffset;
+            if (trolleyCablePoint != null) trolleyCablePoint.position = trolleyPosition;
+        }
+        RefreshCableOnly();
     }
 
-    [ContextMenu("Refresh Cable Line")]
-    public void RefreshCableLine()
+    [ContextMenu("Refresh Cable Only")]
+    public void RefreshCableOnly()
     {
         if (cableLineRenderer == null || trolleyCablePoint == null || cabinCablePoint == null) return;
         cableLineRenderer.useWorldSpace = true;
@@ -68,6 +81,9 @@ public class CraneMovingVisualAligner3D : MonoBehaviour
         cableLineRenderer.SetPosition(0, trolleyCablePoint.position);
         cableLineRenderer.SetPosition(1, cabinCablePoint.position);
     }
+
+    public void AlignVisuals() => AlignVisualsOnce();
+    public void RefreshCableLine() => RefreshCableOnly();
 
     [ContextMenu("Validate Visual Setup")]
     public void ValidateVisualSetup()

@@ -11,18 +11,7 @@ public static class CraneAssetRepairUtility
     private const string SessionKey = "CraneAssetRepairUtility.AutoRepairCompleted";
     private const string VisualSessionKey = "CraneAssetRepairUtility.VisualOnly.V4";
 
-    [InitializeOnLoadMethod]
-    private static void ScheduleVisualOnlyApply()
-    {
-        if (SessionState.GetBool(VisualSessionKey, false)) return;
-        EditorApplication.delayCall += TryApplyVisualOnly;
-    }
-
-    [UnityEditor.Callbacks.DidReloadScripts]
-    private static void ApplyVisualsAfterScriptReload()
-    {
-        EditorApplication.delayCall += TryApplyVisualOnly;
-    }
+    // Intentionally manual-only: automatic editor reload repair overwrote prefab Visual transforms.
 
     private static void TryApplyVisualOnly()
     {

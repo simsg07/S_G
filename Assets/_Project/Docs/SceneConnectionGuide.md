@@ -1,154 +1,41 @@
 # Scene Connection Guide
 
-## 메트로배니아식 씬 연결 규칙
+## 핵심 개념
 
-이 프로젝트의 씬 연결은 한 방향 이동이 아니라, 한 씬에 여러 출구가 있고 이전 씬으로 되돌아갈 수도 있는 구조를 기준으로 합니다.
+`ScenePortal3D`는 출구이고 `SceneSpawnPoint3D`는 대상 씬의 도착 위치다. Portal의 `targetSpawnId`와 대상 씬 SpawnPoint의 `spawnId`는 대소문자까지 정확히 같아야 한다. 한 씬에 Portal과 SpawnPoint를 여러 개 둘 수 있어 왕복형 메트로베니아 연결을 구성할 수 있다.
 
-- 한 씬에 `StageExitTrigger`를 여러 개 둘 수 있습니다.
-- 각 출구는 서로 다른 `nextSceneName`과 `targetSpawnPointId`를 가질 수 있습니다.
-- `targetSpawnPointId`는 이동할 대상 씬의 `PlayerSpawnPoint.spawnPointId`와 정확히 같아야 합니다.
-- 씬 이름은 Build Settings에 등록된 씬 이름과 정확히 같아야 합니다.
-- 잘못 설정된 경우 게임을 멈추지 않고 Warning을 출력합니다.
+## 추천 ID 규칙
 
-## 파일 위치
+- Scene: `Stage_01_Forest`, `Stage_02_LabEntrance`, `Stage_03_Cave`
+- Portal: `Portal_Right_To_Stage02`, `Portal_Left_To_Stage01`, `Portal_Top_To_Stage04`, `Portal_Bottom_To_Stage03`
+- Spawn: `Spawn_Default`, `Spawn_From_Left`, `Spawn_From_Right`, `Spawn_From_Top`, `Spawn_From_Bottom`, `Spawn_From_Stage01`
 
-- `SceneLoader`: `Assets/_Project/Prefabs/Core/SceneLoader.prefab`
-- `StageExitTrigger`: `Assets/_Project/Prefabs/Map/StageExitTrigger.prefab`
-- `PlayerSpawnPoint`: `Assets/_Project/Prefabs/Map/PlayerSpawnPoint.prefab`
+예: Stage 01 오른쪽 Portal은 `targetSceneName=Stage_02_LabEntrance`, `targetSpawnId=Spawn_From_Left`로 설정한다. Stage 02 왼쪽 Portal은 `targetSceneName=Stage_01_Forest`, `targetSpawnId=Spawn_From_Right`로 설정한다.
 
-## 기본 배치
+## 씬 연결 순서
 
-1. 시작 씬에 `SceneLoader.prefab`을 하나 배치합니다.
-2. 각 출구 위치에 `StageExitTrigger.prefab`을 배치합니다.
-3. 각 씬의 입장 위치마다 `PlayerSpawnPoint.prefab`을 배치합니다.
-4. `StageExitTrigger.targetSpawnPointId`와 대상 씬의 `PlayerSpawnPoint.spawnPointId`를 맞춥니다.
+1. 메뉴 `_Project/Scene/Create Scene Transition Folders`로 현재 씬에 `Scene_Transitions/Portals/SpawnPoints`를 만든다.
+2. `Prefabs/Scene/SpawnPoint`를 대상 씬에 배치하고 고유 `spawnId`를 지정한다. 씬마다 하나는 `isDefaultSpawn`을 켠다.
+3. `Prefabs/Scene/Portal_Exit`를 출발 씬에 배치하고 `portalId`, `targetSceneName`, `targetSpawnId`를 입력한다.
+4. 즉시 진입은 `requireInteract=false`, F키 진입은 `requireInteract=true`로 둔다. BoxCollider는 반드시 `isTrigger=true`여야 한다.
+5. 최초 시작 씬 또는 공통 매니저 씬에 `SceneTransitionManager` 프리팹 하나를 둔다. 없어도 첫 이동 때 자동 생성된다.
+6. 메뉴 `_Project/Scene/Add Stage Scenes To Build Settings`로 Stage 씬을 등록한다.
+7. 메뉴 `_Project/Scene/Validate Current Scene Connections`로 현재 씬을 검사한다. 전체 검사는 `Validate All Stage Scene Connections`를 사용한다.
 
-## 예시: Stage_01 → Stage_02
+## SpawnPoint 옵션
 
-Stage_01의 오른쪽 출구:
+`spawnOffset`은 실제 도착 위치를 보정한다. `faceRight`는 기획 정보이며 PlayerController를 직접 뒤집지 않는다. `canUseAsRespawnPoint`는 향후 리스폰 연동용 표시다. 기존 `PlayerSpawnPoint`도 Manager의 fallback으로 계속 지원한다.
 
-- `nextSceneName = Stage_02`
-- `targetSpawnPointId = From_Stage01_Right`
+## Validator 검사
 
-Stage_02의 SpawnPoint:
+빈 Scene/Spawn ID, Portal Collider/Trigger, 중복 Spawn ID, Default Spawn 누락, Build Settings 누락, Missing Script를 Warning으로 출력한다. 전체 Stage 검사는 저장 여부를 먼저 묻고 원래 열려 있던 씬 구성을 복원한다.
 
-- `spawnPointId = From_Stage01_Right`
+## 자주 나는 문제
 
-## 예시: Stage_02 → Stage_01
+- 엉뚱한 위치 도착: `targetSpawnId` 오타 또는 중복 Spawn ID 확인
+- 씬 이동 안 됨: `targetSceneName`과 Build Settings 확인
+- Player가 이동하지 않음: Player Tag가 `Player`인지 확인
+- Trigger가 작동하지 않음: 3D BoxCollider와 `isTrigger=true` 확인
+- 여러 SpawnPoint 중 잘못 선택: 씬 안의 `spawnId`를 고유하게 수정
 
-Stage_02의 왼쪽 출구:
-
-- `nextSceneName = Stage_01`
-- `targetSpawnPointId = From_Stage02_Left`
-
-Stage_01의 SpawnPoint:
-
-- `spawnPointId = From_Stage02_Left`
-
-## 여러 갈래 출구 예시
-
-Stage_01:
-
-- `Exit_Right` → `Stage_02` / `From_Stage01_Right`
-- `Exit_Left` → `Stage_00` / `From_Stage01_Left`
-- `Exit_Down` → `Cave_01` / `From_Stage01_Down`
-
-출구마다 `StageExitTrigger`를 따로 배치하고 값을 따로 설정합니다.
-
-## 추천 이름 규칙
-
-출구 이름:
-
-- `Exit_Left`
-- `Exit_Right`
-- `Exit_Up`
-- `Exit_Down`
-- `Exit_BossRoom`
-- `Exit_Cave`
-
-SpawnPoint ID:
-
-- `From_Stage01_Left`
-- `From_Stage01_Right`
-- `From_Stage02_Left`
-- `From_Cave01`
-- `From_BossRoom`
-- `Default`
-
-`Default`는 fallback용으로 씬마다 하나 정도만 두는 것을 권장합니다.
-
-## Inspector 검증 버튼
-
-### StageExitTrigger
-
-버튼:
-
-- `Validate Scene Connection`
-
-확인 항목:
-
-- `nextSceneName`이 비어 있지 않은지
-- `nextSceneName`이 Build Settings에 등록되어 있는지
-- `targetSpawnPointId`가 비어 있지 않은지
-- 현재 씬에 `SceneLoader`가 있는지
-- Collider가 `isTrigger = true`인지
-- `playerLayerMask`가 설정되어 있는지
-
-### PlayerSpawnPoint
-
-버튼:
-
-- `Validate Spawn Point`
-
-확인 항목:
-
-- `spawnPointId`가 비어 있지 않은지
-- 같은 씬에 같은 `spawnPointId`가 중복되는지
-- Scene View에 ID와 방향 표시가 보이는지
-
-## 오류 방어 처리
-
-- `nextSceneName`이 비어 있으면 이동하지 않고 Warning 출력
-- `nextSceneName`이 Build Settings에 없으면 이동하지 않고 Warning 출력
-- `targetSpawnPointId`가 비어 있으면 `Default` 사용
-- 대상 SpawnPoint가 없으면 `Default` SpawnPoint 시도
-- `Default`도 없으면 Player 위치 유지
-- 같은 SpawnPoint ID가 중복되면 첫 번째를 사용하고 Warning 출력
-- 씬 로딩 중 추가 이동 요청은 무시하고 Warning 출력
-
-## 체크리스트
-
-1. 씬이 Build Settings에 등록되어 있는가?
-2. `StageExitTrigger.nextSceneName`이 정확한가?
-3. `StageExitTrigger.targetSpawnPointId`가 대상 씬의 `PlayerSpawnPoint.spawnPointId`와 같은가?
-4. 같은 씬 안에 중복된 `spawnPointId`가 없는가?
-5. `StageExitTrigger` Collider가 `isTrigger`인가?
-6. Player Layer가 `playerLayerMask`에 포함되어 있는가?
-7. 시작 씬에 `SceneLoader`가 있는가?
-
-## 테스트 방법
-
-### 테스트 1: Stage_01 → Stage_02
-
-1. Stage_01 출구에 `StageExitTrigger` 배치
-2. `nextSceneName = Stage_02`
-3. `targetSpawnPointId = From_Stage01_Right`
-4. Stage_02에 `PlayerSpawnPoint` 배치
-5. `spawnPointId = From_Stage01_Right`
-6. Player가 Stage_02의 해당 SpawnPoint로 이동하는지 확인
-
-### 테스트 2: Stage_02 → Stage_01
-
-1. Stage_02 출구에 `StageExitTrigger` 배치
-2. `nextSceneName = Stage_01`
-3. `targetSpawnPointId = From_Stage02_Left`
-4. Stage_01에 `PlayerSpawnPoint` 배치
-5. `spawnPointId = From_Stage02_Left`
-6. Player가 Stage_01의 해당 SpawnPoint로 이동하는지 확인
-
-### 테스트 3: 오류 방어
-
-1. `nextSceneName`을 일부러 틀리게 입력
-2. Warning만 출력되고 게임이 멈추지 않는지 확인
-3. `targetSpawnPointId`를 일부러 틀리게 입력
-4. Default SpawnPoint를 찾거나 Player 위치가 유지되는지 확인
+2D Rigidbody/Collider는 사용하지 않는다. 맵 충돌은 기존 3D BoxCollider 방식을 유지한다.
