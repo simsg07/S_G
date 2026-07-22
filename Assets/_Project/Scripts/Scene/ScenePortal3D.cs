@@ -72,6 +72,13 @@ public class ScenePortal3D : MonoBehaviour
     [ContextMenu("Test Enter Portal")]
     public void TryEnterPortal()
     {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning("[ScenePortal3D] Test Enter Portal only moves scenes in Play Mode. Setup validation was run instead.", this);
+            ValidatePortalSetup();
+            return;
+        }
+
         if (isLocked)
         {
             Debug.LogWarning($"[ScenePortal3D] Portal is locked: {portalId} / requiredKeyId={requiredKeyId}", this);

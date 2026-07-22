@@ -11,7 +11,20 @@ using UnityEngine.SceneManagement;
 public class SceneConnectionValidatorWindow : EditorWindow
 {
     private const string StageRoot = "Assets/_Project/Scenes/Stages";
+    private const string BootstrapSessionKey = "S_G.SceneConnections.BootstrapComplete";
     private Vector2 scroll;
+
+    [InitializeOnLoadMethod]
+    private static void ScheduleMissingPrefabSetup()
+    {
+        if (SessionState.GetBool(BootstrapSessionKey, false)) return;
+        SessionState.SetBool(BootstrapSessionKey, true);
+        EditorApplication.delayCall += () =>
+        {
+            CreateOrUpdatePrefabs();
+            OrganizeExistingPrefabs();
+        };
+    }
 
     [MenuItem("_Project/Scene/Scene Connection Validator")]
     private static void Open() => GetWindow<SceneConnectionValidatorWindow>("Scene Connections");
@@ -26,6 +39,7 @@ public class SceneConnectionValidatorWindow : EditorWindow
         if (GUILayout.Button("Add Stage Scenes To Build Settings")) AddStageScenesToBuildSettings();
         if (GUILayout.Button("Create Scene Transition Folders")) CreateSceneTransitionFolders();
         if (GUILayout.Button("Create Or Update Scene Connection Prefabs")) CreateOrUpdatePrefabs();
+        if (GUILayout.Button("Organize Existing Scene Connection Prefabs")) OrganizeExistingPrefabs();
         EditorGUILayout.EndScrollView();
     }
 
@@ -118,6 +132,37 @@ public class SceneConnectionValidatorWindow : EditorWindow
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("[SceneConnectionValidator] Scene connection prefabs created/updated.");
+    }
+
+    [MenuItem("_Project/Scene/Organize Existing Scene Connection Prefabs")]
+    public static void OrganizeExistingPrefabs()
+    {
+        const string folder = "Assets/_Project/Prefabs/Scene";
+        EnsureAssetFolder(folder);
+        int moved = 0;
+        moved += MoveAssetIfNeeded("Assets/_Project/Prefabs/Core/SceneLoader.prefab", folder + "/SceneLoader.prefab");
+        moved += MoveAssetIfNeeded("Assets/_Project/Prefabs/Core/StageExitTrigger.prefab", folder + "/StageExitTrigger.prefab");
+        moved += MoveAssetIfNeeded("Assets/_Project/Prefabs/Map/PlayerSpawnPoint.prefab", folder + "/PlayerSpawnPoint.prefab");
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log($"[SceneConnectionValidator] Organized {moved} existing scene connection prefab(s). GUIDs were preserved by AssetDatabase.MoveAsset.");
+    }
+
+    private static int MoveAssetIfNeeded(string source, string destination)
+    {
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(source) == null) return 0;
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(destination) != null)
+        {
+            Debug.LogWarning($"[SceneConnectionValidator] Move skipped because destination already exists: {destination}");
+            return 0;
+        }
+        string error = AssetDatabase.MoveAsset(source, destination);
+        if (!string.IsNullOrEmpty(error))
+        {
+            Debug.LogWarning($"[SceneConnectionValidator] Could not move '{source}': {error}");
+            return 0;
+        }
+        return 1;
     }
 
     private static void CreateDebugVisual(Transform parent, string name, Vector3 scale, Color color)

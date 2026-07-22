@@ -1,5 +1,15 @@
 # Scene Connection Guide
 
+## 프리팹 위치
+
+필수 새 방식 프리팹:
+
+- `Assets/_Project/Prefabs/Scene/SceneTransitionManager.prefab`
+- `Assets/_Project/Prefabs/Scene/Portal_Exit.prefab`
+- `Assets/_Project/Prefabs/Scene/SpawnPoint.prefab`
+
+호환용 기존 프리팹도 같은 폴더의 `SceneLoader.prefab`, `StageExitTrigger.prefab`, `PlayerSpawnPoint.prefab`으로 정리한다. Player 시스템 전용 `Player/RespawnPoint.prefab`은 이동하지 않는다.
+
 ## 핵심 개념
 
 `ScenePortal3D`는 출구이고 `SceneSpawnPoint3D`는 대상 씬의 도착 위치다. Portal의 `targetSpawnId`와 대상 씬 SpawnPoint의 `spawnId`는 대소문자까지 정확히 같아야 한다. 한 씬에 Portal과 SpawnPoint를 여러 개 둘 수 있어 왕복형 메트로베니아 연결을 구성할 수 있다.
@@ -14,13 +24,42 @@
 
 ## 씬 연결 순서
 
-1. 메뉴 `_Project/Scene/Create Scene Transition Folders`로 현재 씬에 `Scene_Transitions/Portals/SpawnPoints`를 만든다.
-2. `Prefabs/Scene/SpawnPoint`를 대상 씬에 배치하고 고유 `spawnId`를 지정한다. 씬마다 하나는 `isDefaultSpawn`을 켠다.
-3. `Prefabs/Scene/Portal_Exit`를 출발 씬에 배치하고 `portalId`, `targetSceneName`, `targetSpawnId`를 입력한다.
-4. 즉시 진입은 `requireInteract=false`, F키 진입은 `requireInteract=true`로 둔다. BoxCollider는 반드시 `isTrigger=true`여야 한다.
-5. 최초 시작 씬 또는 공통 매니저 씬에 `SceneTransitionManager` 프리팹 하나를 둔다. 없어도 첫 이동 때 자동 생성된다.
-6. 메뉴 `_Project/Scene/Add Stage Scenes To Build Settings`로 Stage 씬을 등록한다.
-7. 메뉴 `_Project/Scene/Validate Current Scene Connections`로 현재 씬을 검사한다. 전체 검사는 `Validate All Stage Scene Connections`를 사용한다.
+1. 이동할 대상 씬을 연다.
+2. 메뉴 `_Project/Scene/Create Scene Transition Folders`를 실행한다.
+3. `Scene_Transitions/SpawnPoints` 아래에 `SpawnPoint.prefab`을 배치한다.
+4. 고유 `spawnId`를 입력하고 씬마다 하나는 `isDefaultSpawn`을 켠다.
+5. 출발 씬의 `Scene_Transitions/Portals` 아래에 `Portal_Exit.prefab`을 배치한다.
+6. `portalId`와 정확한 `targetSceneName`을 입력한다.
+7. `targetSpawnId`에 대상 씬의 SpawnPoint ID를 정확히 입력한다.
+8. 최초 시작 씬 또는 공통 매니저 씬에 `SceneTransitionManager.prefab` 하나가 있는지 확인한다. 없어도 첫 이동 때 자동 생성된다.
+9. Build Settings 등록 후 `_Project/Scene/Validate Current Scene Connections`를 실행한다.
+10. Play Mode에서 양방향 이동과 도착 위치를 테스트한다.
+
+즉시 진입은 `requireInteract=false`, F키 진입은 `requireInteract=true`로 둔다. Portal BoxCollider는 반드시 `isTrigger=true`여야 한다.
+
+## 권장 Stage Hierarchy
+
+```text
+Stage_XX
+├ Map_Visual
+├ Map_Collision
+├ Objects
+├ Enemies
+└ Scene_Transitions
+   ├ Portals
+   │  ├ Portal_Left
+   │  ├ Portal_Right
+   │  ├ Portal_Top
+   │  └ Portal_Bottom
+   └ SpawnPoints
+      ├ Spawn_Default
+      ├ Spawn_From_Left
+      ├ Spawn_From_Right
+      ├ Spawn_From_Top
+      └ Spawn_From_Bottom
+```
+
+메뉴 `_Project/Scene/Create Scene Transition Folders`는 없는 빈 폴더만 만들며 기존 오브젝트와 위치를 변경하지 않는다.
 
 ## SpawnPoint 옵션
 
