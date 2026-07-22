@@ -1,13 +1,16 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [ExecuteAlways]
 [DisallowMultipleComponent]
 public class CraneRailVisualBuilder3D : MonoBehaviour
 {
     [Header("Sprites")]
-    [SerializeField] private Sprite startSprite;
+    [FormerlySerializedAs("startSprite")]
+    [SerializeField] private Sprite leftEndSprite;
     [SerializeField] private Sprite middleSprite;
-    [SerializeField] private Sprite endSprite;
+    [FormerlySerializedAs("endSprite")]
+    [SerializeField] private Sprite rightEndSprite;
 
     [Header("Points")]
     [Tooltip("Optional RailPath source. When assigned, Point_A and Point_B can be pulled from this component.")]
@@ -18,11 +21,15 @@ public class CraneRailVisualBuilder3D : MonoBehaviour
 
     [Header("Visual Layout")]
     [Min(0.01f)]
-    [SerializeField] private float segmentWorldWidth = 1f;
+    [FormerlySerializedAs("segmentWorldWidth")]
+    [SerializeField] private float middleSegmentWorldWidth = 1f;
     [Tooltip("Scale each sprite piece on X so the rail can be stretched by segment width instead of prefab scale.")]
     [SerializeField] private bool scalePiecesToSegmentWidth = true;
     [SerializeField] private Vector3 visualOffset;
     [SerializeField] private int sortingOrder = 5;
+    [SerializeField] private string sortingLayerName = "Default";
+    [SerializeField] private bool rebuildOnValidate;
+    [SerializeField] private bool clearOldSegments = true;
 
     [Header("Debug")]
     [SerializeField] private bool showGizmo = true;
@@ -42,9 +49,9 @@ public class CraneRailVisualBuilder3D : MonoBehaviour
 
     public void SetSprites(Sprite start, Sprite middle, Sprite end)
     {
-        startSprite = start;
+        leftEndSprite = start;
         middleSprite = middle;
-        endSprite = end;
+        rightEndSprite = end;
     }
 
     [ContextMenu("Rebuild Rail Visual")]
@@ -52,7 +59,7 @@ public class CraneRailVisualBuilder3D : MonoBehaviour
     {
         EnsureVisualRoot();
         PullPointsFromRailPath();
-        ClearRailVisual();
+        if (clearOldSegments) ClearRailVisual();
 
         if (pointA == null || pointB == null)
         {
@@ -60,7 +67,7 @@ public class CraneRailVisualBuilder3D : MonoBehaviour
             return;
         }
 
-        if (startSprite == null && middleSprite == null && endSprite == null)
+        if (leftEndSprite == null && middleSprite == null && rightEndSprite == null)
         {
             Warn("Rail sprites are missing.");
             return;
@@ -79,9 +86,9 @@ public class CraneRailVisualBuilder3D : MonoBehaviour
 
         Vector3 direction = segment / length;
         Quaternion rotation = Quaternion.FromToRotation(Vector3.right, direction);
-        CreateSpritePart("Rail_Start", start, rotation, startSprite != null ? startSprite : middleSprite, segmentWorldWidth);
+        CreateSpritePart("Rail_LeftEnd", start, rotation, leftEndSprite != null ? leftEndSprite : middleSprite, middleSegmentWorldWidth);
         CreateMiddleSprites(start, direction, rotation, length);
-        CreateSpritePart("Rail_End", end, rotation, endSprite != null ? endSprite : middleSprite, segmentWorldWidth);
+        CreateSpritePart("Rail_RightEnd", end, rotation, rightEndSprite != null ? rightEndSprite : middleSprite, middleSegmentWorldWidth);
     }
 
     [ContextMenu("Clear Rail Visual")]
@@ -111,18 +118,20 @@ public class CraneRailVisualBuilder3D : MonoBehaviour
             $"- Point_B: {(pointB != null ? pointB.name : "None")}\n" +
             $"- RailPath: {(railPath != null ? railPath.name : "None")}\n" +
             $"- Visual Root: {(visualRoot != null ? visualRoot.name : "None")}\n" +
-            $"- Start Sprite: {(startSprite != null ? startSprite.name : "None")}\n" +
+            $"- Left End Sprite: {(leftEndSprite != null ? leftEndSprite.name : "None")}\n" +
             $"- Middle Sprite: {(middleSprite != null ? middleSprite.name : "None")}\n" +
-            $"- End Sprite: {(endSprite != null ? endSprite.name : "None")}\n" +
-            $"- Segment Width: {segmentWorldWidth}",
+            $"- Right End Sprite: {(rightEndSprite != null ? rightEndSprite.name : "None")}\n" +
+            $"- Segment Width: {middleSegmentWorldWidth}\n" +
+            $"- Sorting Layer: {sortingLayerName}",
             this);
     }
 
     private void OnValidate()
     {
-        segmentWorldWidth = Mathf.Max(0.01f, segmentWorldWidth);
+        middleSegmentWorldWidth = Mathf.Max(0.01f, middleSegmentWorldWidth);
         EnsureVisualRoot();
         PullPointsFromRailPath();
+        if (rebuildOnValidate && !Application.isPlaying) RebuildRailVisual();
     }
 
     [ContextMenu("Pull Points From RailPath")]
@@ -158,17 +167,17 @@ public class CraneRailVisualBuilder3D : MonoBehaviour
 
     private void CreateMiddleSprites(Vector3 start, Vector3 direction, Quaternion rotation, float length)
     {
-        Sprite sprite = middleSprite != null ? middleSprite : startSprite;
-        if (sprite == null || length <= segmentWorldWidth)
+        Sprite sprite = middleSprite != null ? middleSprite : leftEndSprite;
+        if (sprite == null || length <= middleSegmentWorldWidth)
         {
             return;
         }
 
-        int count = Mathf.Max(0, Mathf.FloorToInt(length / segmentWorldWidth) - 1);
+        int count = Mathf.Max(0, Mathf.FloorToInt(length / middleSegmentWorldWidth) - 1);
         for (int i = 0; i < count; i++)
         {
-            float distance = Mathf.Min(length - segmentWorldWidth * 0.5f, segmentWorldWidth * (i + 1));
-            CreateSpritePart($"Rail_Middle_{i:00}", start + direction * distance, rotation, sprite, segmentWorldWidth);
+            float distance = Mathf.Min(length - middleSegmentWorldWidth * 0.5f, middleSegmentWorldWidth * (i + 1));
+            CreateSpritePart($"Rail_Middle_{i:00}", start + direction * distance, rotation, sprite, middleSegmentWorldWidth);
         }
     }
 
@@ -187,12 +196,24 @@ public class CraneRailVisualBuilder3D : MonoBehaviour
         SpriteRenderer renderer = part.AddComponent<SpriteRenderer>();
         renderer.sprite = sprite;
         renderer.sortingOrder = sortingOrder;
+        if (HasSortingLayer(sortingLayerName)) renderer.sortingLayerName = sortingLayerName;
 
         if (scalePiecesToSegmentWidth)
         {
             float spriteWidth = Mathf.Max(0.01f, sprite.bounds.size.x);
             part.transform.localScale = new Vector3(targetWidth / spriteWidth, 1f, 1f);
         }
+    }
+
+    private static bool HasSortingLayer(string layerName)
+    {
+        if (string.IsNullOrWhiteSpace(layerName)) return false;
+        SortingLayer[] layers = SortingLayer.layers;
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (layers[i].name == layerName) return true;
+        }
+        return false;
     }
 
     private void OnDrawGizmos()

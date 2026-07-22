@@ -235,6 +235,8 @@ MonoBehaviour:
     m_Bits: 0
   carryRigidbodies: 1
   carryTransformsWithoutRigidbody: 1
+  matchPlayerPlatformVelocity: 1
+  playerPlatformVelocityMultiplier: 1
   triggerInteraction: 1
   carryBoxCenterOffset: {x: 0, y: -0.25, z: 0}
   carryBoxSize: {x: 2.5, y: 1.5, z: 1}

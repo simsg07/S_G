@@ -7,7 +7,6 @@ public static class CranePartPrefabSetupUtility
     private const string MaterialFolder = "Assets/_Project/Materials/Debug";
     private const string SessionKey = "CraneFunctionalDebugPrefabs.Created.V5";
 
-    [InitializeOnLoadMethod]
     private static void ScheduleCreateOnce()
     {
         if (SessionState.GetBool(SessionKey, false)) return;

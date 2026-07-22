@@ -9,6 +9,39 @@ public static class CraneAssetRepairUtility
     private const string CableMaterialPath = "Assets/_Project/Art/Objects/Dynamic/Crane/CraneCableLine.mat";
     private const string PrefabPath = "Assets/_Project/Prefabs/Objects/Crane/Crane_Set.prefab";
     private const string SessionKey = "CraneAssetRepairUtility.AutoRepairCompleted";
+    private const string VisualSessionKey = "CraneAssetRepairUtility.VisualOnly.V4";
+
+    [InitializeOnLoadMethod]
+    private static void ScheduleVisualOnlyApply()
+    {
+        if (SessionState.GetBool(VisualSessionKey, false)) return;
+        EditorApplication.delayCall += TryApplyVisualOnly;
+    }
+
+    [UnityEditor.Callbacks.DidReloadScripts]
+    private static void ApplyVisualsAfterScriptReload()
+    {
+        EditorApplication.delayCall += TryApplyVisualOnly;
+    }
+
+    private static void TryApplyVisualOnly()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorApplication.playModeStateChanged -= ApplyVisualAfterPlayMode;
+            EditorApplication.playModeStateChanged += ApplyVisualAfterPlayMode;
+            return;
+        }
+
+        if (ApplyVisualOnly(false)) SessionState.SetBool(VisualSessionKey, true);
+    }
+
+    private static void ApplyVisualAfterPlayMode(PlayModeStateChange state)
+    {
+        if (state != PlayModeStateChange.EnteredEditMode) return;
+        EditorApplication.playModeStateChanged -= ApplyVisualAfterPlayMode;
+        EditorApplication.delayCall += TryApplyVisualOnly;
+    }
 
     private static void ScheduleRepairAfterImport()
     {
@@ -49,7 +82,108 @@ public static class CraneAssetRepairUtility
     [MenuItem("Tools/_Project/Crane/Repair PSD And Lever References")]
     public static void RepairFromMenu()
     {
-        RepairCraneAssets(true);
+        ApplyVisualOnly(true);
+    }
+
+    public static bool ApplyVisualOnly(bool logResult)
+    {
+        AssetDatabase.ImportAsset(RailPath, ImportAssetOptions.ForceSynchronousImport);
+        AssetDatabase.ImportAsset(CranePath, ImportAssetOptions.ForceSynchronousImport);
+
+        Sprite railSprite = FindSprite(RailPath, "Layer 0");
+        Sprite cabinSprite = FindSprite(CranePath, "cable car");
+        Sprite trolleySprite = FindSprite(CranePath, "Hoist");
+        Sprite ropeSprite = FindSprite(CranePath, "wire");
+        Sprite hookSprite = FindSprite(CranePath, "hook");
+        if (railSprite == null || cabinSprite == null)
+        {
+            Debug.LogWarning("[CraneAssetRepairUtility] Existing rail/crane PSD sprites are missing. Visual setup was skipped; Crane functionality is unchanged.");
+            return false;
+        }
+
+        GameObject root = PrefabUtility.LoadPrefabContents(PrefabPath);
+        if (root == null) return false;
+        try
+        {
+            Transform rail = FindDescendant(root.transform, "Crane_Rail");
+            Transform cabin = FindDescendant(root.transform, "Crane");
+            CraneRailPath3D railPath = rail != null ? rail.GetComponent<CraneRailPath3D>() : null;
+            if (railPath == null || cabin == null || !railPath.IsValid)
+            {
+                Debug.LogWarning("[CraneAssetRepairUtility] RailPath or Cabin is missing. Visual setup was skipped.");
+                return false;
+            }
+
+            Transform visualRoot = rail.Find("RailVisualRoot");
+            CraneRailVisualBuilder3D builder = rail.GetComponent<CraneRailVisualBuilder3D>();
+            if (builder != null) builder.enabled = false;
+            if (visualRoot != null) visualRoot.gameObject.SetActive(false);
+
+            Transform staticRail = EnsureChild(root.transform, "Crane_Rail_Static", Vector3.zero);
+            Vector3 railCenter = (railPath.GetRailPointA() + railPath.GetRailPointB()) * 0.5f;
+            staticRail.position = railCenter + new Vector3(0f, 0f, 0.1f);
+            ConfigureVisualSprite(staticRail, railSprite, 5);
+
+            Transform cabinVisual = EnsureChild(cabin, "CabinVisual", Vector3.zero);
+            ConfigureVisualSprite(cabinVisual, cabinSprite, 10);
+            cabinVisual.localPosition = Vector3.zero;
+
+            Transform trolleyVisual = EnsureChild(cabin, "TrolleyVisual", new Vector3(0f, 3f, 0.05f));
+            ConfigureVisualSprite(trolleyVisual, trolleySprite, 12);
+            trolleyVisual.localPosition = new Vector3(0f, 3f, 0.05f);
+            Transform ropeVisual = EnsureChild(cabin, "RopeOrCableVisual", new Vector3(0f, 1.8f, 0.04f));
+            ConfigureVisualSprite(ropeVisual, ropeSprite, 11);
+            ropeVisual.localPosition = new Vector3(0f, 1.8f, 0.04f);
+            Transform hookVisual = EnsureChild(cabin, "HookVisual", new Vector3(0f, 0.8f, 0.03f));
+            ConfigureVisualSprite(hookVisual, hookSprite, 11);
+            hookVisual.localPosition = new Vector3(0f, 0.8f, 0.03f);
+
+            CraneMovingVisualAligner3D aligner = cabin.GetComponent<CraneMovingVisualAligner3D>();
+            if (aligner != null) aligner.enabled = false;
+
+            LineRenderer[] lines = root.GetComponentsInChildren<LineRenderer>(true);
+            for (int i = 0; i < lines.Length; i++) lines[i].enabled = false;
+
+            Transform obsoleteCable = FindDescendant(root.transform, "Crane_CableVisual");
+            if (obsoleteCable != null) obsoleteCable.gameObject.SetActive(false);
+            Transform oldCableVisual = cabin.Find("CableVisual");
+            if (oldCableVisual != null) oldCableVisual.gameObject.SetActive(false);
+            Transform oldConnector = cabin.Find("UpperConnectorVisual");
+            if (oldConnector != null) oldConnector.gameObject.SetActive(false);
+
+            SetDebugVisualsActive(root.transform, false);
+            PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+            AssetDatabase.SaveAssets();
+            if (logResult) Debug.Log("[CraneAssetRepairUtility] Static rail and moving trolley/rope/hook/cabin visuals applied. Crane functionality was not modified.");
+            return true;
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    private static void ConfigureVisualSprite(Transform target, Sprite sprite, int sortingOrder)
+    {
+        if (target == null) return;
+        target.gameObject.SetActive(true);
+        target.localScale = Vector3.one;
+        SpriteRenderer renderer = target.GetComponent<SpriteRenderer>();
+        if (renderer == null) renderer = target.gameObject.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite;
+        renderer.sortingLayerName = "Default";
+        renderer.sortingOrder = sortingOrder;
+        renderer.enabled = true;
+        if (sprite == null) Debug.LogWarning($"[CraneAssetRepairUtility] Sprite for {target.name} is missing. Assign an existing project Sprite manually.");
+    }
+
+    private static void SetDebugVisualsActive(Transform root, bool active)
+    {
+        Transform[] all = root.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (all[i].name.Contains("Debug_Block")) all[i].gameObject.SetActive(active);
+        }
     }
 
     private static bool RepairCraneAssets(bool logResult)

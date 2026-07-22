@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [ExecuteAlways]
 [DisallowMultipleComponent]
@@ -6,15 +7,16 @@ using UnityEngine;
 public class CraneCableVisual3D : MonoBehaviour
 {
     [Header("Cable Points")]
-    [Tooltip("Lever side connection point.")]
-    [SerializeField] private Transform startPoint;
-    [Tooltip("Crane side connection point.")]
-    [SerializeField] private Transform endPoint;
+    [FormerlySerializedAs("endPoint")]
+    [SerializeField] private Transform cabinCablePoint;
+    [SerializeField] private Transform cabinTransform;
+    [SerializeField] private CraneRailPath3D railPath;
     [SerializeField] private LineRenderer lineRenderer;
 
     [Header("Visual")]
     [Tooltip("Update the cable every frame so the end follows the moving Crane.")]
     [SerializeField] private bool updateEveryFrame = true;
+    [SerializeField] private float cableTopYOffset;
     [Min(0.001f)]
     [SerializeField] private float lineWidth = 0.05f;
     [SerializeField] private int sortingOrder = 10;
@@ -74,31 +76,44 @@ public class CraneCableVisual3D : MonoBehaviour
         ApplyLineSettings();
         lineRenderer.positionCount = 2;
 
-        if (startPoint == null || endPoint == null)
+        Transform bottomTransform = cabinCablePoint != null ? cabinCablePoint : cabinTransform;
+        if (bottomTransform == null || railPath == null || !railPath.IsValid)
         {
             if (logMissingReferences)
             {
-                Warn($"Cable points are missing. Start={(startPoint != null ? startPoint.name : "None")}, End={(endPoint != null ? endPoint.name : "None")}");
+                Warn($"Cable references are missing. Cabin={(bottomTransform != null ? bottomTransform.name : "None")}, RailPath={(railPath != null ? railPath.name : "None")}");
             }
 
             return;
         }
 
-        lineRenderer.SetPosition(0, startPoint.position);
-        lineRenderer.SetPosition(1, endPoint.position);
+        Vector3 bottomPoint = bottomTransform.position;
+        float railY = railPath.GetRailPointA().y;
+        Vector3 topPoint = new Vector3(bottomPoint.x, railY + cableTopYOffset, bottomPoint.z);
+        lineRenderer.SetPosition(0, topPoint);
+        lineRenderer.SetPosition(1, bottomPoint);
     }
 
     public void SetPoints(Transform start, Transform end)
     {
-        startPoint = start;
-        endPoint = end;
+        cabinTransform = end;
+        cabinCablePoint = end;
+        railPath = start != null ? start.GetComponentInParent<CraneRailPath3D>() : null;
+        RefreshCable();
+    }
+
+    public void SetVisualReferences(Transform cabin, Transform cablePoint, CraneRailPath3D path)
+    {
+        cabinTransform = cabin;
+        cabinCablePoint = cablePoint;
+        railPath = path;
         RefreshCable();
     }
 
     public void SetPointsFromObjects(Transform leverRoot, Transform craneRoot)
     {
-        startPoint = FindCablePoint(leverRoot);
-        endPoint = FindCablePoint(craneRoot);
+        cabinTransform = craneRoot;
+        cabinCablePoint = FindCablePoint(craneRoot);
         RefreshCable();
     }
 
@@ -108,8 +123,9 @@ public class CraneCableVisual3D : MonoBehaviour
         CacheRenderer();
         Debug.Log(
             "[CraneCableVisual3D] Validate Cable Setup\n" +
-            $"- Start Point: {(startPoint != null ? startPoint.name : "None")}\n" +
-            $"- End Point: {(endPoint != null ? endPoint.name : "None")}\n" +
+            $"- Cabin Transform: {(cabinTransform != null ? cabinTransform.name : "None")}\n" +
+            $"- Cabin Cable Point: {(cabinCablePoint != null ? cabinCablePoint.name : "None")}\n" +
+            $"- Rail Path: {(railPath != null ? railPath.name : "None")}\n" +
             $"- LineRenderer: {(lineRenderer != null)}\n" +
             $"- Width: {lineWidth}\n" +
             $"- Sorting Order: {sortingOrder}",
@@ -172,19 +188,14 @@ public class CraneCableVisual3D : MonoBehaviour
         }
 
         Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.9f);
-        if (startPoint != null)
+        Transform bottomTransform = cabinCablePoint != null ? cabinCablePoint : cabinTransform;
+        if (railPath != null && railPath.IsValid && bottomTransform != null)
         {
-            Gizmos.DrawSphere(startPoint.position, 0.08f);
-        }
-
-        if (endPoint != null)
-        {
-            Gizmos.DrawSphere(endPoint.position, 0.08f);
-        }
-
-        if (startPoint != null && endPoint != null)
-        {
-            Gizmos.DrawLine(startPoint.position, endPoint.position);
+            Vector3 bottom = bottomTransform.position;
+            Vector3 top = new Vector3(bottom.x, railPath.GetRailPointA().y + cableTopYOffset, bottom.z);
+            Gizmos.DrawSphere(top, 0.08f);
+            Gizmos.DrawSphere(bottom, 0.08f);
+            Gizmos.DrawLine(top, bottom);
         }
     }
 
