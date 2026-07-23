@@ -58,6 +58,20 @@ public class CameraFollow3D : MonoBehaviour
         }
     }
 
+    public void SnapToTarget(Transform newTarget)
+    {
+        target = newTarget;
+        if (target == null)
+        {
+            return;
+        }
+
+        Vector3 targetPosition = target.position + offset;
+        targetPosition.z = offset.z;
+        transform.SetPositionAndRotation(targetPosition, Quaternion.identity);
+        ConfigureSideViewCamera();
+    }
+
     private void ConfigureSideViewCamera()
     {
         if (targetCamera == null)

@@ -116,6 +116,7 @@ public class SceneLoader : MonoBehaviour
             yield return null;
         }
 
+        StageExitTrigger.BeginSpawnSafety(0.35f);
         yield return null;
         MovePlayerToSpawnPoint(pendingSpawnPointId);
         isLoading = false;
@@ -133,19 +134,13 @@ public class SceneLoader : MonoBehaviour
         PlayerSpawnPoint spawnPoint = FindSpawnPoint(spawnPointId);
         if (spawnPoint == null)
         {
-            Debug.LogWarning($"[SceneLoader] SpawnPoint not found: {spawnPointId}. Trying Default.", this);
-            spawnPoint = FindDefaultSpawnPoint();
-        }
-
-        if (spawnPoint == null)
-        {
-            Debug.LogWarning("[SceneLoader] Default SpawnPoint not found. Player position unchanged.", this);
+            Debug.LogError($"[SceneLoader] SpawnPoint not found: '{spawnPointId}'. Player position was not changed.", this);
             ResetPlayerVelocity(player);
             return;
         }
 
-        player.transform.position = spawnPoint.transform.position;
-        ResetPlayerVelocity(player);
+        TeleportPlayer(player, spawnPoint.transform.position);
+        SnapCamerasToPlayer(player.transform);
 
         if (debugMode)
         {
@@ -187,20 +182,6 @@ public class SceneLoader : MonoBehaviour
         return firstMatch;
     }
 
-    private static PlayerSpawnPoint FindDefaultSpawnPoint()
-    {
-        PlayerSpawnPoint[] spawnPoints = Object.FindObjectsByType<PlayerSpawnPoint>(FindObjectsSortMode.None);
-        for (int i = 0; i < spawnPoints.Length; i++)
-        {
-            if (spawnPoints[i] != null && spawnPoints[i].IsDefaultSpawn)
-            {
-                return spawnPoints[i];
-            }
-        }
-
-        return null;
-    }
-
     public static bool IsSceneRegisteredInBuildSettings(string sceneName)
     {
         if (string.IsNullOrWhiteSpace(sceneName))
@@ -230,5 +211,41 @@ public class SceneLoader : MonoBehaviour
             body.angularVelocity = Vector3.zero;
         }
 
+    }
+
+    private static void TeleportPlayer(GameObject player, Vector3 position)
+    {
+        CharacterController controller = player.GetComponent<CharacterController>();
+        bool controllerWasEnabled = controller != null && controller.enabled;
+        if (controllerWasEnabled)
+        {
+            controller.enabled = false;
+        }
+
+        if (player.TryGetComponent(out Rigidbody body))
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+            body.position = position;
+        }
+        else
+        {
+            player.transform.position = position;
+        }
+
+        Physics.SyncTransforms();
+        if (controllerWasEnabled)
+        {
+            controller.enabled = true;
+        }
+    }
+
+    private static void SnapCamerasToPlayer(Transform player)
+    {
+        CameraFollow3D[] cameras = Object.FindObjectsByType<CameraFollow3D>(FindObjectsSortMode.None);
+        foreach (CameraFollow3D cameraFollow in cameras)
+        {
+            cameraFollow.SnapToTarget(player);
+        }
     }
 }

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 100001}
   - component: {fileID: 100002}
   - component: {fileID: 100003}
+  - component: {fileID: 100004}
   m_Layer: 0
   m_Name: StageExitTrigger
   m_TagString: Untagged
@@ -68,9 +69,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   exitId: Exit_Default
+  targetScene: {fileID: 0}
   nextSceneName: 
   targetSpawnPointId: Default
-  requireInteraction: 0
+  requiredPlayerTag: Player
+  transitionType: 0
+  useInteractionKey: 0
   isLocked: 0
   interactionKey: 19
   triggerOnce: 1
@@ -78,6 +82,20 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   debugMode: 1
+--- !u!114 &100004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f16ec389469b4270b26257425bc49a31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ManualScenePlacement
+  autoPlaceOnCreate: 1
+  lockManualPosition: 1
 --- !u!1 &200000
 GameObject:
   m_ObjectHideFlags: 0

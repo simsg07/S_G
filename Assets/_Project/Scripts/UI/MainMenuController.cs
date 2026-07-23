@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 public class MainMenuController : MonoBehaviour
 {
-    [SerializeField] private string gameSceneName = "GameScene"; // 게임 시작 버튼이 불러올 플레이 씬 이름입니다.
+    private const string GameSceneName = "Start_Room";
     [SerializeField] private Color backgroundColor = new Color(0.05f, 0.07f, 0.1f, 1f); // 메인 메뉴 배경 색상입니다.
     [SerializeField] private Color normalColor = new Color(0.16f, 0.18f, 0.22f, 1f); // 선택되지 않은 메뉴 버튼 색상입니다.
     [SerializeField] private Color selectedColor = new Color(0.1f, 0.38f, 0.75f, 1f); // 현재 선택된 메뉴 버튼 색상입니다.
@@ -268,7 +268,7 @@ public class MainMenuController : MonoBehaviour
 
     private void StartGame()
     {
-        SceneManager.LoadScene(gameSceneName);
+        SceneManager.LoadScene(GameSceneName);
     }
 
     private void CycleVolume()

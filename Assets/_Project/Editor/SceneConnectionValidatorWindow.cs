@@ -11,20 +11,7 @@ using UnityEngine.SceneManagement;
 public class SceneConnectionValidatorWindow : EditorWindow
 {
     private const string StageRoot = "Assets/_Project/Scenes/Stages";
-    private const string BootstrapSessionKey = "S_G.SceneConnections.BootstrapComplete";
     private Vector2 scroll;
-
-    [InitializeOnLoadMethod]
-    private static void ScheduleMissingPrefabSetup()
-    {
-        if (SessionState.GetBool(BootstrapSessionKey, false)) return;
-        SessionState.SetBool(BootstrapSessionKey, true);
-        EditorApplication.delayCall += () =>
-        {
-            CreateOrUpdatePrefabs();
-            OrganizeExistingPrefabs();
-        };
-    }
 
     [MenuItem("_Project/Scene/Scene Connection Validator")]
     private static void Open() => GetWindow<SceneConnectionValidatorWindow>("Scene Connections");
@@ -114,12 +101,14 @@ public class SceneConnectionValidatorWindow : EditorWindow
         collider.isTrigger = true;
         collider.size = new Vector3(1f, 2f, 1f);
         portal.AddComponent<ScenePortal3D>();
+        portal.AddComponent<ManualScenePlacement>();
         CreateDebugVisual(portal.transform, "DebugVisual", new Vector3(1f, 2f, 0.25f), new Color(1f, 0.5f, 0f));
         PrefabUtility.SaveAsPrefabAsset(portal, folder + "/Portal_Exit.prefab");
         DestroyImmediate(portal);
 
         GameObject spawn = new GameObject("SpawnPoint");
         spawn.AddComponent<SceneSpawnPoint3D>();
+        spawn.AddComponent<ManualScenePlacement>();
         CreateDebugVisual(spawn.transform, "DebugVisual", Vector3.one * 0.35f, Color.cyan);
         PrefabUtility.SaveAsPrefabAsset(spawn, folder + "/SpawnPoint.prefab");
         DestroyImmediate(spawn);

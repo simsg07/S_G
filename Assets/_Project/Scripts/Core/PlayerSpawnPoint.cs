@@ -6,6 +6,12 @@ using UnityEditor;
 [DisallowMultipleComponent]
 public class PlayerSpawnPoint : MonoBehaviour
 {
+    public enum FacingMode
+    {
+        KeepCurrent,
+        FaceLeft,
+        FaceRight
+    }
     [Header("Spawn Point")]
     [Tooltip("ID used by StageExitTrigger.targetSpawnPointId. IDs should be unique inside one scene.")]
     [SerializeField] private string spawnPointId = "Default";
@@ -15,6 +21,7 @@ public class PlayerSpawnPoint : MonoBehaviour
     [SerializeField] private bool canUseAsRespawnPoint = true;
     [Tooltip("Designer note for intended facing after spawn. SceneLoader keeps Player logic unchanged and does not force flip by default.")]
     [SerializeField] private bool faceRightOnSpawn = true;
+    [SerializeField] private FacingMode facingMode = FacingMode.KeepCurrent;
     [Tooltip("Print spawn related debug information when needed.")]
     [SerializeField] private bool debugMode = true;
 
@@ -27,6 +34,7 @@ public class PlayerSpawnPoint : MonoBehaviour
     public string SpawnPointId => spawnPointId;
     public string ResolvedSpawnPointId => string.IsNullOrWhiteSpace(spawnPointId) ? "Default" : spawnPointId;
     public bool FaceRightOnSpawn => faceRightOnSpawn;
+    public FacingMode SpawnFacing => facingMode;
     public bool IsDefaultSpawn => isDefaultSpawn;
     public bool CanUseAsRespawnPoint => canUseAsRespawnPoint;
 
@@ -92,16 +100,16 @@ public class PlayerSpawnPoint : MonoBehaviour
             return;
         }
 
-        Gizmos.color = Color.cyan;
+        Gizmos.color = new Color(0.15f, 1f, 0.35f);
         Gizmos.DrawWireSphere(transform.position, gizmoRadius);
         Gizmos.DrawLine(transform.position + Vector3.left * gizmoRadius, transform.position + Vector3.right * gizmoRadius);
         Gizmos.DrawLine(transform.position + Vector3.down * gizmoRadius, transform.position + Vector3.up * gizmoRadius);
 
-        Vector3 facingDirection = faceRightOnSpawn ? Vector3.right : Vector3.left;
+        Vector3 facingDirection = facingMode == FacingMode.FaceLeft ? Vector3.left : Vector3.right;
         Gizmos.DrawLine(transform.position, transform.position + facingDirection * (gizmoRadius * 1.8f));
 
 #if UNITY_EDITOR
-        Handles.color = Color.cyan;
+        Handles.color = new Color(0.15f, 1f, 0.35f);
         Handles.Label(transform.position + Vector3.up * (gizmoRadius * 1.5f), ResolvedSpawnPointId);
 #endif
     }
