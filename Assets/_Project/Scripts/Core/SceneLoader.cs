@@ -215,6 +215,11 @@ public class SceneLoader : MonoBehaviour
 
     private static void TeleportPlayer(GameObject player, Vector3 position)
     {
+        if (player.TryGetComponent(out PlatformerPlayer3D movement))
+        {
+            movement.ResetJumpStateAfterTeleport();
+        }
+
         CharacterController controller = player.GetComponent<CharacterController>();
         bool controllerWasEnabled = controller != null && controller.enabled;
         if (controllerWasEnabled)

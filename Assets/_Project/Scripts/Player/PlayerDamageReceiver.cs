@@ -136,6 +136,10 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         }
 
         ResetVelocity();
+        if (TryGetComponent(out PlatformerPlayer3D movement))
+        {
+            movement.ResetJumpStateAfterTeleport();
+        }
         SetDeathControlsEnabled(true);
         currentHp = maxHp;
         isDead = false;

@@ -172,80 +172,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 8.52, y: 0.24, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!1001 &166897774
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1156352293}
-    m_Modifications:
-    - target: {fileID: 100000, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_Name
-      value: RightEntrance
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 35
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 13.43
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 100002, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: spawnPointId
-      value: RightEntrance
-      objectReference: {fileID: 0}
-    - target: {fileID: 100002, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: isDefaultSpawn
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 100002, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-      propertyPath: faceRightOnSpawn
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
---- !u!4 &166897775 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
-  m_PrefabInstance: {fileID: 166897774}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &323748045
 GameObject:
   m_ObjectHideFlags: 0
@@ -20155,8 +20081,8 @@ Transform:
   m_GameObject: {fileID: 457837741}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.75, y: 32.62, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 8, y: 22.8, z: 0}
+  m_LocalScale: {x: 0.85625, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1109348642}
@@ -20243,7 +20169,7 @@ Transform:
   m_GameObject: {fileID: 882783162}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 19.5, y: -0.62, z: 0}
+  m_LocalPosition: {x: 15.8, y: 0.6, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -20333,7 +20259,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1109348642}
   m_Layer: 0
-  m_Name: Walls
+  m_Name: Wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20355,6 +20281,7 @@ Transform:
   - {fileID: 1104547600}
   - {fileID: 1268697287}
   - {fileID: 457837742}
+  - {fileID: 1323095045}
   m_Father: {fileID: 1907248281}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1156352292
@@ -20387,7 +20314,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1691285925}
-  - {fileID: 166897775}
   m_Father: {fileID: 1357979399}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1161952337
@@ -20416,7 +20342,7 @@ Transform:
   m_GameObject: {fileID: 1161952337}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -24.75, y: 11.88, z: 0}
+  m_LocalPosition: {x: -25.5, y: 15.6, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -20495,6 +20421,59 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 0.24, y: 26.32, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &1323095044
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1323095045}
+  - component: {fileID: 1323095046}
+  m_Layer: 10
+  m_Name: Ceiling (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1323095045
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1323095044}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -59.6, y: 22.8, z: 0}
+  m_LocalScale: {x: 0.85625, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1109348642}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1323095046
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1323095044}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 72.52, y: 0.24, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1357979398
 GameObject:
@@ -20633,11 +20612,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -40
+      value: -25.7
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -12.87
+      value: 22.9
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
       propertyPath: m_LocalPosition.z
@@ -20699,7 +20678,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1907248281}
   m_Layer: 0
-  m_Name: '[Generated3DCollision]'
+  m_Name: Collision
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20889,12 +20868,16 @@ PrefabInstance:
       value: LeftExit
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 8.0875
+      objectReference: {fileID: 0}
+    - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -43.7
+      value: -25.3
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -11.7
+      value: 28
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
       propertyPath: m_LocalPosition.z

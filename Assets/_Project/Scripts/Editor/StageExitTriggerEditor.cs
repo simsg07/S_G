@@ -26,8 +26,8 @@ public sealed class StageExitTriggerEditor : Editor
         SceneAsset sceneAsset = sceneProperty.objectReferenceValue as SceneAsset;
         List<string> entrances = GetEntranceIds(sceneAsset);
         string currentEntrance = serializedObject.FindProperty("targetSpawnPointId").stringValue;
-        if (!string.IsNullOrEmpty(currentEntrance) && !entrances.Contains(currentEntrance)) entrances.Add(currentEntrance);
         if (entrances.Count == 0) entrances.AddRange(StandardEntrances);
+        if (!string.IsNullOrEmpty(currentEntrance) && !entrances.Contains(currentEntrance)) entrances.Add(currentEntrance);
         int selected = Mathf.Max(0, entrances.IndexOf(currentEntrance));
         selected = EditorGUILayout.Popup(new GUIContent("도착 위치", "대상 씬에 저장된 Entrance ID입니다."), selected, entrances.ToArray());
         serializedObject.FindProperty("targetSpawnPointId").stringValue = entrances[selected];
@@ -77,12 +77,29 @@ public sealed class StageExitTriggerEditor : Editor
         string path = AssetDatabase.GetAssetPath(scene);
         if (!File.Exists(path)) return result;
         string yaml = File.ReadAllText(path);
+
+        // Scene-owned components serialize the field directly.
         foreach (Match match in Regex.Matches(yaml, @"spawnPointId:\s*([^\r\n]+)"))
         {
-            string id = match.Groups[1].Value.Trim();
-            if (!string.IsNullOrEmpty(id) && !result.Contains(id)) result.Add(id);
+            AddEntranceId(result, match.Groups[1].Value);
+        }
+
+        // Prefab instances store the same value as a property override:
+        // propertyPath: spawnPointId / value: LeftEntrance.
+        foreach (Match match in Regex.Matches(
+                     yaml,
+                     @"propertyPath:\s*spawnPointId\s*\r?\n\s*value:\s*([^\r\n]+)",
+                     RegexOptions.Multiline))
+        {
+            AddEntranceId(result, match.Groups[1].Value);
         }
         return result.OrderBy(EntranceOrder).ThenBy(id => id).ToList();
+    }
+
+    private static void AddEntranceId(List<string> result, string rawValue)
+    {
+        string id = rawValue.Trim();
+        if (!string.IsNullOrEmpty(id) && id != "Default" && !result.Contains(id)) result.Add(id);
     }
 
     private static int EntranceOrder(string id)

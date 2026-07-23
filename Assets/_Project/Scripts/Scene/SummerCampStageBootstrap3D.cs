@@ -14,7 +14,13 @@ public static class SummerCampStageBootstrap3D
         "Start_Room",
         "hallwa_01",
         "hallwa_02",
+        "hallwa_03",
+        "hallwa_04",
+        "hallwa_05",
+        "hallwa_06",
         "Item_Room_01",
+        "Item_Room_02",
+        "Boss_Hint_Room",
         "middle_Room"
     };
 

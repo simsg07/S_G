@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerMovement:
     moveSpeed: 6
-    jumpHeight: 3
     gravityScale: 3
     fallGravityMultiplier: 1.35
     maxFallSpeed: 18
@@ -24,17 +23,7 @@ MonoBehaviour:
     groundCheckDistance: 0.08
     dropThroughDuration: 0.45
     passThroughClearance: 0.05
-    maxAirJumps: 1
     colliderSize: {x: 0.8, y: 1.2, z: 1}
-    useRobotLegJump: 1
-    maxLegExtension: 10
-    legExtendSpeed: 4.8
-    legRetractSpeed: 8.5
-    legReleaseJumpHeight: 2
-    ceilingCheckDistance: 0.08
-    legObstacleClearance: 0.04
-    showRobotLegVisual: 1
-    robotLegColor: {r: 0.55, g: 0.6, b: 0.62, a: 1}
   playerAttackAnimation:
     resourceFolder: PlayerAttack
     frameNames:

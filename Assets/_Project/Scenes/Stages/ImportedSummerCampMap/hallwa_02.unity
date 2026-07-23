@@ -129,7 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 159056556}
   m_Layer: 0
-  m_Name: Walls
+  m_Name: Wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -167,12 +167,16 @@ PrefabInstance:
       value: LeftExit
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2.6437
+      objectReference: {fileID: 0}
+    - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -58.7
+      value: -57.9
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -11.7
+      value: -13.344
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
       propertyPath: m_LocalPosition.z
@@ -12070,8 +12074,8 @@ Transform:
   m_GameObject: {fileID: 882783162}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -9.5, y: -32.12, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: -28.4, y: -4.8, z: 0}
+  m_LocalScale: {x: 8.9062, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2112826242}
@@ -12123,7 +12127,7 @@ Transform:
   m_GameObject: {fileID: 1104547599}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -13.3, y: -22.75, z: 0}
+  m_LocalPosition: {x: -12.74, y: -22.75, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12148,7 +12152,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.24, y: -18.48, z: 1}
+  m_Size: {x: 0.24, y: 18.48, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1109348641
 GameObject:
@@ -12315,8 +12319,8 @@ Transform:
   m_GameObject: {fileID: 1268697286}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.7, y: -22.75, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: -6.2, y: -18.9, z: 0}
+  m_LocalScale: {x: 1, y: 2.0062, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 159056556}
@@ -12340,7 +12344,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.24, y: -18.48, z: 1}
+  m_Size: {x: 0.24, y: 18.48, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1357979398
 PrefabInstance:
@@ -12356,7 +12360,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -55
+      value: -55.96
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
       propertyPath: m_LocalPosition.y
@@ -12620,7 +12624,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1907248281}
   m_Layer: 0
-  m_Name: '[Generated3DCollision]'
+  m_Name: Collision
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -12656,12 +12660,16 @@ PrefabInstance:
       value: RightExit
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 5.1688
+      objectReference: {fileID: 0}
+    - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -9.5
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -32.6
+      value: -34.74
       objectReference: {fileID: 0}
     - target: {fileID: 100001, guid: 53db2a2f46ea4b448c49693b04a7894f, type: 3}
       propertyPath: m_LocalPosition.z

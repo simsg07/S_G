@@ -44,7 +44,6 @@ public class UnitBalanceDatabase3D : ScriptableObject
 public class PlayerMovementBalance3D
 {
     public float moveSpeed = 6f; // Horizontal player movement speed.
-    public float jumpHeight = 3f; // Standard jump height when robot-leg jump is disabled.
     public float gravityScale = 3f; // Gravity multiplier applied to the player.
     public float fallGravityMultiplier = 1.35f; // Extra gravity multiplier while falling.
     public float maxFallSpeed = 18f; // Maximum downward velocity.
@@ -54,17 +53,7 @@ public class PlayerMovementBalance3D
     public float groundCheckDistance = 0.08f; // Extra distance used for ground checks.
     public float dropThroughDuration = 0.45f; // Minimum time to ignore a drop-through platform.
     public float passThroughClearance = 0.05f; // Clearance required before platform collision is restored.
-    public int maxAirJumps = 1; // Extra jumps allowed after the ground jump.
     public Vector3 colliderSize = new Vector3(0.8f, 1.2f, 1f); // Player body and collider scale.
-    public bool useRobotLegJump = true; // Enables the robot-leg jump charging mode.
-    public float maxLegExtension = 10f; // Maximum robot-leg extension length.
-    public float legExtendSpeed = 4.8f; // Robot-leg extension speed.
-    public float legRetractSpeed = 8.5f; // Robot-leg retract speed.
-    public float legReleaseJumpHeight = 2f; // Jump height applied when releasing the robot legs.
-    public float ceilingCheckDistance = 0.08f; // Clearance used before robot legs push into ceilings.
-    public float legObstacleClearance = 0.04f; // Clearance used before robot legs overlap platforms or boxes.
-    public bool showRobotLegVisual = true; // Shows simple robot-leg preview boxes.
-    public Color robotLegColor = new Color(0.55f, 0.6f, 0.62f, 1f); // Robot-leg preview color.
 }
 
 [System.Serializable]

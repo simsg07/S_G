@@ -895,7 +895,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 8
-  jumpHeight: 3
+  jumpForce: 13.3
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  enableDoubleJump: 0
+  useSeparateDoubleJumpForce: 0
+  doubleJumpForce: 13.3
   gravityScale: 3
   fallGravityMultiplier: 1.35
   maxFallSpeed: 18
@@ -905,18 +911,8 @@ MonoBehaviour:
   groundCheckDistance: 0.08
   dropThroughDuration: 0.45
   passThroughClearance: 0.05
-  maxAirJumps: 1
   colliderSize: {x: 0.8, y: 1.2, z: 1}
   gameplayPlaneZ: 0
-  useRobotLegJump: 1
-  maxLegExtension: 10
-  legExtendSpeed: 4.8
-  legRetractSpeed: 8.5
-  legReleaseJumpHeight: 2
-  ceilingCheckDistance: 0.08
-  legObstacleClearance: 0.04
-  showRobotLegVisual: 1
-  robotLegColor: {r: 0.55, g: 0.6, b: 0.62, a: 1}
 --- !u!114 &7100014209207147258
 MonoBehaviour:
   m_ObjectHideFlags: 0
