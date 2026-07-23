@@ -1311,7 +1311,7 @@ public abstract class MonsterAIBase : MonoBehaviour
         return delta.sqrMagnitude <= 0.0001f;
     }
 
-    protected virtual void FaceTargetIfNeeded(Vector3 targetPosition)
+    protected virtual void FaceTargetIfNeeded(Vector3 targetPosition, bool ignoreDetectionRequirement = false)
     {
         if (monsterFacing != null && !monsterFacing.enableFacing)
         {
@@ -1319,7 +1319,7 @@ public abstract class MonsterAIBase : MonoBehaviour
             return;
         }
 
-        if (faceTargetOnlyWhenDetected && currentTarget == null && !isReturningHome)
+        if (!ignoreDetectionRequirement && faceTargetOnlyWhenDetected && currentTarget == null && !isReturningHome)
         {
             return;
         }

@@ -49,6 +49,8 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
     [Header("Debug")]
     [SerializeField] private float logInterval = 0.5f;
+    [SerializeField] private bool showDetectionDebug = true;
+    [SerializeField] private bool logDetectionEvents;
 
     [SerializeField] private HumanBoxState currentState = HumanBoxState.Idle;
     private Collider[] colliders;
@@ -60,10 +62,14 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
     private float nextDetectFailureLogTime;
     private bool warnedPlayerTargetMissing;
     private bool hasHowledThisDetection;
+    private bool howlStunApplied;
+    private float howlImpactTime;
     private bool attackDamageApplied;
     private bool lastLineOfSight;
     private Vector3 lastRayOrigin;
     private Vector3 lastRayEnd;
+    private MonsterPatrolController patrolController;
+    private bool wasEngagedWithPlayer;
 
     private float ActiveMoveSpeed => useTestMoveSpeed ? testMoveSpeed : moveSpeed;
     public bool CanTakeDamage => currentState != HumanBoxState.Dead && currentHp > 0;
@@ -154,6 +160,26 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
     {
         UpdateGroundCheck();
 
+        if (currentState == HumanBoxState.Idle && patrolController != null && patrolController.EnablePatrol)
+        {
+            patrolController.NotifyPosition(GetCurrentPosition());
+            if (patrolController.CanMove && patrolController.TryGetCurrentPoint(out Vector3 patrolPoint))
+            {
+                MoveTowardPosition(ProjectToFixedZ(patrolPoint), patrolController.PatrolSpeed, Time.fixedDeltaTime);
+                if (patrolController.FaceMovementDirection)
+                {
+                    FaceTargetIfNeeded(patrolPoint, true);
+                }
+                SetMoving(!setMoveAnimatorOnlyWhenMoving || IsMoving);
+            }
+            else
+            {
+                SetMoving(false);
+            }
+            MaintainGroundExternalPushControl();
+            return;
+        }
+
         if (currentState != HumanBoxState.Walk)
         {
             MaintainGroundExternalPushControl();
@@ -208,6 +234,11 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
         if (humanBoxHowling == null)
         {
             humanBoxHowling = GetComponent<HumanBoxHowling>();
+        }
+
+        if (patrolController == null)
+        {
+            patrolController = GetComponent<MonsterPatrolController>();
         }
 
         if (visualRoot == null)
@@ -296,11 +327,21 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
         if (!CanDetectPlayerForHowling())
         {
             hasHowledThisDetection = false;
+            if (wasEngagedWithPlayer)
+            {
+                wasEngagedWithPlayer = false;
+                patrolController?.ResumeAfterCombat(GetCurrentPosition());
+                LogDetectionEvent("플레이어를 잃어 순찰로 복귀");
+            }
             return;
         }
 
+        wasEngagedWithPlayer = true;
+        patrolController?.PauseForCombat();
+
         if (!howlOnlyOncePerDetection || !hasHowledThisDetection)
         {
+            LogDetectionEvent("플레이어 감지");
             ChangeState(HumanBoxState.Howling);
             return;
         }
@@ -311,6 +352,11 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
     private void UpdateHowling()
     {
         FacePlayer();
+
+        if (!howlStunApplied && Time.time >= howlImpactTime)
+        {
+            ApplyHowlStunOnce();
+        }
 
         if (Time.time >= stateEndTime)
         {
@@ -412,12 +458,14 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
             case HumanBoxState.Howling:
                 hasHowledThisDetection = true;
                 stateEndTime = Time.time + howlDuration;
+                howlImpactTime = Time.time + howlDuration * 0.4f;
+                howlStunApplied = false;
                 SetMoving(false);
                 SetAttacking(false);
                 SetHowling(true);
                 Trigger(HowlingHash, "Howling");
                 LogDebug("Howling started");
-                TryStunPlayer();
+                LogDetectionEvent("Howling 시작");
                 break;
             case HumanBoxState.Walk:
                 SetMoving(true);
@@ -595,8 +643,10 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
             return false;
         }
 
-        return !requireSelectedTarget ||
-            (CurrentTargetType == MonsterTargetType.Player && CurrentTarget == playerTarget);
+        // Range + LOS are the authoritative Human_Box detection conditions.
+        // Base target selection is updated in the same frame, but requiring that cached
+        // selection here made valid detections fail after scene loads/reference refreshes.
+        return true;
     }
 
     private void LogDetectFailure(string reason)
@@ -608,6 +658,11 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
         nextDetectFailureLogTime = Time.time + logInterval;
         LogDebug($"Detect failed: {reason}");
+    }
+
+    private void LogDetectionEvent(string message)
+    {
+        if (logDetectionEvents) Debug.Log($"[Human_Box] {message}", this);
     }
 
     private void EnsurePlayerTarget()
@@ -693,6 +748,18 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
         stunnable.Stun(howlStunDuration);
         LogDebug($"Player stun requested: {howlStunDuration:0.##}");
         LogDebug($"Player stunned for {howlStunDuration:0.##} seconds");
+    }
+
+    private void ApplyHowlStunOnce()
+    {
+        if (howlStunApplied)
+        {
+            return;
+        }
+
+        howlStunApplied = true;
+        TryStunPlayer();
+        LogDebug("Howling impact reached. Player stun requested once.");
     }
 
     private void ApplyDamageToPlayer()
@@ -870,17 +937,17 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
     protected override void OnDrawGizmos()
     {
-        if (!showGizmos)
+        if (!showGizmos || !showDetectionDebug)
         {
             return;
         }
 
         Vector3 center = transform.position;
 
-        Gizmos.color = new Color(0.2f, 0.55f, 1f, 0.35f);
+        Gizmos.color = new Color(1f, 0.8f, 0.1f, 0.7f);
         Gizmos.DrawWireSphere(center, detectRange);
 
-        Gizmos.color = new Color(0.45f, 1f, 0.45f, 0.25f);
+        Gizmos.color = new Color(0.2f, 0.55f, 1f, 0.55f);
         Gizmos.DrawWireSphere(center, chaseRange);
 
         Gizmos.color = new Color(1f, 0.15f, 0.15f, 0.45f);
@@ -888,7 +955,7 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
         if (playerTarget != null)
         {
-            Gizmos.color = lastLineOfSight ? Color.white : Color.red;
+            Gizmos.color = lastLineOfSight ? Color.green : Color.red;
             Gizmos.DrawLine(Application.isPlaying ? lastRayOrigin : center, Application.isPlaying ? lastRayEnd : playerTarget.position);
         }
     }

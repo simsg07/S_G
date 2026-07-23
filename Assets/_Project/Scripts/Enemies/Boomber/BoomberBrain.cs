@@ -386,14 +386,14 @@ public class BoomberBrain : MonsterAIBase
 
     private void StartAttack(string reason)
     {
-        if (isAttackStarted || currentState == BoomberState.Attack || currentState == BoomberState.Dead)
+        if (isAttackStarted || IsAttackSequenceState(currentState) || currentState == BoomberState.Dead)
         {
             return;
         }
 
         isAttackStarted = true;
         StopHorizontalMovement();
-        ChangeState(BoomberState.Attack);
+        ChangeState(BoomberState.PreAttack);
         LogDebug($"Attack started. Reason={reason}");
 
         if (explosion == null)
@@ -425,6 +425,16 @@ public class BoomberBrain : MonsterAIBase
         }
     }
 
+    private void HandleAttackLeapStarted()
+    {
+        if (currentState != BoomberState.Dead) ChangeState(BoomberState.AttackLeap);
+    }
+
+    private void HandleExplosionStarted()
+    {
+        if (currentState != BoomberState.Dead) ChangeState(BoomberState.Explosion);
+    }
+
     private void DisableColliders()
     {
         Collider[] colliders = GetComponentsInChildren<Collider>(true);
@@ -443,6 +453,10 @@ public class BoomberBrain : MonsterAIBase
 
         explosion.OnExploded -= HandleExplosionFinished;
         explosion.OnExploded += HandleExplosionFinished;
+        explosion.OnAttackLeapStarted -= HandleAttackLeapStarted;
+        explosion.OnAttackLeapStarted += HandleAttackLeapStarted;
+        explosion.OnExplosionStarted -= HandleExplosionStarted;
+        explosion.OnExplosionStarted += HandleExplosionStarted;
     }
 
     private void OnDestroy()
@@ -450,6 +464,8 @@ public class BoomberBrain : MonsterAIBase
         if (explosion != null)
         {
             explosion.OnExploded -= HandleExplosionFinished;
+            explosion.OnAttackLeapStarted -= HandleAttackLeapStarted;
+            explosion.OnExplosionStarted -= HandleExplosionStarted;
         }
     }
 
@@ -622,10 +638,11 @@ public class BoomberBrain : MonsterAIBase
         {
             monsterAnimatorBridge.SetState((int)currentState);
             monsterAnimatorBridge.SetMoving(currentState == BoomberState.Run);
-            monsterAnimatorBridge.SetAttacking(currentState == BoomberState.Attack);
+            bool attacking = IsAttackSequenceState(currentState);
+            monsterAnimatorBridge.SetAttacking(attacking);
             monsterAnimatorBridge.SetDead(currentState == BoomberState.Dead);
 
-            if (currentState == BoomberState.Attack)
+            if (currentState == BoomberState.PreAttack)
             {
                 monsterAnimatorBridge.TriggerAttack();
             }
@@ -651,6 +668,13 @@ public class BoomberBrain : MonsterAIBase
         }
 
         LogDebug($"State changed: {previous} -> {currentState}");
+    }
+
+    private static bool IsAttackSequenceState(BoomberState state)
+    {
+        return state == BoomberState.PreAttack ||
+            state == BoomberState.AttackLeap ||
+            state == BoomberState.Explosion;
     }
 
     private void OnDisable()

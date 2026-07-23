@@ -8,6 +8,7 @@ public class PlayerAnimationController : MonoBehaviour
     private static readonly int YVelocityHash = Animator.StringToHash("YVelocity");
     private static readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
     private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
+    private static readonly int StateHash = Animator.StringToHash("State");
 
     [Header("Animator Bridge - References")]
     [Tooltip("Visual 자식에 있는 Animator입니다. 이동/충돌은 Root의 Player 스크립트가 담당합니다.")]
@@ -24,11 +25,15 @@ public class PlayerAnimationController : MonoBehaviour
     [SerializeField] private float yVelocityDampTime;
     [Tooltip("Animator Root Motion이 Player 위치를 직접 움직이지 못하게 합니다.")]
     [SerializeField] private bool disableRootMotion = true;
+    [SerializeField, Tooltip("켜면 좌우 이동 중에도 W/S 바라보기 애니메이션을 허용합니다.")]
+    private bool allowLookWhileMoving;
 
     private bool hasSpeed;
     private bool hasYVelocity;
     private bool hasIsGrounded;
     private bool hasIsDead;
+    private bool hasState;
+    private SpriteRenderer spriteRenderer;
 
     private void Awake()
     {
@@ -74,6 +79,11 @@ public class PlayerAnimationController : MonoBehaviour
         {
             body = GetComponent<Rigidbody>();
         }
+
+        if (spriteRenderer == null && animator != null)
+        {
+            spriteRenderer = animator.GetComponent<SpriteRenderer>();
+        }
     }
 
     private void CacheParameters()
@@ -82,6 +92,7 @@ public class PlayerAnimationController : MonoBehaviour
         hasYVelocity = AnimatorParameterUtility3D.HasParameter(animator, YVelocityHash, AnimatorControllerParameterType.Float);
         hasIsGrounded = AnimatorParameterUtility3D.HasParameter(animator, IsGroundedHash, AnimatorControllerParameterType.Bool);
         hasIsDead = AnimatorParameterUtility3D.HasParameter(animator, IsDeadHash, AnimatorControllerParameterType.Bool);
+        hasState = AnimatorParameterUtility3D.HasParameter(animator, StateHash, AnimatorControllerParameterType.Int);
     }
 
     private void ApplyAnimatorSettings()
@@ -104,6 +115,11 @@ public class PlayerAnimationController : MonoBehaviour
         float yVelocity = velocity.y;
         bool isDead = false;
 
+        if (spriteRenderer != null && Mathf.Abs(movement.FacingDirection) > 0.01f)
+        {
+            spriteRenderer.flipX = movement.FacingDirection > 0f;
+        }
+
         if (hasSpeed)
         {
             animator.SetFloat(SpeedHash, speed, Mathf.Max(0f, speedDampTime), Time.deltaTime);
@@ -123,5 +139,24 @@ public class PlayerAnimationController : MonoBehaviour
         {
             animator.SetBool(IsDeadHash, isDead);
         }
+
+        if (hasState)
+        {
+            animator.SetInteger(StateHash, ResolveAnimationState(speed, yVelocity, isDead));
+        }
+    }
+
+    private int ResolveAnimationState(float speed, float yVelocity, bool isDead)
+    {
+        if (isDead) return 6;
+        if (!movement.IsGrounded) return yVelocity > 0.01f ? 2 : 3;
+
+        bool movingHorizontally = speed > 0.01f;
+        if (movingHorizontally && !allowLookWhileMoving) return 1;
+
+        float lookY = movement.VerticalLookInput;
+        if (lookY > 0.5f) return 4;
+        if (lookY < -0.5f) return 5;
+        return movingHorizontally ? 1 : 0;
     }
 }

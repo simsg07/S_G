@@ -72,7 +72,11 @@ MonoBehaviour:
   requireLineOfSight: 1
   obstacleLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 7936
+  useSeparateLightObstacleMask: 0
+  lightObstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   lineOfSightStartOffset: {x: 0, y: 0.3, z: 0}
   targetCheckOffset: {x: 0, y: 0.3, z: 0}
   lostSightDelay: 0.2
@@ -97,7 +101,7 @@ MonoBehaviour:
   useGravityForGround: 1
   groundLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4608
   groundCheckDistance: 0.15
   groundCheckRadius: 0.2
   isGrounded: 0
@@ -110,7 +114,7 @@ MonoBehaviour:
   stopHorizontalVelocityWhenIdle: 1
   visualRoot: {fileID: 5202}
   flipVisualByScale: 1
-  visualFacesRightByDefault: 1
+  visualFacesRightByDefault: 0
   facingVisualRoot: {fileID: 5202}
   invertFacing: 0
   useVisualScaleFacing: 1
@@ -182,33 +186,17 @@ MonoBehaviour:
   requireLineOfSight: 1
   obstacleLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 7936
+  useSeparateLightObstacleMask: 0
+  lightObstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   lineOfSightStartOffset: {x: 0, y: 0.3, z: 0}
   targetCheckOffset: {x: 0, y: 0.3, z: 0}
   debugMode: 1
   showGizmos: 1
---- !u!114 &5115
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5101}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f964e216bc834e6ab921468a0434a9f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DataDrivenMonsterController
-  monsterData: {fileID: 11400000, guid: 69a9e5908d484c73b840d622fe93e835, type: 2}
-  applyOnAwake: 1
-  applyOnStart: 0
-  detection: {fileID: 5105}
-  movement: {fileID: 5106}
-  attack: {fileID: 5109}
-  health: {fileID: 5108}
-  animatorBridge: {fileID: 5110}
-  brain: {fileID: 5103}
-  debugMode: 1
+  debugLineOfSight: 1
+  logInterval: 0.5
 --- !u!114 &5106
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -258,7 +246,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MonsterFacing
   enableFacing: 1
   visualRoot: {fileID: 5202}
-  visualFacesRightByDefault: 1
+  visualFacesRightByDefault: 0
   invertFacing: 0
   faceOnlyWhenDetected: 1
   debugMode: 0
@@ -340,6 +328,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BoomberExplosion
   enableExplosion: 1
   fuseDuration: 1
+  attackLeapDuration: 0.35
+  explosionVisualDuration: 0.625
   explosionRadius: 1.25
   explosionDamage: 2
   destroyOnExplosion: 1
@@ -414,6 +404,74 @@ MonoBehaviour:
   debugMode: 1
   logInterval: 0.5
   showGizmos: 1
+--- !u!114 &5115
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f964e216bc834e6ab921468a0434a9f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DataDrivenMonsterController
+  monsterData: {fileID: 11400000, guid: 69a9e5908d484c73b840d622fe93e835, type: 2}
+  applyOnAwake: 1
+  applyOnStart: 0
+  detection: {fileID: 5105}
+  movement: {fileID: 5106}
+  attack: {fileID: 5109}
+  health: {fileID: 5108}
+  animatorBridge: {fileID: 5110}
+  brain: {fileID: 5103}
+  debugMode: 1
+--- !u!114 &4674820730425042070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f371114fcf524086a7890501c10c4652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  presenceMode: 0
+  applyOnStart: 1
+  autoCollectRenderers: 1
+  autoCollectColliders: 1
+  autoCollectRigidbodies: 1
+  autoCollectAnimators: 1
+  disableControlledBehavioursWhenAbsent: 1
+  autoCollectMonsterBehaviours: 1
+  controlledRenderers:
+  - {fileID: 5203}
+  controlledColliders:
+  - {fileID: 5113}
+  controlledBehaviours:
+  - {fileID: 5103}
+  - {fileID: 5104}
+  - {fileID: 5105}
+  - {fileID: 5106}
+  - {fileID: 5107}
+  - {fileID: 5108}
+  - {fileID: 5109}
+  - {fileID: 5110}
+  - {fileID: 5111}
+  - {fileID: 5114}
+  primaryRigidbody: {fileID: 5112}
+  controlledRigidbodies:
+  - {fileID: 5112}
+  controlledAnimators:
+  - {fileID: 5204}
+  debugMode: 1
+  showGizmos: 1
+  legacyAffectRootActive: 0
+  legacyVisualRoot: {fileID: 0}
+  legacyAffectMonsterAI: 1
+  legacyAffectBehaviours: 0
 --- !u!1 &5201
 GameObject:
   m_ObjectHideFlags: 0
@@ -496,7 +554,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: b0010000000000000000000000000001, type: 3}
+  m_Sprite: {fileID: 21300000, guid: dc513ecab085f3f4791e446ea511051c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -528,30 +586,3 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &4674820730425042070
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5101}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f371114fcf524086a7890501c10c4652, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  presenceMode: 0
-  applyOnStart: 1
-  affectRootActive: 0
-  affectRenderers: 1
-  affectColliders: 1
-  affectBehaviours: 0
-  affectMonsterAI: 1
-  affectRigidbody: 1
-  targetRenderers: []
-  targetColliders: []
-  targetBehaviours: []
-  targetRigidbody: {fileID: 0}
-  visualRoot: {fileID: 0}
-  debugMode: 1
-  showGizmos: 1

@@ -125,6 +125,14 @@ public static class SummerCampStageBootstrap3D
             mainCamera.gameObject.AddComponent<CameraFollow3D>();
         }
 
+        WorldVisualEffects3D visualEffects = mainCamera.GetComponent<WorldVisualEffects3D>();
+        if (visualEffects == null)
+        {
+            visualEffects = mainCamera.gameObject.AddComponent<WorldVisualEffects3D>();
+        }
+
+        visualEffects.SetDustTarget(player);
+
         UniversalAdditionalCameraData cameraData = mainCamera.GetUniversalAdditionalCameraData();
         cameraData.renderType = CameraRenderType.Base;
         cameraData.cameraStack.Clear();

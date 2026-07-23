@@ -11,6 +11,10 @@ public class BoomberExplosion : MonoBehaviour
     public bool enableExplosion = true;
     [Tooltip("Seconds between attack start and explosion.")]
     public float fuseDuration = 1f;
+    [Tooltip("Final part of the existing fuse reserved for the visual leap pose.")]
+    public float attackLeapDuration = 0.35f;
+    [Tooltip("Time allowed for the explosion sprite sequence before death/removal.")]
+    public float explosionVisualDuration = 0.625f;
     [Tooltip("Explosion damage radius in world units.")]
     public float explosionRadius = 1.25f;
     [Tooltip("Damage applied to the Player and supported breakable objects.")]
@@ -37,10 +41,13 @@ public class BoomberExplosion : MonoBehaviour
     private bool exploded;
     private bool isExploding;
     private Coroutine countdownRoutine;
+    private Coroutine finishRoutine;
     private Transform pendingPlayerTarget;
 
     public bool HasExploded => exploded;
     public bool IsExploding => isExploding;
+    public event Action OnAttackLeapStarted;
+    public event Action OnExplosionStarted;
     public event Action OnExploded;
 
     public void ConfigureDamage(int damage)
@@ -54,6 +61,12 @@ public class BoomberExplosion : MonoBehaviour
         {
             StopCoroutine(countdownRoutine);
             countdownRoutine = null;
+        }
+
+        if (finishRoutine != null)
+        {
+            StopCoroutine(finishRoutine);
+            finishRoutine = null;
         }
 
         exploded = false;
@@ -85,6 +98,7 @@ public class BoomberExplosion : MonoBehaviour
         isExploding = false;
         exploded = true;
         countdownRoutine = null;
+        OnExplosionStarted?.Invoke();
         Log("Explosion triggered");
         DamageBreakableObjects();
 
@@ -115,24 +129,35 @@ public class BoomberExplosion : MonoBehaviour
             }
         }
 
-        Log("Exploded");
-        OnExploded?.Invoke();
-        if (destroyOnExplosion)
-        {
-            Destroy(gameObject, destroyDelay);
-        }
+        Log("Explosion damage applied once; visual sequence started");
+        finishRoutine = StartCoroutine(FinishExplosionAfterVisual());
 
         return true;
     }
 
     private IEnumerator ExplosionCountdown()
     {
-        if (fuseDuration > 0f)
+        float leapDuration = Mathf.Min(Mathf.Max(0f, attackLeapDuration), Mathf.Max(0f, fuseDuration));
+        float prepareDuration = Mathf.Max(0f, fuseDuration - leapDuration);
+        if (prepareDuration > 0f)
         {
-            yield return new WaitForSeconds(fuseDuration);
+            yield return new WaitForSeconds(prepareDuration);
         }
 
+        OnAttackLeapStarted?.Invoke();
+        if (leapDuration > 0f) yield return new WaitForSeconds(leapDuration);
+
         Explode(pendingPlayerTarget);
+    }
+
+    private IEnumerator FinishExplosionAfterVisual()
+    {
+        if (explosionVisualDuration > 0f) yield return new WaitForSeconds(explosionVisualDuration);
+        finishRoutine = null;
+        isExploding = false;
+        Log("Explosion visual finished");
+        OnExploded?.Invoke();
+        if (destroyOnExplosion) Destroy(gameObject, destroyDelay);
     }
 
     private void DamageBreakableObjects()
@@ -233,6 +258,8 @@ public class BoomberExplosion : MonoBehaviour
     private void OnValidate()
     {
         fuseDuration = Mathf.Max(0f, fuseDuration);
+        attackLeapDuration = Mathf.Clamp(attackLeapDuration, 0f, fuseDuration);
+        explosionVisualDuration = Mathf.Max(0f, explosionVisualDuration);
         explosionRadius = Mathf.Max(0f, explosionRadius);
         explosionDamage = Mathf.Max(0, explosionDamage);
         destroyDelay = Mathf.Max(0f, destroyDelay);

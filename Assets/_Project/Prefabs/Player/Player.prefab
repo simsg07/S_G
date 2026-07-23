@@ -757,8 +757,9 @@ GameObject:
   m_Component:
   - component: {fileID: 5278597659841166381}
   - component: {fileID: 9045198406857974343}
+  - component: {fileID: 2325371525539068630}
   m_Layer: 0
-  m_Name: Player Attack Animation
+  m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -828,16 +829,38 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 30
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 2e9d5e28b32f04a4c9086cb682d7c0b2, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
+  m_FlipX: 1
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1.5058824, y: 1.5058824}
+  m_Size: {x: 3.0117648, y: 3.0117648}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!95 &2325371525539068630
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2381551992728538830}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 1f9c8a3b2d4e4f61a0b7c6d5e3f29180, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &2916280608873643439
 GameObject:
   m_ObjectHideFlags: 0
@@ -850,7 +873,6 @@ GameObject:
   - component: {fileID: 3825017814145501927}
   - component: {fileID: 7100014209207147258}
   - component: {fileID: 6090631260091286681}
-  - component: {fileID: 3099521639226550866}
   - component: {fileID: 2412283283832892199}
   - component: {fileID: 1223271334666151995}
   - component: {fileID: 5047740229592401611}
@@ -894,7 +916,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f0a6e0f4f7d47c0a1f439feb7dc9e01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 8
+  moveSpeed: 6
   jumpForce: 13.3
   groundLayer:
     serializedVersion: 2
@@ -937,29 +959,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5f60718293a4b0cb1c2d3e4f5061730, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  keepLegacyIdleSprite: 1
---- !u!114 &3099521639226550866
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2916280608873643439}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4a8b7c9d2e134cf2a8bd758d01f3e6aa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  resourceFolder: PlayerAttack
-  frameNames:
-  - attack_01
-  - attack_02
-  - attack_03
-  - attack_04
-  frameDuration: 0.045
-  pixelsPerUnit: 340
-  localOffset: {x: 0.2, y: 0.04, z: -0.45}
-  sortingOrder: 30
+  keepLegacyIdleSprite: 0
 --- !u!114 &2412283283832892199
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1030,12 +1030,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3bb7c8e96d7f48bd9dcd604be7e1a531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  animator: {fileID: 0}
+  animator: {fileID: 2325371525539068630}
   movement: {fileID: 3825017814145501927}
   body: {fileID: 7787834675415812791}
   speedDampTime: 0
   yVelocityDampTime: 0
   disableRootMotion: 1
+  allowLookWhileMoving: 0
 --- !u!114 &5047740229592401611
 MonoBehaviour:
   m_ObjectHideFlags: 0

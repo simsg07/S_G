@@ -187,3 +187,12 @@ PlayerAnimatorBridge 역할을 담당합니다.
 - `Stage_01`, `Stage_02`: 현재 프로젝트에 해당 씬 파일 없음
 
 씬을 대량 수정하지 않기 위해 기존 씬 Player를 자동 교체하지 않았습니다. 새 씬 또는 정리 작업 시에는 `PLAYER_Main.prefab`을 배치하고 Tag를 `Player`로 유지하세요.
+# 플레이어 시각 애니메이션
+
+- 프리팹: `Assets/_Project/Prefabs/Player/Player.prefab`
+- 입력/이동: `Assets/_Project/Scripts/Player/PlatformerPlayer3D.cs`
+- Animator 연결: `Assets/_Project/Scripts/Animation/PlayerAnimationController.cs`
+- Controller: `Assets/_Project/Animations/Player/PlayerAnimator.controller`
+- 새 이미지: `Assets/_Project/Art/Player/New/`
+
+지상 정지 중 W/위 방향 입력은 `Player_LookUp`, S/아래 방향 입력은 `Player_LookDown`을 재생한다. 좌우 이동, 공중 Jump/Fall, 경직과 씬 전환 입력 차단이 위/아래 보기보다 우선한다. `allowLookWhileMoving`의 기본값은 꺼져 있다. S+Space의 기존 일방통행 발판 내려가기는 유지된다.

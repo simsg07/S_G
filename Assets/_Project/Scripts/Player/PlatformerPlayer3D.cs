@@ -238,23 +238,25 @@ public class PlatformerPlayer3D : MonoBehaviour
     private void ReadMovementInput()
     {
         Keyboard keyboard = Keyboard.current;
-
-        if (keyboard == null)
-        {
-            horizontalInput = 0f;
-            return;
-        }
+        Gamepad gamepad = Gamepad.current;
 
         horizontalInput = 0f;
         verticalLookInput = 0f;
-        if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed)
+        if (keyboard != null && (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed))
         {
             horizontalInput -= 1f;
         }
 
-        if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed)
+        if (keyboard != null && (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed))
         {
             horizontalInput += 1f;
+        }
+
+        if (gamepad != null)
+        {
+            Vector2 stick = gamepad.leftStick.ReadValue();
+            if (Mathf.Abs(horizontalInput) < 0.01f) horizontalInput = stick.x;
+            verticalLookInput = stick.y;
         }
 
         if (Mathf.Abs(horizontalInput) > 0.01f)
@@ -262,18 +264,20 @@ public class PlatformerPlayer3D : MonoBehaviour
             facingDirection = Mathf.Sign(horizontalInput);
         }
 
-        if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed)
+        if (keyboard != null && (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed))
         {
             verticalLookInput += 1f;
         }
 
-        bool isHoldingDown = keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed;
+        bool isHoldingDown = keyboard != null && (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed);
         if (isHoldingDown)
         {
             verticalLookInput -= 1f;
         }
 
-        if (keyboard.spaceKey.wasPressedThisFrame)
+        bool jumpPressed = (keyboard != null && keyboard.spaceKey.wasPressedThisFrame) ||
+            (gamepad != null && gamepad.buttonSouth.wasPressedThisFrame);
+        if (jumpPressed)
         {
             if (isHoldingDown && TryDropThroughCurrentPlatform())
             {
@@ -284,7 +288,9 @@ public class PlatformerPlayer3D : MonoBehaviour
             jumpBufferCounter = jumpBufferTime;
         }
 
-        if (keyboard.spaceKey.wasReleasedThisFrame)
+        bool jumpReleasedThisFrame = (keyboard != null && keyboard.spaceKey.wasReleasedThisFrame) ||
+            (gamepad != null && gamepad.buttonSouth.wasReleasedThisFrame);
+        if (jumpReleasedThisFrame)
         {
             jumpReleased = true;
         }
