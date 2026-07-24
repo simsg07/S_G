@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 220010}
   - component: {fileID: 220008}
   - component: {fileID: 220009}
+  - component: {fileID: 220012}
   m_Layer: 0
   m_Name: FallingBox
   m_TagString: Untagged
@@ -51,7 +52,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ac6323d191fd4bd98a6414d4b24c9a7d, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::DataDrivenObjectController
   objectData: {fileID: 11400000, guid: f64ec017726b4c4cbef782a053d26f88, type: 2}
   applyMode: 0
@@ -251,6 +252,30 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 0.3}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &220012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 220001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0992e505ae83498199401436bfeb502e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DestructibleBox3D
+  isDestructible: 1
+  maxHealth: 1
+  currentHealth: 1
+  destroyAtZeroHealth: 1
+  despawnMode: 0
+  despawnDelay: 0
+  useDestroyAnimation: 0
+  animator: {fileID: 0}
+  destroyTrigger: Break
+  onDespawned:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &220101
 GameObject:
   m_ObjectHideFlags: 0

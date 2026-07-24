@@ -217,6 +217,31 @@ public class VineObject : MonoBehaviour, IDamageable, ITriggerableObject
         ResetVine();
     }
 
+    [ContextMenu("Test Cut")]
+    private void ContextTestCut()
+    {
+        CutVine();
+    }
+
+    [ContextMenu("Reset Rope")]
+    private void ContextResetRope()
+    {
+        ResetVine();
+    }
+
+    [ContextMenu("Validate Rope Setup")]
+    private void ValidateRopeSetup()
+    {
+        CacheReferences(false);
+        bool valid = hitReceiver != null && connectedObjectLink != null && colliders != null && colliders.Length > 0;
+        if (!valid)
+        {
+            LogWarning("Rope setup requires HitReceiver, ConnectedObjectLink, and at least one 3D Collider.");
+            return;
+        }
+        Log("Rope setup validation passed.");
+    }
+
     private void CacheReferences(bool addMissingComponents)
     {
         hitReceiver = GetOrAddComponent(hitReceiver, addMissingComponents);

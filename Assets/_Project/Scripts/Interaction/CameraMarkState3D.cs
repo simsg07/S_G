@@ -41,6 +41,11 @@ public class CameraMarkState3D : MonoBehaviour
         DestroyGenerated(markerMesh);
     }
 
+    private void OnDisable()
+    {
+        ClearMark();
+    }
+
     public void SetMarkWindow(float markEnd, float cooldownEnd)
     {
         markEndTime = markEnd;
@@ -100,8 +105,20 @@ public class CameraMarkState3D : MonoBehaviour
         }
 
         Bounds bounds = CalculateBounds();
+        if (!SafeMath3D.IsFinite(bounds.center) || !SafeMath3D.IsFinite(bounds.extents))
+        {
+            markerRenderer.enabled = false;
+            return;
+        }
+
         Transform markerTransform = markerRenderer.transform;
-        markerTransform.position = new Vector3(bounds.center.x, bounds.max.y + markerYOffset, bounds.center.z);
+        Vector3 markerPosition = new Vector3(bounds.center.x, bounds.max.y + markerYOffset, bounds.center.z);
+        if (!SafeMath3D.IsFinite(markerPosition))
+        {
+            markerRenderer.enabled = false;
+            return;
+        }
+        markerTransform.position = markerPosition;
 
         float pulse = IsMarked ? 1f + Mathf.Sin(Time.time * pulseSpeed) * 0.08f : 1f;
         markerTransform.localScale = new Vector3(markerWidth * pulse, markerHeight, markerDepth);
@@ -138,19 +155,28 @@ public class CameraMarkState3D : MonoBehaviour
         for (int i = 0; i < renderers.Length; i++)
         {
             Renderer renderer = renderers[i];
-            if (renderer == null || renderer == markerRenderer)
+            if (renderer == null || renderer == markerRenderer || !SafeMath3D.IsValidTransform(renderer.transform))
             {
                 continue;
             }
 
             if (!hasBounds)
             {
-                bounds = renderer.bounds;
+                Bounds rendererBounds = renderer.bounds;
+                if (!SafeMath3D.IsFinite(rendererBounds.center) || !SafeMath3D.IsFinite(rendererBounds.extents))
+                {
+                    continue;
+                }
+                bounds = rendererBounds;
                 hasBounds = true;
             }
             else
             {
-                bounds.Encapsulate(renderer.bounds);
+                Bounds rendererBounds = renderer.bounds;
+                if (SafeMath3D.IsFinite(rendererBounds.center) && SafeMath3D.IsFinite(rendererBounds.extents))
+                {
+                    bounds.Encapsulate(rendererBounds);
+                }
             }
         }
 

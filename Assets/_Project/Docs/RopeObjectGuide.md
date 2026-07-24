@@ -66,11 +66,22 @@ Vine 권장 구조:
 - `Assets/_Project/Prefabs/Objects/Rope/Wire.prefab`
 - `Assets/_Project/Prefabs/Objects/Rope/Vine.prefab`
 
+단독 프리팹은 기존처럼 자유 연결용으로 유지하며, 바로 배치할 수 있는 세트 프리팹은 다음 4종입니다.
+
+- `Assets/_Project/Prefabs/Objects/RopeSets/Wire_Box_Set.prefab`
+- `Assets/_Project/Prefabs/Objects/RopeSets/Wire_CircleSpike_Set.prefab`
+- `Assets/_Project/Prefabs/Objects/RopeSets/Vine_Box_Set.prefab`
+- `Assets/_Project/Prefabs/Objects/RopeSets/Vine_CircleSpike_Set.prefab`
+
+세트 루트를 씬에 놓고 루트 Transform만 이동하면 Rope와 연결 오브젝트가 함께 배치됩니다. Rope 자식은 연결 오브젝트보다 Y축으로 1.5 위에 있으며 필요하면 자식 로컬 위치만 조정합니다. Box 세트의 `GravityDropSensor`는 의도적으로 꺼져 있으므로 Player 감지로 먼저 떨어지지 않고 Wire/Vine 절단으로만 해제됩니다.
+
 `WireObject`와 `VineObject`를 GameObject에 추가하면 필요한 공통 컴포넌트는 가능한 범위에서 자동으로 찾거나 추가합니다. 그래도 Prefab 저장 전에는 Inspector에서 참조가 정상으로 잡혔는지 확인하는 것이 좋습니다.
 
 ## 연결 오브젝트 설정
 
 Wire에서 연결된 오브젝트를 실행하려면 `ConnectedObjectLink.connectedBehaviour`에 실행할 MonoBehaviour를 연결합니다. 연결 대상이 `ITriggerableObject`를 구현하면 `TriggerObject()`가 호출되고, 그렇지 않으면 `SendMessage("TriggerObject")` 방식으로 호출됩니다.
+
+세트 프리팹은 이 참조가 미리 연결되어 있습니다. Wire는 기본 2회, Vine은 기본 1회 유효 타격 뒤 절단되며, 연결된 `FallingBoxObject` 또는 `CircleSpikeObject`가 3D Rigidbody의 kinematic/gravity 고정을 풀고 낙하합니다. X/Z 위치는 고정되어 2.5D 플레이 라인을 벗어나지 않습니다.
 
 Vine에서 길을 열려면 `OpenPathOnBreak.objectsToDisable`에 막고 있는 오브젝트를 넣고, `objectsToEnable`에는 절단 후 켜질 길 표시나 이동 가능 오브젝트를 넣습니다. Collider만 끄고 싶다면 `collidersToDisable`에 넣습니다.
 
@@ -115,8 +126,8 @@ VineObject:
 - PlayerController와 MonsterAI 타입을 직접 참조하지 않습니다.
 - Animator 파라미터가 없어도 에러가 나지 않도록 존재 여부를 확인한 뒤 호출합니다.
 - 코드에서 Layer/Tag를 자동 변경하지 않습니다. 필요한 레이어와 태그는 Unity Editor에서 설정합니다.
-- 현재 Prefab의 Visual은 임시 SpriteRenderer와 Animator 자리만 잡아둔 상태입니다. 전용 Wire/Vine 스프라이트와 Animator Controller가 생기면 `Visual` 자식에 연결하면 됩니다.
+- 현재 Rope Prefab의 Visual은 임시 SpriteRenderer와 Animator 자리만 잡아둔 상태입니다. 전용 Wire/Vine 스프라이트와 Animator Controller가 생기면 `Visual` 자식에 연결하면 됩니다. CircleSpike의 `Visual` 역시 교체 가능한 임시 3D 메시이며 물리 컴포넌트는 루트에 유지합니다.
 
 ## 다음 추천 작업
 
-Wire/Vine 이후에는 `CircleSpike` 또는 `FallingBox`를 만드는 순서가 좋습니다. Wire가 연결 오브젝트를 실행하는 흐름을 이미 갖췄기 때문에, 다음 단계에서 Wire 절단 후 CircleSpike 낙하 또는 Box 낙하를 연결해 실제 퍼즐 흐름을 만들 수 있습니다.
+프리팹을 다시 생성하거나 구조를 검사하려면 `Tools > Project > Objects > Create Or Update Rope Set Prefabs`와 `Validate Rope Set Prefabs`를 사용합니다. 검사는 각 세트의 연결 참조, 3D Rigidbody/Collider, `ITriggerableObject`, 실제 Activate→낙하 상태→Reset 흐름을 확인합니다.

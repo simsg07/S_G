@@ -28,6 +28,7 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
     [SerializeField] private bool lockZPosition = true;
 
     [Header("Howling")]
+    [SerializeField] private bool enableHowl = true;
     [SerializeField] private float howlStunDuration = 1.5f;
     [SerializeField] private float howlDuration = 1f;
     [SerializeField] private bool howlOnlyOncePerDetection = true;
@@ -73,6 +74,23 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
 
     private float ActiveMoveSpeed => useTestMoveSpeed ? testMoveSpeed : moveSpeed;
     public bool CanTakeDamage => currentState != HumanBoxState.Dead && currentHp > 0;
+
+    public void ConfigureDataDrivenStats(int configuredMaxHp, float configuredHowlDuration,
+        float configuredHowlStunDuration, bool enableHowl)
+    {
+        maxHp = Mathf.Max(1, configuredMaxHp);
+        currentHp = maxHp;
+        this.enableHowl = enableHowl;
+        howlDuration = enableHowl ? Mathf.Max(0f, configuredHowlDuration) : 0f;
+        howlStunDuration = enableHowl ? Mathf.Max(0f, configuredHowlStunDuration) : 0f;
+
+        CacheReferences();
+        if (humanBoxHowling != null)
+        {
+            humanBoxHowling.howlDuration = howlDuration;
+            humanBoxHowling.howlStunDuration = howlStunDuration;
+        }
+    }
 
     protected override void Awake()
     {
@@ -339,7 +357,7 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
         wasEngagedWithPlayer = true;
         patrolController?.PauseForCombat();
 
-        if (!howlOnlyOncePerDetection || !hasHowledThisDetection)
+        if (enableHowl && (!howlOnlyOncePerDetection || !hasHowledThisDetection))
         {
             LogDetectionEvent("플레이어 감지");
             ChangeState(HumanBoxState.Howling);

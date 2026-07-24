@@ -20,7 +20,7 @@ MonoBehaviour:
   canDetectPlayer: 1
   canDetectLight: 0
   prioritizePlayer: 1
-  playerDetectRange: 1.5
+  playerDetectRange: 3
   lightDetectRange: 0
   chaseRange: 4
   requireLineOfSight: 1

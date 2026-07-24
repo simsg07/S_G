@@ -1,0 +1,555 @@
+#if UNITY_EDITOR
+using System;
+using System.Reflection;
+using UnityEditor;
+using UnityEngine;
+
+[InitializeOnLoad]
+public static class RopeSetPrefabSetupUtility
+{
+    private const string RopeFolder = "Assets/_Project/Prefabs/Objects/Rope";
+    private const string RopeSetFolder = "Assets/_Project/Prefabs/Objects/RopeSets";
+    private const string GravityFolder = "Assets/_Project/Prefabs/Objects/Gravity";
+    private const string DebugMaterialFolder = "Assets/_Project/Materials/Debug";
+    private const string WirePath = RopeFolder + "/Wire.prefab";
+    private const string VinePath = RopeFolder + "/Vine.prefab";
+    private const string BoxPath = GravityFolder + "/FallingBox.prefab";
+    private const string CircleSpikePath = GravityFolder + "/CircleSpike.prefab";
+
+    static RopeSetPrefabSetupUtility()
+    {
+        const string validationKey = "RopeSetPrefabSetupUtility.ValidatedV11";
+        if (!SessionState.GetBool(validationKey, false) ||
+            AssetDatabase.LoadAssetAtPath<GameObject>(RopeSetFolder + "/Wire_Box_Set.prefab") == null ||
+            AssetDatabase.LoadAssetAtPath<GameObject>(RopeSetFolder + "/Wire_CircleSpike_Set.prefab") == null ||
+            AssetDatabase.LoadAssetAtPath<GameObject>(RopeSetFolder + "/Vine_Box_Set.prefab") == null ||
+            AssetDatabase.LoadAssetAtPath<GameObject>(RopeSetFolder + "/Vine_CircleSpike_Set.prefab") == null)
+        {
+            EditorApplication.delayCall += () =>
+            {
+                CreateOrUpdateRopeSetPrefabs();
+                SessionState.SetBool(validationKey, true);
+            };
+        }
+    }
+
+    [MenuItem("Tools/Project/Objects/Create Or Update Rope Set Prefabs %#r")]
+    public static void CreateOrUpdateRopeSetPrefabs()
+    {
+        EnsureFolder(RopeFolder);
+        EnsureFolder(RopeSetFolder);
+        EnsureFolder(GravityFolder);
+        EnsureFolder(DebugMaterialFolder);
+        Material wireMaterial = CreateOrUpdateOpaqueMaterial(DebugMaterialFolder + "/MAT_Debug_Wire.mat", new Color(0.24f, 0.55f, 0.78f, 1f));
+        Material vineMaterial = CreateOrUpdateOpaqueMaterial(DebugMaterialFolder + "/MAT_Debug_Vine.mat", new Color(0.22f, 0.65f, 0.28f, 1f));
+        PrepareStandaloneRopePrefab(WirePath, wireMaterial);
+        PrepareStandaloneRopePrefab(VinePath, vineMaterial);
+        CreateCircleSpikePrefab();
+        CreateSet("Wire_Box_Set", WirePath, BoxPath, typeof(FallingBoxObject));
+        CreateSet("Wire_CircleSpike_Set", WirePath, CircleSpikePath, typeof(CircleSpikeObject));
+        CreateSet("Vine_Box_Set", VinePath, BoxPath, typeof(FallingBoxObject));
+        CreateSet("Vine_CircleSpike_Set", VinePath, CircleSpikePath, typeof(CircleSpikeObject));
+        DeleteLegacySetAssets();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        ValidateRopeSetPrefabs();
+        BeginConsoleErrorGate();
+    }
+
+    private static Material CreateOrUpdateOpaqueMaterial(string path, Color color)
+    {
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (material == null)
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+            if (shader == null) throw new InvalidOperationException("No opaque Lit shader is available for Rope debug materials.");
+            material = new Material(shader);
+            AssetDatabase.CreateAsset(material, path);
+        }
+
+        material.color = new Color(color.r, color.g, color.b, 1f);
+        if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", material.color);
+        if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 0f);
+        if (material.HasProperty("_AlphaClip")) material.SetFloat("_AlphaClip", 0f);
+        material.renderQueue = -1;
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    private static void PrepareStandaloneRopePrefab(string prefabPath, Material material)
+    {
+        GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
+        try
+        {
+            SpriteRenderer[] sprites = root.GetComponentsInChildren<SpriteRenderer>(true);
+            for (int i = 0; i < sprites.Length; i++)
+            {
+                sprites[i].sprite = null;
+                sprites[i].enabled = false;
+            }
+
+            Transform debugTransform = root.transform.Find("Rope_Debug_Visual");
+            GameObject debugVisual;
+            if (debugTransform == null)
+            {
+                debugVisual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                debugVisual.name = "Rope_Debug_Visual";
+                debugVisual.transform.SetParent(root.transform, false);
+                UnityEngine.Object.DestroyImmediate(debugVisual.GetComponent<Collider>());
+            }
+            else
+            {
+                debugVisual = debugTransform.gameObject;
+            }
+
+            MeshRenderer renderer = debugVisual.GetComponent<MeshRenderer>();
+            if (renderer == null) renderer = debugVisual.AddComponent<MeshRenderer>();
+            renderer.enabled = true;
+            renderer.sharedMaterial = material;
+            BoxCollider sourceCollider = root.GetComponent<BoxCollider>();
+            if (sourceCollider != null)
+            {
+                debugVisual.transform.localPosition = sourceCollider.center;
+                debugVisual.transform.localRotation = Quaternion.identity;
+                debugVisual.transform.localScale = sourceCollider.size;
+            }
+
+            WireObject wire = root.GetComponent<WireObject>();
+            VineObject vine = root.GetComponent<VineObject>();
+            if (wire != null) SetObjectArray(wire, "renderers", new UnityEngine.Object[] { renderer });
+            if (vine != null) SetObjectArray(vine, "renderers", new UnityEngine.Object[] { renderer });
+            BreakableObject3D breakable = root.GetComponent<BreakableObject3D>();
+            if (breakable != null) SetObjectArray(breakable, "renderersToDisable", new UnityEngine.Object[] { renderer });
+            PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    [MenuItem("Tools/Project/Objects/Validate Rope Set Prefabs")]
+    public static void ValidateRopeSetPrefabs()
+    {
+        ValidateSet("Wire_Box_Set", typeof(WireObject), typeof(FallingBoxObject));
+        ValidateSet("Wire_CircleSpike_Set", typeof(WireObject), typeof(CircleSpikeObject));
+        ValidateSet("Vine_Box_Set", typeof(VineObject), typeof(FallingBoxObject));
+        ValidateSet("Vine_CircleSpike_Set", typeof(VineObject), typeof(CircleSpikeObject));
+        Debug.Log("[RopeSetPrefabSetup] Validation passed: standalone Wire/Vine and four 3D drop sets are ready.");
+    }
+
+    private static void CreateCircleSpikePrefab()
+    {
+        GameObject root = new GameObject("CircleSpike");
+        try
+        {
+            Rigidbody rb = root.AddComponent<Rigidbody>();
+            rb.useGravity = false;
+            rb.isKinematic = true;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ |
+                             RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
+
+            CapsuleCollider collider = root.AddComponent<CapsuleCollider>();
+            collider.direction = 2;
+            collider.radius = 0.65f;
+            collider.height = 0.3f;
+
+            GravityObject3D gravity = root.AddComponent<GravityObject3D>();
+            GravityObjectDamageDealer damage = root.AddComponent<GravityObjectDamageDealer>();
+            CircleSpikeObject spike = root.AddComponent<CircleSpikeObject>();
+
+            SetObjectReference(gravity, "rb", rb);
+            SetBool(gravity, "startAttached", true);
+            SetBool(gravity, "disableGravityOnStart", true);
+            SetBool(gravity, "lockXWhileFalling", true);
+            SetBool(gravity, "lockZPosition", true);
+            SetBool(gravity, "debugMode", false);
+            SetBool(damage, "damageOnlyWhileFalling", false);
+            SetBool(damage, "debugMode", false);
+            SetObjectReference(spike, "gravityObject", gravity);
+            SetObjectReference(spike, "damageDealer", damage);
+            damage.enabled = false;
+
+            GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            visual.name = "Visual";
+            visual.transform.SetParent(root.transform, false);
+            visual.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            visual.transform.localScale = new Vector3(0.7f, 0.12f, 0.7f);
+            UnityEngine.Object.DestroyImmediate(visual.GetComponent<Collider>());
+
+            PrefabUtility.SaveAsPrefabAsset(root, CircleSpikePath);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root);
+        }
+    }
+
+    private static void CreateSet(string setName, string ropePath, string payloadPath, Type payloadType)
+    {
+        GameObject ropeAsset = RequirePrefab(ropePath);
+        GameObject payloadAsset = RequirePrefab(payloadPath);
+        GameObject root = new GameObject(setName);
+        try
+        {
+            GameObject ceilingAnchor = new GameObject("CeilingAnchor");
+            GameObject attachPoint = new GameObject("ConnectedObjectAttachPoint");
+            GameObject rope = (GameObject)PrefabUtility.InstantiatePrefab(ropeAsset);
+            GameObject payload = (GameObject)PrefabUtility.InstantiatePrefab(payloadAsset);
+            GameObject linkObject = new GameObject("Link");
+            ConnectedObjectLink link = linkObject.AddComponent<ConnectedObjectLink>();
+            ceilingAnchor.transform.SetParent(root.transform, false);
+            attachPoint.transform.SetParent(root.transform, false);
+            rope.name = "Rope";
+            payload.name = "ConnectedObject";
+            rope.transform.SetParent(root.transform, false);
+            payload.transform.SetParent(root.transform, false);
+            linkObject.transform.SetParent(root.transform, false);
+            ceilingAnchor.transform.localPosition = new Vector3(0f, 4f, 0f);
+            attachPoint.transform.localPosition = new Vector3(0f, 0.75f, 0f);
+            rope.transform.localPosition = Vector3.zero;
+            payload.transform.localPosition = Vector3.zero;
+
+            Transform debugVisual = rope.transform.Find("Rope_Debug_Visual");
+            if (debugVisual == null)
+            {
+                throw new InvalidOperationException(setName + " Rope_Debug_Visual is missing.");
+            }
+
+            Collider sourceCollider = rope.GetComponent<Collider>();
+            if (sourceCollider != null)
+            {
+                sourceCollider.enabled = false;
+            }
+            GameObject hitColliderObject = new GameObject("RopeHitCollider");
+            hitColliderObject.transform.SetParent(rope.transform, false);
+            BoxCollider ropeHitCollider = hitColliderObject.AddComponent<BoxCollider>();
+            RopeLengthController3D lengthController = rope.AddComponent<RopeLengthController3D>();
+            lengthController.ConfigureReferences(ceilingAnchor.transform, attachPoint.transform, ropeHitCollider, debugVisual);
+            SetBool(lengthController, "updateOnValidate", false);
+            SetBool(lengthController, "updateOnStart", true);
+            SetBool(lengthController, "preserveManualOffsets", false);
+            SetBool(lengthController, "debugMode", false);
+            lengthController.ApplyRopeLength();
+            SetBool(lengthController, "preserveManualOffsets", true);
+
+            GravityDropSensor sensor = payload.GetComponent<GravityDropSensor>();
+            if (sensor != null)
+            {
+                sensor.enabled = false;
+            }
+
+            MonoBehaviour payloadBehaviour = payload.GetComponent(payloadType) as MonoBehaviour;
+            if (payloadBehaviour == null)
+            {
+                throw new InvalidOperationException(setName + " is missing its connection components.");
+            }
+
+            SetObjectReference(link, "connectedObject", payload);
+            SetObjectReference(link, "connectedObjectAttachPoint", attachPoint.transform);
+            SetObjectReference(link, "connectedBehaviour", payloadBehaviour);
+            SetBool(link, "activateOnCut", true);
+            SetBool(link, "releasePhysicsOnCut", true);
+            SetBool(link, "detachFromAttachPointOnCut", true);
+            SetBool(link, "preserveConnectedObjectScale", true);
+            SetBool(link, "debugMode", false);
+            WireObject wireObject = rope.GetComponent<WireObject>();
+            VineObject vineObject = rope.GetComponent<VineObject>();
+            if (wireObject != null)
+            {
+                SetObjectReference(wireObject, "connectedObjectLink", link);
+                SetObjectArray(wireObject, "colliders", new UnityEngine.Object[] { ropeHitCollider });
+                SetDebugMode(wireObject, false);
+            }
+            if (vineObject != null)
+            {
+                SetObjectReference(vineObject, "connectedObjectLink", link);
+                SetObjectArray(vineObject, "colliders", new UnityEngine.Object[] { ropeHitCollider });
+                SetDebugMode(vineObject, false);
+            }
+            BreakableObject3D breakable = rope.GetComponent<BreakableObject3D>();
+            if (breakable != null)
+            {
+                SetObjectArray(breakable, "collidersToDisable", new UnityEngine.Object[] { ropeHitCollider });
+            }
+            PrefabUtility.SaveAsPrefabAsset(root, RopeSetFolder + "/" + setName + ".prefab");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root);
+        }
+    }
+
+    private static void ValidateSet(string setName, Type ropeType, Type payloadType)
+    {
+        string path = RopeSetFolder + "/" + setName + ".prefab";
+        GameObject prefab = RequirePrefab(path);
+        Transform ropeRoot = prefab.transform.Find("Rope");
+        Transform payloadRoot = prefab.transform.Find("ConnectedObject");
+        Transform linkRoot = prefab.transform.Find("Link");
+        Transform ceilingAnchor = prefab.transform.Find("CeilingAnchor");
+        Transform attachPoint = prefab.transform.Find("ConnectedObjectAttachPoint");
+        Component rope = ropeRoot != null ? ropeRoot.GetComponent(ropeType) : null;
+        MonoBehaviour payload = payloadRoot != null ? payloadRoot.GetComponent(payloadType) as MonoBehaviour : null;
+        ConnectedObjectLink link = linkRoot != null ? linkRoot.GetComponent<ConnectedObjectLink>() : null;
+        Rigidbody body = payloadRoot != null ? payloadRoot.GetComponentInChildren<Rigidbody>(true) : null;
+        Collider collider = payloadRoot != null ? payloadRoot.GetComponentInChildren<Collider>(true) : null;
+        RopeLengthController3D lengthController = ropeRoot != null ? ropeRoot.GetComponent<RopeLengthController3D>() : null;
+        Transform debugVisual = ropeRoot != null ? ropeRoot.Find("Rope_Debug_Visual") : null;
+        BoxCollider ropeHitCollider = ropeRoot != null ? ropeRoot.Find("RopeHitCollider")?.GetComponent<BoxCollider>() : null;
+        if (rope == null || payload == null || link == null || body == null || collider == null ||
+            ceilingAnchor == null || attachPoint == null || lengthController == null || debugVisual == null || ropeHitCollider == null)
+        {
+            throw new InvalidOperationException(path + " does not contain the required Anchor/Rope/AttachPoint/ConnectedObject/Link structure.");
+        }
+
+        SerializedProperty connected = new SerializedObject(link).FindProperty("connectedBehaviour");
+        if (connected == null || connected.objectReferenceValue != payload)
+        {
+            throw new InvalidOperationException(path + " does not connect the rope to its payload.");
+        }
+
+        SerializedProperty connectedObject = new SerializedObject(link).FindProperty("connectedObject");
+        if (connectedObject == null || connectedObject.objectReferenceValue != payloadRoot.gameObject || !link.ValidateLinkSetup())
+        {
+            throw new InvalidOperationException(path + " does not have a valid Link child setup.");
+        }
+
+        if (!lengthController.ValidateRopeLengthSetup())
+        {
+            throw new InvalidOperationException(path + " does not have a valid RopeLengthController3D setup.");
+        }
+
+        ValidateOpaqueDebugVisual(ropeRoot, debugVisual, ropeHitCollider, path);
+
+        ValidateLengthAndScaleIndependence(prefab, payloadType, path);
+
+        if (!(payload is ITriggerableObject) && !(payload is FallingBoxObject))
+        {
+            throw new InvalidOperationException(path + " payload does not implement ITriggerableObject.");
+        }
+
+        ValidateReleaseBehaviour(prefab, payloadType, path);
+    }
+
+    private static void ValidateOpaqueDebugVisual(Transform ropeRoot, Transform debugVisual, BoxCollider hitCollider, string path)
+    {
+        MeshRenderer renderer = debugVisual.GetComponent<MeshRenderer>();
+        Collider duplicateCollider = debugVisual.GetComponent<Collider>();
+        SpriteRenderer[] sprites = ropeRoot.GetComponentsInChildren<SpriteRenderer>(true);
+        if (renderer == null || !renderer.enabled || renderer.sharedMaterial == null || duplicateCollider != null)
+        {
+            throw new InvalidOperationException(path + " Rope_Debug_Visual must be a visible collider-free MeshRenderer.");
+        }
+        if (renderer.sharedMaterial.color.a < 0.999f || renderer.sharedMaterial.renderQueue >= 3000)
+        {
+            throw new InvalidOperationException(path + " Rope debug material must be opaque with alpha 1.");
+        }
+        for (int i = 0; i < sprites.Length; i++)
+        {
+            if (sprites[i].enabled || sprites[i].sprite != null)
+            {
+                throw new InvalidOperationException(path + " still uses an enabled or assigned Wire/Vine SpriteRenderer.");
+            }
+        }
+        if (hitCollider == null || !hitCollider.enabled)
+        {
+            throw new InvalidOperationException(path + " RopeHitCollider must remain the enabled 3D hit volume.");
+        }
+    }
+
+    private static void ValidateLengthAndScaleIndependence(GameObject prefab, Type payloadType, string path)
+    {
+        GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        try
+        {
+            Transform anchor = instance.transform.Find("CeilingAnchor");
+            Transform payloadRoot = instance.transform.Find("ConnectedObject");
+            RopeLengthController3D controller = instance.transform.Find("Rope")?.GetComponent<RopeLengthController3D>();
+            BoxCollider hitCollider = instance.transform.Find("Rope/RopeHitCollider")?.GetComponent<BoxCollider>();
+            Transform debugVisual = instance.transform.Find("Rope/Rope_Debug_Visual");
+            if (anchor == null || payloadRoot == null || controller == null || hitCollider == null || debugVisual == null)
+            {
+                throw new InvalidOperationException(path + " could not create a rope length validation instance.");
+            }
+
+            Vector3 authoredScale = new Vector3(1.6f, 0.75f, 1.25f);
+            payloadRoot.localScale = authoredScale;
+            float originalLength = hitCollider.size.y;
+            anchor.localPosition += Vector3.up * 3f;
+            controller.ApplyRopeLength();
+            Vector3 visualSize = debugVisual.localScale;
+            if (hitCollider.size.y <= originalLength || payloadRoot.localScale != authoredScale ||
+                Vector3.Distance(debugVisual.position, hitCollider.transform.position) > 0.001f ||
+                Vector3.Distance(visualSize, hitCollider.size) > 0.001f)
+            {
+                throw new InvalidOperationException(path + " did not keep Rope_Debug_Visual/Collider size aligned independently from ConnectedObject scale.");
+            }
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(instance);
+        }
+    }
+
+    private static void ValidateReleaseBehaviour(GameObject prefab, Type payloadType, string path)
+    {
+        GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        try
+        {
+            Transform payloadRoot = instance.transform.Find("ConnectedObject");
+            Transform linkRoot = instance.transform.Find("Link");
+            ConnectedObjectLink instanceLink = linkRoot != null ? linkRoot.GetComponent<ConnectedObjectLink>() : null;
+            GravityObject3D gravity = payloadRoot != null ? payloadRoot.GetComponentInChildren<GravityObject3D>(true) : null;
+            MonoBehaviour payload = payloadRoot != null ? payloadRoot.GetComponent(payloadType) as MonoBehaviour : null;
+            Rigidbody body = payloadRoot != null ? payloadRoot.GetComponentInChildren<Rigidbody>(true) : null;
+            if (instanceLink == null || gravity == null || payload == null || body == null)
+            {
+                throw new InvalidOperationException(path + " could not create a runtime validation instance.");
+            }
+
+            instanceLink.ActivateConnectedObject();
+            bool payloadDropped = payload is FallingBoxObject box ? box.IsFalling :
+                                  payload is CircleSpikeObject spike && spike.IsFalling;
+            if (!gravity.IsDropped || !payloadDropped || body.isKinematic || !body.useGravity)
+            {
+                throw new InvalidOperationException(path + " did not release its payload into 3D Rigidbody gravity.");
+            }
+
+            instanceLink.ResetConnectedObject();
+            if (gravity.IsDropped)
+            {
+                throw new InvalidOperationException(path + " did not reset its attached state.");
+            }
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(instance);
+        }
+    }
+
+    private static void DeleteLegacySetAssets()
+    {
+        string[] names = { "Wire_Box_Set", "Wire_CircleSpike_Set", "Vine_Box_Set", "Vine_CircleSpike_Set" };
+        for (int i = 0; i < names.Length; i++)
+        {
+            string legacyPath = RopeFolder + "/" + names[i] + ".prefab";
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(legacyPath) != null)
+            {
+                AssetDatabase.DeleteAsset(legacyPath);
+            }
+        }
+    }
+
+    private static GameObject RequirePrefab(string path)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        if (prefab == null)
+        {
+            throw new InvalidOperationException("Required prefab was not found: " + path);
+        }
+
+        return prefab;
+    }
+
+    private static void EnsureFolder(string path)
+    {
+        string[] parts = path.Split('/');
+        string current = parts[0];
+        for (int i = 1; i < parts.Length; i++)
+        {
+            string next = current + "/" + parts[i];
+            if (!AssetDatabase.IsValidFolder(next))
+            {
+                AssetDatabase.CreateFolder(current, parts[i]);
+            }
+            current = next;
+        }
+    }
+
+    private static void SetDebugMode(MonoBehaviour target, bool value)
+    {
+        if (target != null)
+        {
+            SetBool(target, "debugMode", value);
+        }
+    }
+
+    private static void SetBool(UnityEngine.Object target, string propertyName, bool value)
+    {
+        SerializedObject serialized = new SerializedObject(target);
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property != null)
+        {
+            property.boolValue = value;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+
+    private static void SetObjectReference(UnityEngine.Object target, string propertyName, UnityEngine.Object value)
+    {
+        SerializedObject serialized = new SerializedObject(target);
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property == null)
+        {
+            throw new InvalidOperationException(target.GetType().Name + "." + propertyName + " was not found.");
+        }
+        property.objectReferenceValue = value;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void SetObjectArray(UnityEngine.Object target, string propertyName, UnityEngine.Object[] values)
+    {
+        SerializedObject serialized = new SerializedObject(target);
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property == null || !property.isArray)
+        {
+            throw new InvalidOperationException(target.GetType().Name + "." + propertyName + " array was not found.");
+        }
+        property.arraySize = values.Length;
+        for (int i = 0; i < values.Length; i++)
+        {
+            property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+        }
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void BeginConsoleErrorGate()
+    {
+        Type logEntries = typeof(Editor).Assembly.GetType("UnityEditor.LogEntries");
+        MethodInfo clear = logEntries != null ? logEntries.GetMethod("Clear", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic) : null;
+        MethodInfo getCounts = logEntries != null ? logEntries.GetMethod("GetCountsByType", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic) : null;
+        if (clear == null || getCounts == null)
+        {
+            throw new InvalidOperationException("Unity Console count API was not found.");
+        }
+
+        clear.Invoke(null, null);
+        double checkAt = EditorApplication.timeSinceStartup + 2d;
+        EditorApplication.CallbackFunction check = null;
+        check = () =>
+        {
+            if (EditorApplication.timeSinceStartup < checkAt)
+            {
+                return;
+            }
+
+            EditorApplication.update -= check;
+            object[] counts = { 0, 0, 0 };
+            getCounts.Invoke(null, counts);
+            int errors = (int)counts[0];
+            if (errors != 0)
+            {
+                Debug.LogError("[RopeSetPrefabSetup] Console Error gate failed. Error count: " + errors);
+                return;
+            }
+
+            Debug.Log("[RopeSetPrefabSetup] Console Error 0 confirmed after compilation and prefab validation.");
+        };
+        EditorApplication.update += check;
+    }
+}
+#endif

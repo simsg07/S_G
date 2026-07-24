@@ -103,6 +103,7 @@ public class FallingBoxObject : MonoBehaviour
         Log("Dropped.");
     }
 
+
     [ContextMenu("ResetBox")]
     public void ResetBox()
     {
@@ -124,6 +125,7 @@ public class FallingBoxObject : MonoBehaviour
         SetDamageEnabled(false);
         Log("Reset.");
     }
+
 
     [ContextMenu("ValidateBoxSetup")]
     public void ValidateBoxSetup()
@@ -162,7 +164,6 @@ public class FallingBoxObject : MonoBehaviour
         }
 
         Log("Landed as platform.");
-        NotifySpawnerObjectFinished();
     }
 
     private void NotifySpawnerObjectFinished()

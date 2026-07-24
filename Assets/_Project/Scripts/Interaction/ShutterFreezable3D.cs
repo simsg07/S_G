@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class ShutterFreezable3D : MonoBehaviour, IShutterFreezable3D
+public class ShutterFreezable3D : MonoBehaviour, IShutterFreezable3D, IShutterFreezeState3D
 {
     [SerializeField] private Rigidbody targetBody; // 셔터로 멈출 Rigidbody입니다. 비워두면 같은 오브젝트에서 자동으로 찾습니다.
     [SerializeField] private Behaviour[] behavioursToPause = new Behaviour[0]; // 셔터로 멈출 때 추가로 비활성화할 스크립트 목록입니다.
@@ -27,6 +27,8 @@ public class ShutterFreezable3D : MonoBehaviour, IShutterFreezable3D
     private Vector3 frozenLocalScale;
     private float freezeEndTime;
 
+    public bool IsShutterFrozen => isFrozen && Time.time < freezeEndTime;
+
     private void Awake()
     {
         if (targetBody == null)
@@ -38,6 +40,14 @@ public class ShutterFreezable3D : MonoBehaviour, IShutterFreezable3D
     private void Update()
     {
         if (isFrozen && Time.time >= freezeEndTime)
+        {
+            ReleaseFreeze();
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (isFrozen)
         {
             ReleaseFreeze();
         }

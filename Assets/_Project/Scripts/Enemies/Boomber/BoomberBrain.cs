@@ -41,12 +41,38 @@ public class BoomberBrain : MonsterAIBase
     private bool isAttackStarted;
     private int lastLoggedSpeedStep = -1;
     private readonly HashSet<HitReceiver> contactHitReceivers = new HashSet<HitReceiver>();
+    [SerializeField] private bool isPausedByShutter;
+    private bool isDestroyed;
 
     public BoomberState CurrentState => currentState;
     public float LockedRunDirection => lockedRunDirection;
     public float CurrentRunSpeed => currentRunSpeed;
     public float RunElapsedTime => runElapsedTime;
     public float ActualMoveSpeed => actualMoveSpeed;
+
+    public void ConfigureDataDrivenStats(float configuredBaseRunSpeed,
+        float configuredSpeedIncreasePerSecond, float configuredMaxRunSpeed,
+        int configuredExplosionDamage, float configuredExplosionRadius,
+        bool enableSelfDestruct)
+    {
+        // DataDrivenMonsterController applies the shared detection/movement components
+        // immediately before this method. Refresh the AI's cached values so Awake order
+        // cannot leave Boomber using the old prefab detection range.
+        CacheBaseReferences();
+
+        baseRunSpeed = Mathf.Max(0f, configuredBaseRunSpeed);
+        speedIncreasePerSecond = Mathf.Max(0f, configuredSpeedIncreasePerSecond);
+        maxRunSpeed = Mathf.Max(baseRunSpeed, configuredMaxRunSpeed);
+        currentRunSpeed = baseRunSpeed;
+
+        CacheBoomberReferences();
+        if (explosion != null)
+        {
+            explosion.enableExplosion = enableSelfDestruct;
+            explosion.explosionRadius = Mathf.Max(0f, configuredExplosionRadius);
+            explosion.ConfigureDamage(configuredExplosionDamage);
+        }
+    }
 
     protected override void Awake()
     {
@@ -107,6 +133,10 @@ public class BoomberBrain : MonsterAIBase
 
     protected override void Update()
     {
+        if (isPausedByShutter || isDestroyed)
+        {
+            return;
+        }
         if (currentState == BoomberState.Dead || IsHealthDead())
         {
             ChangeState(BoomberState.Dead);
@@ -133,6 +163,12 @@ public class BoomberBrain : MonsterAIBase
     {
         if (!Application.isPlaying)
         {
+            return;
+        }
+
+        if (isPausedByShutter || isDestroyed)
+        {
+            StopHorizontalMovement();
             return;
         }
 
@@ -214,6 +250,8 @@ public class BoomberBrain : MonsterAIBase
         runElapsedTime = 0f;
         actualMoveSpeed = 0f;
         isAttackStarted = false;
+        isPausedByShutter = false;
+        isDestroyed = false;
         lastLoggedSpeedStep = -1;
         contactHitReceivers.Clear();
 
@@ -461,12 +499,40 @@ public class BoomberBrain : MonsterAIBase
 
     private void OnDestroy()
     {
+        isDestroyed = true;
         if (explosion != null)
         {
             explosion.OnExploded -= HandleExplosionFinished;
             explosion.OnAttackLeapStarted -= HandleAttackLeapStarted;
             explosion.OnExplosionStarted -= HandleExplosionStarted;
         }
+    }
+
+    public bool CanBePausedByShutter()
+    {
+        return !isDestroyed && isActiveAndEnabled && currentState != BoomberState.Dead && (explosion == null || !explosion.HasExploded);
+    }
+
+    public void PauseByShutter()
+    {
+        if (!CanBePausedByShutter())
+        {
+            LogDebug("Shutter ignored because Boomber is dead, exploding, or destroyed.");
+            return;
+        }
+
+        isPausedByShutter = true;
+        StopHorizontalMovement();
+        explosion?.PauseByShutter();
+        LogDebug("Paused by shutter.");
+    }
+
+    public void ResumeByShutter()
+    {
+        if (!isPausedByShutter || isDestroyed) return;
+        isPausedByShutter = false;
+        explosion?.ResumeByShutter();
+        LogDebug("Resumed after shutter.");
     }
 
     private void FaceLockedRunDirection()

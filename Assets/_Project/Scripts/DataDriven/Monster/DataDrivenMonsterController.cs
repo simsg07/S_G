@@ -232,11 +232,22 @@ public class DataDrivenMonsterController : MonoBehaviour
 
     private void ApplyMonsterSpecificData()
     {
-        if (monsterData.monsterKind != MonsterKind.EyeballFly)
+        switch (monsterData.monsterKind)
         {
-            return;
+            case MonsterKind.EyeballFly:
+                ApplyEyeballFlyData();
+                break;
+            case MonsterKind.HumanBox:
+                ApplyHumanBoxData();
+                break;
+            case MonsterKind.Boomber:
+                ApplyBoomberData();
+                break;
         }
+    }
 
+    private void ApplyEyeballFlyData()
+    {
         EyeballFlyAI eyeballFlyAI = GetComponent<EyeballFlyAI>();
         if (eyeballFlyAI == null)
         {
@@ -252,6 +263,40 @@ public class DataDrivenMonsterController : MonoBehaviour
             monsterData.canAttackLight,
             monsterData.attackType == MonsterAttackType.ObjectHit || monsterData.canAttackHitReceivers,
             monsterData.debugMode);
+    }
+
+    private void ApplyHumanBoxData()
+    {
+        HumanBoxAI humanBoxAI = GetComponent<HumanBoxAI>();
+        if (humanBoxAI == null)
+        {
+            WarnMissing(nameof(HumanBoxAI));
+            return;
+        }
+
+        humanBoxAI.ConfigureDataDrivenStats(
+            monsterData.maxHp,
+            monsterData.howlDuration,
+            monsterData.howlStunDuration,
+            monsterData.useHowl);
+    }
+
+    private void ApplyBoomberData()
+    {
+        BoomberBrain boomberBrain = GetComponent<BoomberBrain>();
+        if (boomberBrain == null)
+        {
+            WarnMissing(nameof(BoomberBrain));
+            return;
+        }
+
+        boomberBrain.ConfigureDataDrivenStats(
+            monsterData.moveSpeed,
+            monsterData.speedIncreasePerSecond,
+            monsterData.maxRunSpeed,
+            monsterData.attackDamage,
+            monsterData.explosionRadius,
+            monsterData.useSelfDestruct);
     }
 
     private static MonsterMovementType ToRuntimeMovementType(MonsterMoveType moveType)

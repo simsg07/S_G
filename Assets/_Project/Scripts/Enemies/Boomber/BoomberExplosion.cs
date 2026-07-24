@@ -43,9 +43,13 @@ public class BoomberExplosion : MonoBehaviour
     private Coroutine countdownRoutine;
     private Coroutine finishRoutine;
     private Transform pendingPlayerTarget;
+    private bool pausedByShutter;
+    private float remainingExplosionDelay;
 
     public bool HasExploded => exploded;
     public bool IsExploding => isExploding;
+    public bool IsPausedByShutter => pausedByShutter;
+    public float RemainingExplosionDelay => remainingExplosionDelay;
     public event Action OnAttackLeapStarted;
     public event Action OnExplosionStarted;
     public event Action OnExploded;
@@ -72,6 +76,8 @@ public class BoomberExplosion : MonoBehaviour
         exploded = false;
         isExploding = false;
         pendingPlayerTarget = null;
+        pausedByShutter = false;
+        remainingExplosionDelay = 0f;
     }
 
     public bool StartExplosion(Transform playerTarget)
@@ -139,15 +145,54 @@ public class BoomberExplosion : MonoBehaviour
     {
         float leapDuration = Mathf.Min(Mathf.Max(0f, attackLeapDuration), Mathf.Max(0f, fuseDuration));
         float prepareDuration = Mathf.Max(0f, fuseDuration - leapDuration);
+        remainingExplosionDelay = prepareDuration + leapDuration;
         if (prepareDuration > 0f)
         {
-            yield return new WaitForSeconds(prepareDuration);
+            yield return CountdownSegment(prepareDuration);
         }
 
+        if (exploded) yield break;
         OnAttackLeapStarted?.Invoke();
-        if (leapDuration > 0f) yield return new WaitForSeconds(leapDuration);
+        if (leapDuration > 0f) yield return CountdownSegment(leapDuration);
 
-        Explode(pendingPlayerTarget);
+        if (!exploded) Explode(pendingPlayerTarget);
+    }
+
+    private IEnumerator CountdownSegment(float duration)
+    {
+        float remaining = Mathf.Max(0f, duration);
+        while (remaining > 0f && !exploded)
+        {
+            if (!pausedByShutter)
+            {
+                float delta = Time.deltaTime;
+                if (SafeMath3D.IsFinite(delta) && delta > 0f)
+                {
+                    remaining = Mathf.Max(0f, remaining - delta);
+                    remainingExplosionDelay = Mathf.Max(0f, remainingExplosionDelay - delta);
+                }
+            }
+            yield return null;
+        }
+    }
+
+    public bool CanBePausedByShutter()
+    {
+        return isActiveAndEnabled && isExploding && !exploded;
+    }
+
+    public void PauseByShutter()
+    {
+        if (!CanBePausedByShutter()) return;
+        pausedByShutter = true;
+        Log($"Explosion countdown paused. Remaining={remainingExplosionDelay:0.###}s");
+    }
+
+    public void ResumeByShutter()
+    {
+        if (!pausedByShutter) return;
+        pausedByShutter = false;
+        Log($"Explosion countdown resumed. Remaining={remainingExplosionDelay:0.###}s");
     }
 
     private IEnumerator FinishExplosionAfterVisual()

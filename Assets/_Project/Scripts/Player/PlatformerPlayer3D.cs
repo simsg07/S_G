@@ -30,6 +30,8 @@ public class PlatformerPlayer3D : MonoBehaviour
     [Tooltip("2.5D 규칙상 플레이어가 고정될 Z축 위치입니다. 보통 수정하지 않습니다.")]
     [SerializeField] private float gameplayPlaneZ = TwoPointFiveDUtility3D.GameplayPlaneZ; // 2.5D 규칙상 플레이어가 고정될 Z축 위치입니다.
 
+    [SerializeField, Tooltip("벽에 달라붙지 않도록 플레이어 Collider에 적용할 저마찰 물리 재질입니다.")] private PhysicsMaterial playerPhysicsMaterial;
+
     private readonly RaycastHit[] groundHits = new RaycastHit[12];
     private readonly List<IgnoredPlatform> ignoredPlatforms = new List<IgnoredPlatform>();
 
@@ -179,6 +181,10 @@ public class PlatformerPlayer3D : MonoBehaviour
 
         playerCollider.size = Vector3.one;
         playerCollider.center = Vector3.zero;
+        if (playerPhysicsMaterial != null)
+        {
+            playerCollider.sharedMaterial = playerPhysicsMaterial;
+        }
         transform.localScale = colliderSize;
         DisableGeneratedBoxVisual();
     }

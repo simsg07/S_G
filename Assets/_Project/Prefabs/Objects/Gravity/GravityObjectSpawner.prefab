@@ -45,13 +45,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e139d16986f446c0b970c187f2f7f7f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GravityObjectSpawner
-  objectPrefab: {fileID: 0}
+  spawnPrefab: {fileID: 0}
   spawnPoint: {fileID: 230102}
   spawnOnStart: 1
-  autoRespawn: 0
+  respawnAfterDespawn: 0
   respawnDelay: 1
+  enableSpawn: 1
+  useSpawnPointRotation: 1
+  maxAliveCount: 1
+  allowRepeatedRespawn: 1
+  spawnedParent: {fileID: 0}
   currentInstance: {fileID: 0}
-  debugMode: 1
+  logSpawnEvents: 1
+  showSpawnGizmo: 1
 --- !u!1 &230101
 GameObject:
   m_ObjectHideFlags: 0

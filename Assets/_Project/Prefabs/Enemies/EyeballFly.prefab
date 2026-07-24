@@ -162,7 +162,7 @@ MonoBehaviour:
   lightTarget: {fileID: 0}
   playerTag: Player
   lightTag: Light
-  playerDetectRange: 1.5
+  playerDetectRange: 3
   lightDetectRange: 4
   targetKeepRange: 2.5
   attackRange: 0.5
@@ -268,7 +268,7 @@ MonoBehaviour:
   canDetectPlayer: 1
   canDetectLight: 1
   prioritizePlayer: 1
-  playerDetectRange: 1.5
+  playerDetectRange: 3
   lightDetectRange: 4
   chaseRange: 2.5
   requireLineOfSight: 1

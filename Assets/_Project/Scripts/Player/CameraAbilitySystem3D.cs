@@ -46,19 +46,32 @@ public class CameraAbilitySystem3D : MonoBehaviour
     [SerializeField] private Color frameCooldownColor = new Color(1f, 0.7f, 0.25f, 0.8f); // 카메라 기능 쿨타임 중 표시 색상입니다.
 
     [Header("Targeting")]
-    [SerializeField] private LayerMask targetMask = ~0; // 카메라 기능이 감지할 대상 레이어 범위입니다.
+    [SerializeField, InspectorName("Shutter Target Layer Mask")] private LayerMask targetMask = ~0; // 카메라 기능이 감지할 대상 레이어 범위입니다.
     [SerializeField] private float aimHeightOffset = 0.35f; // 방향 조준 시 플레이어 위치에서 위로 올리는 조준 시작점입니다.
-    [SerializeField] private float shutterRange = 7f; // 셔터가 대상을 찾을 수 있는 최대 거리입니다.
+    [SerializeField, InspectorName("Target Search Range")] private float shutterRange = 7f; // 셔터가 대상을 찾을 수 있는 최대 거리입니다.
     [SerializeField] private Vector3 shutterBoxSize = new Vector3(1.5f, 1.5f, 1f); // 방향 조준 셔터 판정 박스 크기입니다.
     [SerializeField] private float relayRange = 3f; // 릴레이 기능이 대상을 찾을 수 있는 최대 거리입니다.
     [SerializeField] private Vector3 relayBoxSize = new Vector3(1.6f, 1.6f, 1f); // 방향 조준 릴레이 판정 박스 크기입니다.
     [SerializeField] private bool allowUntaggedShutterTargets = true; // 전용 태그가 없는 Rigidbody도 셔터 대상으로 허용할지 정합니다.
+    [SerializeField, Tooltip("셔터 시야를 차단할 Ground/Wall 레이어입니다.")] private LayerMask shutterLineOfSightMask = (1 << 9) | (1 << 10);
 
-    [Header("Timing")]
-    [SerializeField] private float shutterFreezeDuration = 1.2f; // 사진을 찍은 오브젝트가 물리 정지 상태로 유지되는 시간입니다.
-    [SerializeField] private float shutterMarkDuration = 5f; // 셔터로 찍은 대상을 표시해두는 시간입니다.
-    [SerializeField] private float shutterRemarkCooldown = 7f; // 같은 대상을 다시 마킹하기 전 기다리는 시간입니다.
-    [SerializeField] private float shutterCooldown = 1f; // 셔터 기능 재사용 대기 시간입니다.
+    [Header("Shutter Debug")]
+    [SerializeField] private bool showShutterDebug;
+    [SerializeField] private bool logShutterEvents;
+
+    [Header("셔터 시간 정지")]
+    [SerializeField, Tooltip("촬영한 오브젝트의 물리, 애니메이션과 AI가 멈추는 시간입니다.")] private float shutterFreezeDuration = 1.2f;
+    [SerializeField, InspectorName("Global Cooldown"), Tooltip("셔터를 다시 사용할 수 있기까지의 전체 쿨타임입니다.")] private float shutterCooldown = 1f;
+    [SerializeField, Tooltip("이미 정지 중인 대상을 다시 촬영했을 때 남은 정지 시간을 갱신합니다.")] private bool refreshFreezeWhileFrozen;
+
+    [Header("마크")]
+    [SerializeField, Tooltip("촬영 대상에 마크가 표시되고 후속 능력 대상으로 사용할 수 있는 시간입니다.")] private float shutterMarkDuration = 5f;
+    [SerializeField, Tooltip("마크가 만료되거나 소비된 뒤 같은 대상에 새 마크를 부여할 때까지의 시간입니다.")] private float shutterRemarkCooldown = 7f;
+    [SerializeField, Tooltip("이미 마크된 대상을 재촬영할 때 마크 유지시간을 갱신합니다.")] private bool refreshMarkOnShutter;
+    [SerializeField, Tooltip("마크가 남아 있는 대상에도 시간 정지를 다시 적용할 수 있습니다.")] private bool allowFreezeWhileMarked = true;
+    [SerializeField, Tooltip("재마크 대기 중인 대상에도 시간 정지를 다시 적용할 수 있습니다.")] private bool allowFreezeDuringRemarkCooldown = true;
+
+    [Header("기타 능력 시간")]
     [SerializeField] private float focusCooldown = 0.2f; // 초점 기능 재사용 대기 시간입니다.
     [SerializeField] private float relayCooldown = 0.35f; // 릴레이 기능 재사용 대기 시간입니다.
 
@@ -98,6 +111,8 @@ public class CameraAbilitySystem3D : MonoBehaviour
     private float cameraModeSlowEndTime;
     private float storedTimeScale = 1f;
     private float storedFixedDeltaTime = 0.02f;
+    private Vector3 lastShutterTargetPosition;
+    private bool lastShutterTargetBlocked;
 
     public static event Action<CameraAbilityFlags> AbilitiesChanged;
 
@@ -139,6 +154,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
         RestoreSystemCursor();
         RestoreCameraModeSlow();
         TurnOffCameraLight();
+        ClearAllShutterMarks();
     }
 
     private void OnDestroy()
@@ -376,6 +392,27 @@ public class CameraAbilitySystem3D : MonoBehaviour
     {
         if (!IsUnlocked(CameraAbilityId.Shutter) || shutterCooldownTimer > 0f)
         {
+            LogShutter(!IsUnlocked(CameraAbilityId.Shutter) ? "사용 불가: 미해금" : "사용 불가: 쿨다운");
+            return;
+        }
+
+        if (!TryFindShutterTarget(out IShutterFreezable3D target, out Component targetComponent))
+        {
+            LogShutter("유효한 촬영 대상이 없습니다.");
+            return;
+        }
+
+        if (target is ShutterTarget3D shutterTarget)
+        {
+            if (!shutterTarget.CanReceiveShutter())
+            {
+                LogShutter("대상별 쿨다운 또는 대상 상태 때문에 사용할 수 없습니다.");
+                return;
+            }
+
+            shutterTarget.ApplyShutter();
+            StartShutterCooldown();
+            LogShutter($"공통 셔터 대상 처리 성공: {shutterTarget.name}");
             return;
         }
 
@@ -384,24 +421,42 @@ public class CameraAbilitySystem3D : MonoBehaviour
             return;
         }
 
-        if (!TryFindShutterTarget(out IShutterFreezable3D target, out Component targetComponent))
+        bool isMarked = IsMarked(targetComponent);
+        bool isInRemarkCooldown = IsInRemarkCooldown(targetComponent);
+        bool isFrozen = target is IShutterFreezeState3D freezeState && freezeState.IsShutterFrozen;
+
+        if ((isMarked && !allowFreezeWhileMarked) || (isInRemarkCooldown && !allowFreezeDuringRemarkCooldown))
         {
+            LogShutter("마크 설정에 의해 시간 정지 재사용이 제한되었습니다.");
             return;
         }
 
-        if (IsMarked(targetComponent) || IsInRemarkCooldown(targetComponent))
+        if (isFrozen && !refreshFreezeWhileFrozen)
         {
+            LogShutter("대상이 아직 정지 중이므로 정지 시간을 갱신하지 않았습니다.");
             return;
         }
 
-        if (target.ApplyShutterFreeze(shutterFreezeDuration, this))
+        if (!ConsumeCameraIntervention("Freeze object"))
         {
-            if (ConsumeCameraIntervention("Freeze object"))
-            {
-                StartShutterCooldown();
-                MarkTarget(targetComponent, target);
-            }
+            LogShutter("사용 불가: 카메라 개입 횟수 부족");
+            return;
         }
+
+        if (!target.ApplyShutterFreeze(shutterFreezeDuration, this))
+        {
+            RestoreCameraInterventions(1);
+            LogShutter("대상이 시간 정지를 거부해 개입 횟수를 복구했습니다.");
+            return;
+        }
+
+        StartShutterCooldown();
+        if ((!isMarked && !isInRemarkCooldown) || (isMarked && refreshMarkOnShutter))
+        {
+            MarkTarget(targetComponent, target);
+        }
+
+        LogShutter($"촬영 성공: {targetComponent.name}, Mark={(isMarked ? "유지" : isInRemarkCooldown ? "재마크 대기" : "생성")}");
     }
 
     private void StartShutterCooldown()
@@ -487,7 +542,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
         Collider hit = useMouseFrameTargeting
             ? FindBestScreenFramedCollider(shutterRange, ResolveShutterTarget)
-            : FindBestDirectionalCollider(shutterRange, shutterBoxSize, ResolveShutterTarget);
+            : FindBestDirectionalCollider(shutterRange, shutterBoxSize, ResolveShutterTarget, true);
 
         if (hit == null)
         {
@@ -520,7 +575,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
         target = null;
         Collider hit = useMouseFrameTargeting
             ? FindBestScreenFramedCollider(relayRange, ResolveRelayTarget)
-            : FindBestDirectionalCollider(relayRange, relayBoxSize, ResolveRelayTarget);
+            : FindBestDirectionalCollider(relayRange, relayBoxSize, ResolveRelayTarget, false);
 
         if (hit == null)
         {
@@ -531,7 +586,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
         return target != null;
     }
 
-    private Collider FindBestDirectionalCollider<T>(float range, Vector3 boxSize, Func<Collider, T> resolver) where T : class
+    private Collider FindBestDirectionalCollider<T>(float range, Vector3 boxSize, Func<Collider, T> resolver, bool requireLineOfSight) where T : class
     {
         Vector3 direction = GetAimDirection();
         Vector3 origin = transform.position + Vector3.up * aimHeightOffset;
@@ -558,6 +613,13 @@ public class CameraAbilitySystem3D : MonoBehaviour
         {
             Collider hit = targetCastHits[i].collider;
             if (hit == null || hit.transform.IsChildOf(transform) || resolver(hit) == null)
+            {
+                continue;
+            }
+
+            Camera camera = GetTargetCamera();
+            Vector3 sightOrigin = camera != null ? camera.transform.position : origin;
+            if (requireLineOfSight && IsShutterLineOfSightBlocked(sightOrigin, hit))
             {
                 continue;
             }
@@ -600,6 +662,11 @@ public class CameraAbilitySystem3D : MonoBehaviour
                 continue;
             }
 
+            if (IsShutterLineOfSightBlocked(camera.transform.position, hit))
+            {
+                continue;
+            }
+
             Vector3 screenPoint = camera.WorldToScreenPoint(hit.bounds.center);
             float screenScore = Vector2.SqrMagnitude(new Vector2(screenPoint.x, screenPoint.y) - frameCenter);
             float distanceScore = Vector3.SqrMagnitude(hit.bounds.center - transform.position) * 0.05f;
@@ -612,6 +679,54 @@ public class CameraAbilitySystem3D : MonoBehaviour
         }
 
         return bestHit;
+    }
+
+    private bool IsShutterLineOfSightBlocked(Vector3 origin, Collider targetCollider)
+    {
+        Vector3 targetPoint = targetCollider.bounds.center;
+        lastShutterTargetPosition = targetPoint;
+        Vector3 direction = targetPoint - origin;
+        float distance = direction.magnitude;
+        if (distance <= 0.001f || shutterLineOfSightMask.value == 0)
+        {
+            lastShutterTargetBlocked = false;
+            return false;
+        }
+
+        if (!Physics.Raycast(origin, direction / distance, out RaycastHit hit, distance, shutterLineOfSightMask, QueryTriggerInteraction.Ignore))
+        {
+            lastShutterTargetBlocked = false;
+            return false;
+        }
+
+        lastShutterTargetBlocked = hit.collider != targetCollider && !hit.collider.transform.IsChildOf(targetCollider.transform);
+        return lastShutterTargetBlocked;
+    }
+
+    private void LogShutter(string message)
+    {
+        if (logShutterEvents)
+        {
+            Debug.Log($"[Shutter] {message}", this);
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (!showShutterDebug)
+        {
+            return;
+        }
+
+        Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.25f);
+        Gizmos.DrawWireSphere(transform.position, shutterRange);
+        if (lastShutterTargetPosition != Vector3.zero)
+        {
+            Gizmos.color = lastShutterTargetBlocked ? Color.red : Color.green;
+            Camera camera = GetTargetCamera();
+            Gizmos.DrawLine(camera != null ? camera.transform.position : transform.position, lastShutterTargetPosition);
+            Gizmos.DrawWireSphere(lastShutterTargetPosition, 0.15f);
+        }
     }
 
     private IShutterFreezable3D ResolveShutterTarget(Collider hit)
@@ -825,7 +940,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
         expiredMarkTargets.Clear();
         foreach (KeyValuePair<Component, ShutterMarkRecord> pair in shutterMarks)
         {
-            if (pair.Key == null || Time.time >= pair.Value.CooldownEndTime)
+            if (pair.Key == null || !pair.Key.gameObject.activeInHierarchy || Time.time >= pair.Value.CooldownEndTime)
             {
                 expiredMarkTargets.Add(pair.Key);
             }
@@ -845,6 +960,26 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
             shutterMarks.Remove(target);
         }
+    }
+
+    private void ClearAllShutterMarks()
+    {
+        foreach (KeyValuePair<Component, ShutterMarkRecord> pair in shutterMarks)
+        {
+            if (pair.Key == null)
+            {
+                continue;
+            }
+
+            CameraMarkState3D markState = pair.Key.GetComponent<CameraMarkState3D>();
+            if (markState != null)
+            {
+                markState.ClearMark();
+            }
+        }
+
+        shutterMarks.Clear();
+        expiredMarkTargets.Clear();
     }
 
     private void SetupCameraFrame()
@@ -1150,6 +1285,10 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private bool BoundsIntersectsFrame(Bounds bounds, Rect frameRect, Camera camera)
     {
+        if (camera == null || !SafeMath3D.IsFinite(bounds.center) || !SafeMath3D.IsFinite(bounds.extents))
+        {
+            return false;
+        }
         if (PointIsInsideFrame(bounds.center, frameRect, camera))
         {
             return true;
@@ -1169,8 +1308,12 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private bool PointIsInsideFrame(Vector3 worldPoint, Rect frameRect, Camera camera)
     {
+        if (camera == null || !SafeMath3D.IsFinite(worldPoint))
+        {
+            return false;
+        }
         Vector3 screenPoint = camera.WorldToScreenPoint(worldPoint);
-        return screenPoint.z > 0f && frameRect.Contains(new Vector2(screenPoint.x, screenPoint.y));
+        return SafeMath3D.IsFinite(screenPoint) && screenPoint.z > 0f && frameRect.Contains(new Vector2(screenPoint.x, screenPoint.y));
     }
 
     public void ResetCameraInterventions()
