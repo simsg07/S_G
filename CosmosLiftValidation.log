@@ -1,0 +1,22 @@
+PASS: CosmosLift prefab exists
+PASS: Prefab can be instantiated
+PASS: CosmosLift3D is attached
+PASS: MonsterCore classification is attached
+PASS: No Rigidbody2D is used
+PASS: No Collider2D is used
+PASS: Bud uses a kinematic 3D Rigidbody
+PASS: Bud uses a solid 3D BoxCollider
+PASS: No health component can kill the lift
+PASS: Validation can access the state machine
+PASS: Default state is fully retracted
+PASS: Nested bud is not an active platform
+PASS: Light raises the bud completely
+PASS: Raised bud reaches Inspector maximumHeight
+PASS: Raised bud is a solid platform
+PASS: Darkness initially holds the current height
+PASS: Hold expiry starts reverse motion
+PASS: Reverse motion returns to the nested state
+PASS: Bud returns to its exact initial position
+PASS: Platform disables after full retraction
+PASS: Unity Console counts are readable
+PASS: Unity Console Error count is 0

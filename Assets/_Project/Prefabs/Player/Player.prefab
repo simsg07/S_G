@@ -880,7 +880,8 @@ GameObject:
   - component: {fileID: 7787834675415812791}
   - component: {fileID: 3724999919043864178}
   - component: {fileID: 3532102758068771995}
-  m_Layer: 0
+  - component: {fileID: 6927364512907145031}
+  m_Layer: 13
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -1060,8 +1061,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   infiniteHealth: 1
-  maxHp: 999
-  currentHp: 999
+  maxHp: 1
+  currentHp: 1
   respawnPoint: {fileID: 0}
   respawnPointId: Default
   manualRespawnKey: 34
@@ -1138,8 +1139,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1.4, y: 2, z: 1}
+  m_Center: {x: 0.2, y: 0, z: 0}
 --- !u!114 &3532102758068771995
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1158,6 +1159,20 @@ MonoBehaviour:
   interactMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &6927364512907145031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2916280608873643439}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fce8e6076b9409781caac05ded34ea3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStunReceiver
+  movementController: {fileID: 3825017814145501927}
+  debugMode: 1
 --- !u!1 &3398501789853840607
 GameObject:
   m_ObjectHideFlags: 0

@@ -468,6 +468,12 @@ public class StoneTrap : MonoBehaviour
             return;
         }
 
+        if (other.GetComponentInParent<DionaeaAI>() != null)
+        {
+            Log("Hit Dionaea but ignored because Dionaea is invulnerable.");
+            return;
+        }
+
         PlayerDamageReceiver player = other.GetComponentInParent<PlayerDamageReceiver>();
         MonsterHealth monster = other.GetComponentInParent<MonsterHealth>();
         bool isPlayer = player != null || HasPlayerTag(other.transform);

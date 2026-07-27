@@ -5,7 +5,8 @@ public enum MonsterKind
     None,
     EyeballFly,
     HumanBox,
-    Boomber
+    Boomber,
+    Dionaea
 }
 
 public enum MonsterMoveType
@@ -76,6 +77,10 @@ public class MonsterData : ScriptableObject
     public bool lockRunDirectionOnDetect;
     public float speedIncreasePerSecond = 1f;
     public float maxRunSpeed = 7f;
+    [Tooltip("Dionaea: uninterrupted light exposure required before contraction.")]
+    public float lightContractionDelay = 1f;
+    [Tooltip("Dionaea: darkness required before reopening after contraction.")]
+    public float lightRecoveryDelay = 1f;
 
     [Header("Animation")]
     public string idleBoolName = "IsIdle";
@@ -106,5 +111,7 @@ public class MonsterData : ScriptableObject
         explosionRadius = Mathf.Max(0f, explosionRadius);
         speedIncreasePerSecond = Mathf.Max(0f, speedIncreasePerSecond);
         maxRunSpeed = Mathf.Max(0f, maxRunSpeed);
+        lightContractionDelay = Mathf.Max(0f, lightContractionDelay);
+        lightRecoveryDelay = Mathf.Max(0f, lightRecoveryDelay);
     }
 }

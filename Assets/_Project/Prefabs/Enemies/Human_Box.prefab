@@ -129,6 +129,7 @@ MonoBehaviour:
   useTestMoveSpeed: 1
   stopDistance: 0.1
   lockZPosition: 1
+  enableHowl: 1
   howlStunDuration: 1.5
   howlDuration: 1
   howlOnlyOncePerDetection: 1
@@ -310,7 +311,16 @@ MonoBehaviour:
   howlDuration: 1
   howlStunDuration: 1.5
   howlOnlyOncePerDetection: 1
+  howlOrigin: {fileID: 100101}
+  howlBoxOffset: {x: 0, y: 0, z: 0}
+  howlBoxSize: {x: 3, y: 2, z: 1.5}
+  playerLayerMask:
+    serializedVersion: 2
+    m_Bits: 8192
+  useBoxRange: 1
+  requirePlayerInsideHowlRange: 1
   debugMode: 1
+  showGizmo: 1
 --- !u!114 &110008
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -446,6 +456,7 @@ MonoBehaviour:
   - {fileID: 110007}
   - {fileID: 110008}
   - {fileID: 110009}
+  - {fileID: 110011}
   primaryRigidbody: {fileID: 100103}
   controlledRigidbodies:
   - {fileID: 100103}

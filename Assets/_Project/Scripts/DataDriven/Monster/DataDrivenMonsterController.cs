@@ -139,6 +139,11 @@ public class DataDrivenMonsterController : MonoBehaviour
         {
             brain = GetComponent<BoomberBrain>();
         }
+
+        if (brain == null)
+        {
+            brain = GetComponent<DionaeaAI>();
+        }
     }
 
     private void ApplyDetection()
@@ -243,6 +248,9 @@ public class DataDrivenMonsterController : MonoBehaviour
             case MonsterKind.Boomber:
                 ApplyBoomberData();
                 break;
+            case MonsterKind.Dionaea:
+                ApplyDionaeaData();
+                break;
         }
     }
 
@@ -297,6 +305,20 @@ public class DataDrivenMonsterController : MonoBehaviour
             monsterData.attackDamage,
             monsterData.explosionRadius,
             monsterData.useSelfDestruct);
+    }
+
+    private void ApplyDionaeaData()
+    {
+        DionaeaAI dionaeaAI = GetComponent<DionaeaAI>();
+        if (dionaeaAI == null)
+        {
+            WarnMissing(nameof(DionaeaAI));
+            return;
+        }
+
+        dionaeaAI.ConfigureDataDrivenStats(
+            monsterData.lightContractionDelay,
+            monsterData.lightRecoveryDelay);
     }
 
     private static MonsterMovementType ToRuntimeMovementType(MonsterMoveType moveType)

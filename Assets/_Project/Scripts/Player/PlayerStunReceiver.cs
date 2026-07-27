@@ -12,8 +12,8 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
     [Tooltip("Print stun start/end and control-lock details in the Console.")]
     [SerializeField] private bool debugMode;
 
-    private Rigidbody body;
     private Coroutine stunRoutine;
+    private float stunEndTime;
     private bool movementWasEnabledBeforeStun = true;
     private bool usingControlLockMethod;
     private bool usingSpeedMultiplierMethod;
@@ -29,15 +29,16 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
     {
         duration = Mathf.Max(0f, duration);
         CacheReferences();
-
-        if (stunRoutine == null && movementController != null)
-        {
-            movementWasEnabledBeforeStun = movementController.enabled;
-        }
+        stunEndTime = Mathf.Max(stunEndTime, Time.time + duration);
 
         if (stunRoutine != null)
         {
-            StopCoroutine(stunRoutine);
+            return;
+        }
+
+        if (movementController != null)
+        {
+            movementWasEnabledBeforeStun = movementController.enabled;
         }
 
         stunRoutine = StartCoroutine(StunRoutine(duration));
@@ -45,20 +46,6 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
 
     private void CacheReferences()
     {
-        if (body == null)
-        {
-            body = GetComponent<Rigidbody>();
-            if (body == null)
-            {
-                body = GetComponentInParent<Rigidbody>();
-            }
-
-            if (body == null)
-            {
-                body = GetComponentInChildren<Rigidbody>();
-            }
-        }
-
         if (movementController == null)
         {
             movementController = FindMovementController();
@@ -131,11 +118,9 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
             Debug.Log($"[PlayerStunReceiver] Stun started for {duration:0.00}s. Controller={controllerName}", this);
             if (movementController == null)
             {
-                Debug.LogWarning("[PlayerStunReceiver] No movementController found. Stun can only reset Rigidbody velocity.", this);
+                Debug.LogWarning("[PlayerStunReceiver] No movementController found. Assign a movement controller to apply stun.", this);
             }
         }
-
-        ResetVelocity();
 
         usingControlLockMethod = TrySetControlLocked(true);
         usingSpeedMultiplierMethod = TrySetMoveSpeedMultiplier(0f);
@@ -151,14 +136,10 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
             Debug.Log($"[PlayerStunReceiver] control locked {usingControlLockMethod}", this);
         }
 
-        float endTime = Time.time + duration;
-        while (Time.time < endTime)
+        while (Time.time < stunEndTime)
         {
-            ResetVelocity();
-            yield return new WaitForFixedUpdate();
+            yield return null;
         }
-
-        ResetVelocity();
 
         if (usingControlLockMethod)
         {
@@ -189,6 +170,7 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
         }
 
         stunRoutine = null;
+        stunEndTime = 0f;
     }
 
     private bool TrySetControlLocked(bool locked)
@@ -259,18 +241,4 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
         return true;
     }
 
-    private void ResetVelocity()
-    {
-        if (body == null)
-        {
-            return;
-        }
-
-#if UNITY_6000_0_OR_NEWER
-        body.linearVelocity = Vector3.zero;
-#else
-        body.velocity = Vector3.zero;
-#endif
-        body.angularVelocity = Vector3.zero;
-    }
 }

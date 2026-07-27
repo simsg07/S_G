@@ -25,8 +25,6 @@ public class PlatformerPlayer3D : MonoBehaviour
     [SerializeField] private float passThroughClearance = 0.05f; // 내려가기 발판 충돌을 복구하기 전에 필요한 여유 거리입니다.
 
     [Header("Collision - Advanced")]
-    [Tooltip("플레이어 충돌 박스와 몸 크기입니다. 값 변경 시 바닥/벽 충돌 느낌이 크게 달라집니다.")]
-    [SerializeField] private Vector3 colliderSize = new Vector3(0.8f, 1.2f, 1f); // 플레이어 충돌 박스와 몸 크기입니다.
     [Tooltip("2.5D 규칙상 플레이어가 고정될 Z축 위치입니다. 보통 수정하지 않습니다.")]
     [SerializeField] private float gameplayPlaneZ = TwoPointFiveDUtility3D.GameplayPlaneZ; // 2.5D 규칙상 플레이어가 고정될 Z축 위치입니다.
 
@@ -179,13 +177,10 @@ public class PlatformerPlayer3D : MonoBehaviour
         body.interpolation = RigidbodyInterpolation.Interpolate;
         body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-        playerCollider.size = Vector3.one;
-        playerCollider.center = Vector3.zero;
         if (playerPhysicsMaterial != null)
         {
             playerCollider.sharedMaterial = playerPhysicsMaterial;
         }
-        transform.localScale = colliderSize;
         DisableGeneratedBoxVisual();
     }
 
@@ -222,7 +217,6 @@ public class PlatformerPlayer3D : MonoBehaviour
         moveSpeed = tuning.moveSpeed;
         dropThroughDuration = tuning.dropThroughDuration;
         passThroughClearance = tuning.passThroughClearance;
-        colliderSize = tuning.colliderSize;
     }
 
     private void DisableGeneratedBoxVisual()

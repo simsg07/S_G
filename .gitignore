@@ -20,3 +20,6 @@ Build/
 Builds/
 MemoryCaptures/
 Recordings/
+
+# Prevent Windows device-name redirection artifacts from Bash/WSL
+NUL

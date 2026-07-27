@@ -1,0 +1,23 @@
+Built from '6000.3/staging' branch; Version is '6000.3.19f1 (7689f4515d75) revision 7768564'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::Module] Trying to connect to existing licensing client channel...
+OS: 'Windows 11  (10.0.26200) Core' Language: 'ko' Physical Memory: 32266 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-07-27T01:41:35Z
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-tprud" at "2026-07-27T01:41:35.5190717Z"
+
+COMMAND LINE ARGUMENTS:
+Unity.exe
+-batchmode
+-nographics
+-quit
+-projectPath
+C:\Users\tprud\Documents\Codex\여름합숙\S_G
+-executeMethod
+CosmosLiftAssetBuilder.BuildPrefabBatch
+-logFile
+C:\Users\tprud\Documents\Codex\여름합숙\S_G\CosmosLiftBuild.log
+Successfully changed project path to: C:\Users\tprud\Documents\Codex\여름합숙\S_G
+C:/Users/tprud/Documents/Codex/여름합숙/S_G
+Exiting without the bug reporter. Application will terminate with return code 1

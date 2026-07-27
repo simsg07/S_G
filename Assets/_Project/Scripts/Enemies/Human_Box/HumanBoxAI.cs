@@ -751,7 +751,10 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
     {
         if (humanBoxHowling != null)
         {
-            humanBoxHowling.TryStun(playerTarget);
+            if (!humanBoxHowling.TryStunPlayersInRange())
+            {
+                LogDebug("No IStunnable Player found inside howl range.");
+            }
             return;
         }
 
