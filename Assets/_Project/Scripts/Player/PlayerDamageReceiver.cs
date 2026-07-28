@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
+using System;
 
 [DisallowMultipleComponent]
 public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 {
+    public static event Action<PlayerDamageReceiver> PlayerDied;
     [Header("Health - Designer Settings")]
     [Tooltip("When true, damage only plays hit feedback and does not reduce HP.")]
     [SerializeField] private bool infiniteHealth = true;
@@ -185,6 +187,7 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         }
 
         isDead = true;
+        PlayerDied?.Invoke(this);
         Debug.Log("[PlayerDamageReceiver] KillAndRespawn called.", this);
         StopBlinkCoroutines(true);
         SetRenderersEnabled(true);
@@ -331,6 +334,7 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         }
 
         isDead = true;
+        PlayerDied?.Invoke(this);
         Debug.Log("[PlayerDamageReceiver] Player Dead", this);
 
         StopBlinkCoroutines(true);

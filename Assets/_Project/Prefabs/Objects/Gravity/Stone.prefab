@@ -84,11 +84,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb29c456752142b08f8e5be39d3d8750, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StoneObject
-  breakOnGroundHit: 1
-  destroyDelay: 0.5
+  isDropped: 0
+  isBroken: 0
   groundLayerMask:
     serializedVersion: 2
     m_Bits: 0
+  breakOnGroundHit: 1
+  destroyDelay: 0.5
   gravityObject: {fileID: 210005}
   damageDealer: {fileID: 210007}
   gravityObjectDamageDealer: {fileID: 210012}
@@ -144,7 +146,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 210001}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 152ff389a73463f438b3e529c866cfbc, type: 3}
   m_Name: 
@@ -167,17 +169,17 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 210001}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c8aa72eb0cc54a9383e21068a5bffb23, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GravityObjectDamageDealer
   instantKillPlayer: 1
+  damageOnlyWhileFalling: 1
   playerLayerMask:
     serializedVersion: 2
     m_Bits: 0
   playerTag: Player
-  damageOnlyWhileFalling: 1
   stoneObject: {fileID: 210004}
   fallingBoxObject: {fileID: 0}
   debugMode: 1
@@ -219,15 +221,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b0510e8c0e8a487b921acb30aa0cb04e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GravityDropSensor
-  playerLayerMask:
-    serializedVersion: 2
-    m_Bits: 0
   detectionCenterOffset: {x: 0, y: -2, z: 0}
   detectionBoxSize: {x: 3, y: 4, z: 1}
   usePlayerTagFallback: 1
   playerTag: Player
   detectOnlyOnce: 1
   hasDetected: 0
+  playerLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   stoneObject: {fileID: 210004}
   fallingBoxObject: {fileID: 0}
   showGizmo: 1

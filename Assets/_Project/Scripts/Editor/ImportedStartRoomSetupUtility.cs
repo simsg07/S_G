@@ -42,6 +42,7 @@ public static class ImportedStartRoomSetupUtility
     {
         Camera[] cameras = Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         Camera mainCamera = cameras.Length > 0 ? cameras[0] : null;
+        bool createdCamera = mainCamera == null;
 
         if (mainCamera == null)
         {
@@ -66,8 +67,11 @@ public static class ImportedStartRoomSetupUtility
         mainCamera.clearFlags = CameraClearFlags.SolidColor;
         mainCamera.backgroundColor = new Color(0.06f, 0.07f, 0.09f, 1f);
         mainCamera.depth = 0f;
-        mainCamera.orthographic = true;
-        mainCamera.orthographicSize = 5.2f;
+        if (createdCamera)
+        {
+            mainCamera.orthographic = true;
+            mainCamera.orthographicSize = 5.2f;
+        }
         mainCamera.transform.SetPositionAndRotation(player.position + new Vector3(0f, 1f, -10f), Quaternion.identity);
 
         if (mainCamera.GetComponent<AudioListener>() == null)

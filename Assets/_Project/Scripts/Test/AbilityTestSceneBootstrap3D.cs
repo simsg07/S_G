@@ -273,8 +273,9 @@ public class AbilityTestSceneBootstrap3D : MonoBehaviour
         {
             helpText.text =
                 "Mouse : Aim camera frame\n" +
-                "Left Click : Use selected camera function\n" +
-                "E : Change Shutter / Focus\n" +
+                "Hold Right Click : Activate camera\n" +
+                "Left Click : Shutter / Capture\n" +
+                "Double Left Click : Move framed objects to opposite world\n" +
                 "Q : Switch whole World A/B\n" +
                 "R : Toggle camera light\n" +
                 "Camera intervention succeeds once by default";

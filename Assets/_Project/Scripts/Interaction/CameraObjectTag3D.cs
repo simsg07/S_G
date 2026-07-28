@@ -87,6 +87,12 @@ public class CameraObjectTag3D : MonoBehaviour
             return false;
         }
 
+        WorldSwitchable switchable = WorldSwitchable.FindFor(component);
+        if (switchable != null && !switchable.CanApplyShutter)
+        {
+            return false;
+        }
+
         CameraObjectTag3D objectTag = FindFor(component);
         if (objectTag != null)
         {
@@ -192,7 +198,7 @@ public class CameraObjectTag3D : MonoBehaviour
         }
 
         Bounds bounds = CalculateBounds();
-        float pulse = outlinePulseSpeed > 0f ? 1f + Mathf.Sin(Time.time * outlinePulseSpeed) * 0.03f : 1f;
+        float pulse = outlinePulseSpeed > 0f ? 1f + Mathf.Sin(Time.unscaledTime * outlinePulseSpeed) * 0.03f : 1f;
         Vector3 paddedSize = bounds.size + Vector3.one * Mathf.Max(0f, outlinePadding);
 
         Transform outlineTransform = outlineRenderer.transform;

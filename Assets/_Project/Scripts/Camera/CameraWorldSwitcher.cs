@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -34,10 +35,18 @@ public class CameraWorldSwitcher : MonoBehaviour
     [SerializeField] private UnityEvent afterSwitch = new UnityEvent(); // Hook for future switch effects or sound.
 
     private readonly List<WorldSwitchable> candidates = new List<WorldSwitchable>(64);
+    private readonly List<CameraWorldTargetInfo3D> targetStates = new List<CameraWorldTargetInfo3D>(64);
+    private readonly HashSet<WorldSwitchable> uniqueCandidates = new HashSet<WorldSwitchable>();
+    private readonly Collider[] overlapResults = new Collider[128];
     private Bounds lastQueryBounds;
     private bool hasLastQueryBounds;
 
     public int LastSwitchCount { get; private set; }
+    public IReadOnlyList<CameraWorldTargetInfo3D> LastTargetStates => targetStates;
+
+    public static event Action<CameraWorldSwitcher, IReadOnlyList<CameraWorldTargetInfo3D>> TargetStatesChanged;
+    public static event Action<WorldSwitchable> TargetSwitchSucceeded;
+    public static event Action<int> CameraSwitchFeedbackRequested;
 
     private void Reset()
     {
@@ -79,37 +88,103 @@ public class CameraWorldSwitcher : MonoBehaviour
         lastQueryBounds = cameraBounds;
         CollectCandidates(cameraBounds);
 
-        if (candidates.Count == 0)
+        if (!HasAvailableCandidate())
         {
             LastSwitchCount = 0;
             return 0;
         }
 
+        int switchedCount = 0;
         beforeSwitch.Invoke();
         for (int i = 0; i < candidates.Count; i++)
         {
-            if (candidates[i] != null)
+            WorldSwitchable candidate = candidates[i];
+            if (candidate == null || candidate.CameraTargetState != CameraWorldTargetState3D.Available)
             {
-                candidates[i].ToggleWorld();
+                continue;
+            }
+
+            try
+            {
+                if (candidate.TrySwitchWorldByCamera())
+                {
+                    switchedCount++;
+                    TargetSwitchSucceeded?.Invoke(candidate);
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, candidate);
             }
         }
 
-        afterSwitch.Invoke();
-        LastSwitchCount = candidates.Count;
+        if (switchedCount > 0)
+        {
+            afterSwitch.Invoke();
+            CameraSwitchFeedbackRequested?.Invoke(switchedCount);
+        }
+
+        LastSwitchCount = switchedCount;
+        PublishTargetStates();
         return LastSwitchCount;
+    }
+
+    private bool HasAvailableCandidate()
+    {
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            if (candidates[i] != null && candidates[i].CameraTargetState == CameraWorldTargetState3D.Available)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public IReadOnlyList<CameraWorldTargetInfo3D> RefreshVisibleTargets()
+    {
+        Camera camera = ResolveCamera();
+        if (camera == null || !TryBuildCameraBounds(camera, out Bounds cameraBounds))
+        {
+            candidates.Clear();
+            targetStates.Clear();
+            TargetStatesChanged?.Invoke(this, targetStates);
+            return targetStates;
+        }
+
+        hasLastQueryBounds = true;
+        lastQueryBounds = cameraBounds;
+        CollectCandidates(cameraBounds);
+        return targetStates;
+    }
+
+    public void ClearTargetStates()
+    {
+        candidates.Clear();
+        targetStates.Clear();
+        TargetStatesChanged?.Invoke(this, targetStates);
     }
 
     private void CollectCandidates(Bounds cameraBounds)
     {
         candidates.Clear();
-        WorldSwitchable[] switchables = FindObjectsByType<WorldSwitchable>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        string[] tags = ResolveAllowedTags();
+        targetStates.Clear();
+        uniqueCandidates.Clear();
         LayerMask layers = ResolveTargetLayers();
+        int hitCount = Physics.OverlapBoxNonAlloc(
+            cameraBounds.center,
+            cameraBounds.extents,
+            overlapResults,
+            Quaternion.identity,
+            layers,
+            QueryTriggerInteraction.Collide);
 
-        for (int i = 0; i < switchables.Length; i++)
+        for (int i = 0; i < hitCount; i++)
         {
-            WorldSwitchable switchable = switchables[i];
-            if (!IsValidCandidate(switchable, tags, layers))
+            Collider hit = overlapResults[i];
+            WorldSwitchable switchable = WorldSwitchable.FindFor(hit);
+            if (switchable == null || !uniqueCandidates.Add(switchable) || !IsInspectableCandidate(switchable, layers))
             {
                 continue;
             }
@@ -122,13 +197,16 @@ public class CameraWorldSwitcher : MonoBehaviour
             if (cameraBounds.Intersects(targetBounds))
             {
                 candidates.Add(switchable);
+                targetStates.Add(new CameraWorldTargetInfo3D(switchable, switchable.CameraTargetState));
             }
         }
+
+        PublishTargetStates();
     }
 
-    private bool IsValidCandidate(WorldSwitchable switchable, string[] tags, LayerMask layers)
+    private bool IsInspectableCandidate(WorldSwitchable switchable, LayerMask layers)
     {
-        if (switchable == null || !switchable.CanSwitchByCamera)
+        if (switchable == null)
         {
             return false;
         }
@@ -144,7 +222,22 @@ public class CameraWorldSwitcher : MonoBehaviour
             return false;
         }
 
-        return CameraTagUtility3D.HasAnyTag(target, tags);
+        return true;
+    }
+
+    private void PublishTargetStates()
+    {
+        targetStates.Clear();
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            WorldSwitchable candidate = candidates[i];
+            if (candidate != null)
+            {
+                targetStates.Add(new CameraWorldTargetInfo3D(candidate, candidate.CameraTargetState));
+            }
+        }
+
+        TargetStatesChanged?.Invoke(this, targetStates);
     }
 
     private bool IsProtectedObject(GameObject target)

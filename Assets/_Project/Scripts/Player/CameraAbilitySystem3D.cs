@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
@@ -10,6 +11,13 @@ using UnityEngine.UI;
 [RequireComponent(typeof(CameraInterventionLimiter))]
 public class CameraAbilitySystem3D : MonoBehaviour
 {
+    private enum CameraModeState
+    {
+        Inactive,
+        Active,
+        ForcedExitBlocked
+    }
+
     private const CameraAbilityFlags ActiveCameraAbilityMask = CameraAbilityFlags.Shutter | CameraAbilityFlags.Focus;
 
     [Header("Unlocked")]
@@ -22,16 +30,17 @@ public class CameraAbilitySystem3D : MonoBehaviour
     [FormerlySerializedAs("directWorldSwitchKey")]
     [SerializeField] private Key worldSwitchKey = Key.Q; // Global world switch key. This does not consume camera interventions.
     [SerializeField] private Key lightToggleKey = Key.R; // Simple camera light on/off key.
-    [SerializeField] private Key previousCameraSlotKey = Key.None; // Optional key for moving to the previous camera function slot.
-    [SerializeField] private Key nextCameraSlotKey = Key.E; // 카메라 기능 슬롯을 오른쪽으로 이동하는 키입니다.
-    [SerializeField] private CameraAbilityId selectedCameraAbility = CameraAbilityId.Shutter; // 현재 선택된 카메라 기능 슬롯입니다.
+    // Legacy serialized fields. Keep these for save/prefab compatibility, but camera-slot input is no longer used.
+    [SerializeField, HideInInspector] private Key previousCameraSlotKey = Key.None;
+    [SerializeField, HideInInspector] private Key nextCameraSlotKey = Key.E;
+    [SerializeField, HideInInspector] private CameraAbilityId selectedCameraAbility = CameraAbilityId.Shutter;
 
     [Header("Camera Mode")]
     [SerializeField] private Key cameraModeKey = Key.None; // 보조 키보드 카메라 모드 키입니다. None이면 마우스 우클릭만 사용합니다.
-    [SerializeField] private bool holdCameraMode = true; // 켜면 키를 누르는 동안만 카메라 모드가 유지되고, 끄면 키를 누를 때마다 토글됩니다.
+    [SerializeField, HideInInspector] private bool holdCameraMode = true; // Legacy serialized value. Right mouse camera input is always Hold.
     [SerializeField] private bool startInCameraMode = false; // 테스트용으로 시작하자마자 카메라 모드를 켤지 정합니다.
-    [SerializeField] private float cameraModeSlowDuration = 2f; // 카메라 모드에 들어갈 때 전체 시간이 느려지는 실제 시간입니다.
-    [SerializeField] private float cameraModeTimeScale = 0.25f; // 카메라 모드 진입 직후 적용되는 전체 오브젝트 배속입니다.
+    [SerializeField, HideInInspector] private float cameraModeSlowDuration = 2f; // Legacy serialized value; camera slow motion now lasts for the whole camera mode.
+    [SerializeField, Range(0.01f, 1f)] private float cameraModeTimeScale = 0.25f;
 
     [Header("Mouse Camera Frame")]
     [SerializeField] private bool useMouseFrameTargeting = true; // 마우스 위치의 카메라 프레임 안에 들어온 대상을 조준할지 정합니다.
@@ -44,6 +53,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
     [SerializeField] private Color frameAccentColor = new Color(0.42f, 0.78f, 1f, 0.48f); // 카메라 프레임 내부 보조선 색상입니다.
     [SerializeField] private Color frameRecordColor = new Color(1f, 0.12f, 0.12f, 0.95f); // 촬영점과 기록 표시용 강조 색상입니다.
     [SerializeField] private Color frameCooldownColor = new Color(1f, 0.7f, 0.25f, 0.8f); // 카메라 기능 쿨타임 중 표시 색상입니다.
+    [SerializeField, Min(0f)] private float cameraDragSensitivity = 1f;
 
     [Header("Targeting")]
     [SerializeField, InspectorName("Shutter Target Layer Mask")] private LayerMask targetMask = ~0; // 카메라 기능이 감지할 대상 레이어 범위입니다.
@@ -58,6 +68,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
     [Header("Shutter Debug")]
     [SerializeField] private bool showShutterDebug;
     [SerializeField] private bool logShutterEvents;
+    [SerializeField] private bool debugCameraMode;
 
     [Header("셔터 시간 정지")]
     [SerializeField, Tooltip("촬영한 오브젝트의 물리, 애니메이션과 AI가 멈추는 시간입니다.")] private float shutterFreezeDuration = 1.2f;
@@ -85,6 +96,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
     [SerializeField] private CameraLightFollower cameraLightFollower; // Clamps and moves the camera light inside the camera view.
     [SerializeField] private CameraWorldSwitcher cameraWorldSwitcher; // Switches only tagged WorldSwitchable objects inside the camera view.
     [SerializeField] private CameraInterventionLimiter interventionLimiter; // Limits successful camera freeze and camera-range world switch uses.
+    [SerializeField, Min(0.02f)] private float cameraTargetRefreshInterval = 0.05f;
 
     private readonly Collider[] targetHits = new Collider[64];
     private readonly RaycastHit[] targetCastHits = new RaycastHit[40];
@@ -97,33 +109,42 @@ public class CameraAbilitySystem3D : MonoBehaviour
     private Canvas frameCanvas;
     private RectTransform frameRoot;
     private RectTransform reticleRoot;
-    private Text modeLabel;
     private Texture2D ringTexture;
     private Texture2D diskTexture;
     private Light flashLight;
     private bool cursorHiddenByFrame;
-    private bool cameraModeActive;
+    private CameraModeState cameraModeState = CameraModeState.Inactive;
     private bool cameraModeSlowActive;
     private bool cameraLightOn;
+    private bool cameraTargetScanActive;
+    private bool ownsGeneratedFlashLight;
     private float shutterCooldownTimer;
     private float focusCooldownTimer;
     private float relayCooldownTimer;
-    private float cameraModeSlowEndTime;
     private float storedTimeScale = 1f;
     private float storedFixedDeltaTime = 0.02f;
+    private float appliedCameraTimeScale = 0.25f;
+    private float appliedCameraFixedDeltaTime = 0.005f;
     private Vector3 lastShutterTargetPosition;
     private bool lastShutterTargetBlocked;
+    private float pendingPrimaryFireTime;
+    private bool primaryFirePending;
+    private Vector2 cameraDragScreenPosition;
+    private Vector2 cameraDragDelta;
+    private float nextCameraTargetRefreshTime;
+
+    private const float DoubleClickInterval = 0.3f;
 
     public static event Action<CameraAbilityFlags> AbilitiesChanged;
+    public static event Action<bool> CameraSlowMotionChanged;
 
     public static CameraAbilityFlags KnownAbilities { get; private set; } = CameraAbilityFlags.None;
     public CameraAbilityFlags UnlockedAbilities => unlockedAbilities;
-    public bool IsCameraModeActive => cameraModeActive;
+    public bool IsCameraModeActive => cameraModeState == CameraModeState.Active;
     private void Awake()
     {
         movement = GetComponent<PlatformerPlayer3D>();
         targetCamera = Camera.main;
-        NormalizeSelectedCameraAbility();
         EnsureCameraInterventionLimiter();
         SetupCameraFrame();
         SetupFlashLight();
@@ -141,34 +162,49 @@ public class CameraAbilitySystem3D : MonoBehaviour
             PublishAbilityState();
         }
 
-        SetCameraModeActive(startInCameraMode);
+        if (startInCameraMode)
+        {
+            EnterCameraMode("Start In Camera Mode");
+        }
     }
 
     private void OnEnable()
     {
+        SceneManager.activeSceneChanged -= HandleActiveSceneChanged;
+        PlayerDamageReceiver.PlayerDied -= HandlePlayerDied;
+        SceneManager.activeSceneChanged += HandleActiveSceneChanged;
+        PlayerDamageReceiver.PlayerDied += HandlePlayerDied;
         PublishAbilityState();
     }
 
     private void OnDisable()
     {
+        SceneManager.activeSceneChanged -= HandleActiveSceneChanged;
+        PlayerDamageReceiver.PlayerDied -= HandlePlayerDied;
+        ForceExitCameraMode("Component disabled", false);
         RestoreSystemCursor();
-        RestoreCameraModeSlow();
         TurnOffCameraLight();
+        ClearCameraWorldTargetStates();
         ClearAllShutterMarks();
     }
 
     private void OnDestroy()
     {
+        ForceExitCameraMode("Object destroyed", false);
         RestoreSystemCursor();
-        RestoreCameraModeSlow();
         TurnOffCameraLight();
+        if (ownsGeneratedFlashLight && flashLight != null)
+        {
+            DestroyGenerated(flashLight.gameObject);
+            flashLight = null;
+            ownsGeneratedFlashLight = false;
+        }
         DestroyGenerated(ringTexture);
         DestroyGenerated(diskTexture);
     }
 
     private void Update()
     {
-        TickCameraModeSlow();
         TickCooldowns();
         TickShutterMarks();
         UpdateFlashLight();
@@ -181,7 +217,10 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
         Keyboard keyboard = Keyboard.current;
         Mouse mouse = Mouse.current;
-        UpdateCameraModeInput(keyboard, mouse);
+        DetectPauseTimeOverride();
+        UpdateCameraModeInput(mouse);
+        TickPendingPrimaryCameraClick();
+        UpdateCameraWorldTargetStates();
 
         UpdateCameraFrame();
         if (WasPressed(keyboard, worldSwitchKey))
@@ -195,148 +234,281 @@ public class CameraAbilitySystem3D : MonoBehaviour
             ToggleCameraLight();
         }
 
-        if (!cameraModeActive)
+        if (cameraModeState != CameraModeState.Active)
         {
             return;
-        }
-
-        if (WasPressed(keyboard, previousCameraSlotKey))
-        {
-            CycleSelectedCameraAbility(-1);
-        }
-
-        if (WasPressed(keyboard, nextCameraSlotKey))
-        {
-            CycleSelectedCameraAbility(1);
         }
 
         if (usePrimaryFireForCameraAbility && mouse != null && mouse.leftButton.wasPressedThisFrame)
         {
-            TryUseSelectedCameraAbility();
+            HandlePrimaryCameraClick();
         }
     }
 
-    private void UpdateCameraModeInput(Keyboard keyboard, Mouse mouse)
+    private void UpdateCameraModeInput(Mouse mouse)
     {
-        if (holdCameraMode)
+        if (!useSecondaryFireForCameraMode || mouse == null)
         {
-            bool keyHeld = keyboard != null && IsHeld(keyboard, cameraModeKey);
-            bool mouseHeld = useSecondaryFireForCameraMode && mouse != null && mouse.rightButton.isPressed;
-            SetCameraModeActive(startInCameraMode || keyHeld || mouseHeld);
+            ExitCameraMode("Secondary camera input unavailable");
             return;
         }
 
-        bool keyPressed = keyboard != null && WasPressed(keyboard, cameraModeKey);
-        bool mousePressed = useSecondaryFireForCameraMode && mouse != null && mouse.rightButton.wasPressedThisFrame;
-        if (keyPressed || mousePressed)
-        {
-            SetCameraModeActive(!cameraModeActive);
-        }
-    }
+        bool rightPressed = mouse.rightButton.isPressed;
+        bool rightDown = mouse.rightButton.wasPressedThisFrame;
+        bool rightUp = mouse.rightButton.wasReleasedThisFrame;
 
-    private void SetCameraModeActive(bool active)
-    {
-        if (cameraModeActive == active)
+        if (cameraModeState == CameraModeState.ForcedExitBlocked)
         {
+            if (rightUp || !rightPressed)
+            {
+                cameraModeState = CameraModeState.Inactive;
+                LogCameraMode("Right Mouse Up - forced-exit block cleared");
+            }
             return;
         }
 
-        cameraModeActive = active;
-        if (cameraModeActive)
+        if (rightDown)
         {
-            StartCameraModeSlow();
+            LogCameraMode("Right Mouse Down");
+            EnterCameraMode("Right Mouse Down");
         }
-    }
 
-    private void StartCameraModeSlow()
-    {
-        if (!Application.isPlaying || cameraModeSlowDuration <= 0f || cameraModeTimeScale <= 0f)
+        if (cameraModeState != CameraModeState.Active)
         {
             return;
         }
 
-        if (!cameraModeSlowActive)
+        if (rightUp || !rightPressed)
         {
-            storedTimeScale = Time.timeScale;
-            storedFixedDeltaTime = Time.fixedDeltaTime;
+            LogCameraMode("Right Mouse Up");
+            ExitCameraMode("Right Mouse Up");
+            return;
         }
 
-        float slowScale = Mathf.Clamp(cameraModeTimeScale, 0.01f, 1f);
+        UpdateCameraDrag(mouse);
+    }
+
+    private void EnterCameraMode(string reason)
+    {
+        if (cameraModeState != CameraModeState.Inactive || !Application.isPlaying || Time.timeScale <= 0f)
+        {
+            return;
+        }
+
+        cameraModeState = CameraModeState.Active;
+        InitializeCameraDrag();
+        ApplyCameraModeSlowMotion();
+        LogCameraTransition("Camera Enter", reason);
+    }
+
+    private void ExitCameraMode(string reason)
+    {
+        if (cameraModeState != CameraModeState.Active)
+        {
+            return;
+        }
+
+        cameraModeState = CameraModeState.Inactive;
+        ResetCameraDrag();
+        primaryFirePending = false;
+        RestoreCameraModeSlowMotion();
+        LogCameraTransition("Camera Exit", reason);
+    }
+
+    private void ApplyCameraModeSlowMotion()
+    {
+        if (!Application.isPlaying || cameraModeSlowActive || cameraModeTimeScale <= 0f || Time.timeScale <= 0f)
+        {
+            return;
+        }
+
+        storedTimeScale = Time.timeScale;
+        storedFixedDeltaTime = Time.fixedDeltaTime;
+
+        appliedCameraTimeScale = Mathf.Clamp(cameraModeTimeScale, 0.01f, 1f);
         float normalizedFixedDelta = storedTimeScale > 0.001f
             ? storedFixedDeltaTime / storedTimeScale
             : storedFixedDeltaTime;
+        appliedCameraFixedDeltaTime = normalizedFixedDelta * appliedCameraTimeScale;
 
-        Time.timeScale = slowScale;
-        Time.fixedDeltaTime = normalizedFixedDelta * slowScale;
-        cameraModeSlowEndTime = Time.unscaledTime + Mathf.Max(0.01f, cameraModeSlowDuration);
+        Time.timeScale = appliedCameraTimeScale;
+        Time.fixedDeltaTime = appliedCameraFixedDeltaTime;
         cameraModeSlowActive = true;
+        CameraSlowMotionChanged?.Invoke(true);
     }
 
-    private void TickCameraModeSlow()
-    {
-        if (!cameraModeSlowActive || Time.unscaledTime < cameraModeSlowEndTime)
-        {
-            return;
-        }
-
-        RestoreCameraModeSlow();
-    }
-
-    private void RestoreCameraModeSlow()
+    private void RestoreCameraModeSlowMotion()
     {
         if (!cameraModeSlowActive)
         {
             return;
         }
 
-        Time.timeScale = storedTimeScale;
-        Time.fixedDeltaTime = storedFixedDeltaTime;
+        bool stillOwnsTimeScale = Mathf.Approximately(Time.timeScale, appliedCameraTimeScale);
+        bool stillOwnsFixedDelta = Mathf.Approximately(Time.fixedDeltaTime, appliedCameraFixedDeltaTime);
         cameraModeSlowActive = false;
-        cameraModeSlowEndTime = 0f;
+        if (stillOwnsTimeScale)
+        {
+            Time.timeScale = storedTimeScale;
+        }
+
+        if (stillOwnsFixedDelta)
+        {
+            Time.fixedDeltaTime = storedFixedDeltaTime;
+        }
+
+        CameraSlowMotionChanged?.Invoke(false);
     }
 
-    private void CycleSelectedCameraAbility(int direction)
+    private void DetectPauseTimeOverride()
     {
-        NormalizeSelectedCameraAbility();
-        CameraAbilityId[] slots = { CameraAbilityId.Shutter, CameraAbilityId.Focus };
-        int currentIndex = 0;
-        for (int i = 0; i < slots.Length; i++)
+        if (!cameraModeSlowActive || Time.timeScale > 0f)
         {
-            if (slots[i] == selectedCameraAbility)
+            return;
+        }
+
+        if (debugCameraMode)
+        {
+            Debug.Log($"[CameraMode] External pause detected: timeScale={Time.timeScale}, fixedDeltaTime={Time.fixedDeltaTime}", this);
+        }
+        ForceExitCameraMode("External Time.timeScale = 0", true);
+    }
+
+    public void ForceExitCameraMode()
+    {
+        ForceExitCameraMode("External request", true);
+    }
+
+    private void ForceExitCameraMode(string reason, bool blockUntilRightMouseRelease)
+    {
+        bool wasActive = cameraModeState == CameraModeState.Active || cameraModeSlowActive;
+        if (cameraModeState == CameraModeState.Active)
+        {
+            ExitCameraMode(reason);
+        }
+        else
+        {
+            primaryFirePending = false;
+            ResetCameraDrag();
+            RestoreCameraModeSlowMotion();
+        }
+
+        if (blockUntilRightMouseRelease)
+        {
+            cameraModeState = CameraModeState.ForcedExitBlocked;
+        }
+
+        if (wasActive)
+        {
+            LogCameraTransition("Force Exit", reason);
+        }
+    }
+
+    public static void ForceExitAllCameraModes()
+    {
+        CameraAbilitySystem3D[] systems = FindObjectsByType<CameraAbilitySystem3D>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < systems.Length; i++)
+        {
+            if (systems[i] != null)
             {
-                currentIndex = i;
-                break;
+                systems[i].ForceExitCameraMode("Global external request", true);
             }
         }
-
-        int nextIndex = (currentIndex + direction) % slots.Length;
-        if (nextIndex < 0)
-        {
-            nextIndex += slots.Length;
-        }
-
-        selectedCameraAbility = slots[nextIndex];
     }
 
-    private void NormalizeSelectedCameraAbility()
+    private void HandlePlayerDied(PlayerDamageReceiver receiver)
     {
-        if (selectedCameraAbility != CameraAbilityId.Shutter && selectedCameraAbility != CameraAbilityId.Focus)
+        if (receiver != null && receiver.transform.root == transform.root)
         {
-            selectedCameraAbility = CameraAbilityId.Shutter;
+            ForceExitCameraMode("Player died", true);
         }
     }
 
-    private void TryUseSelectedCameraAbility()
+    private void HandleActiveSceneChanged(Scene previousScene, Scene nextScene)
     {
-        switch (selectedCameraAbility)
+        ForceExitCameraMode("Active scene changed", true);
+    }
+
+    private void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
         {
-            case CameraAbilityId.Shutter:
-                TryUseShutter();
-                break;
-            case CameraAbilityId.Focus:
-                TryUseFocus();
-                break;
+            ForceExitCameraMode("Application paused", true);
         }
+    }
+
+    private void OnApplicationQuit()
+    {
+        ForceExitCameraMode("Application quit", false);
+    }
+
+    private void InitializeCameraDrag()
+    {
+        Mouse mouse = Mouse.current;
+        cameraDragScreenPosition = mouse != null
+            ? mouse.position.ReadValue()
+            : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        cameraDragDelta = Vector2.zero;
+    }
+
+    private void UpdateCameraDrag(Mouse mouse)
+    {
+        if (mouse == null)
+        {
+            return;
+        }
+
+        float unscaledFrameFactor = Mathf.Clamp(Time.unscaledDeltaTime * 60f, 0f, 3f);
+        cameraDragDelta = mouse.delta.ReadValue() * Mathf.Max(0f, cameraDragSensitivity) * unscaledFrameFactor;
+        cameraDragScreenPosition += cameraDragDelta;
+        cameraDragScreenPosition.x = Mathf.Clamp(cameraDragScreenPosition.x, 0f, Screen.width);
+        cameraDragScreenPosition.y = Mathf.Clamp(cameraDragScreenPosition.y, 0f, Screen.height);
+    }
+
+    private void ResetCameraDrag()
+    {
+        cameraDragDelta = Vector2.zero;
+    }
+
+    private void LogCameraMode(string message)
+    {
+        if (debugCameraMode)
+        {
+            Debug.Log($"[CameraMode] {message}", this);
+        }
+    }
+
+    private void LogCameraTransition(string transition, string reason)
+    {
+        if (debugCameraMode)
+        {
+            Debug.Log($"[CameraMode] {transition} ({reason})", this);
+        }
+    }
+
+    private void HandlePrimaryCameraClick()
+    {
+        float clickTime = Time.unscaledTime;
+        if (primaryFirePending && clickTime - pendingPrimaryFireTime <= DoubleClickInterval)
+        {
+            primaryFirePending = false;
+            TryUseFocus();
+            return;
+        }
+
+        pendingPrimaryFireTime = clickTime;
+        primaryFirePending = true;
+    }
+
+    private void TickPendingPrimaryCameraClick()
+    {
+        if (!primaryFirePending || Time.unscaledTime - pendingPrimaryFireTime <= DoubleClickInterval)
+        {
+            return;
+        }
+
+        primaryFirePending = false;
+        TryUseShutter(); // Capture and Shutter are the same single-click action.
     }
 
     public bool IsUnlocked(CameraAbilityId ability)
@@ -989,6 +1161,17 @@ public class CameraAbilitySystem3D : MonoBehaviour
             return;
         }
 
+        Canvas[] existingCanvases = GetComponentsInChildren<Canvas>(true);
+        for (int i = 0; i < existingCanvases.Length; i++)
+        {
+            Canvas candidate = existingCanvases[i];
+            if (candidate != null && candidate.name == "Camera Ability Frame")
+            {
+                BindExistingCameraFrame(candidate);
+                return;
+            }
+        }
+
         GameObject canvasObject = new GameObject("Camera Ability Frame", typeof(Canvas));
         canvasObject.transform.SetParent(transform, false);
 
@@ -1005,6 +1188,56 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
         frameTintGraphics.Clear();
         CreateCameraCursorVisual(frameRoot);
+    }
+
+    private void BindExistingCameraFrame(Canvas existingCanvas)
+    {
+        frameCanvas = existingCanvas;
+        frameCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        frameCanvas.sortingOrder = 490;
+
+        frameTintGraphics.Clear();
+        RectTransform[] rects = frameCanvas.GetComponentsInChildren<RectTransform>(true);
+        for (int i = 0; i < rects.Length; i++)
+        {
+            RectTransform rect = rects[i];
+            if (rect == null)
+            {
+                continue;
+            }
+
+            if (rect.name == "Shutter Frame") frameRoot = rect;
+            else if (rect.name == "Cursor Reticle") reticleRoot = rect;
+
+            Graphic graphic = rect.GetComponent<Graphic>();
+            if (graphic != null && rect.name != "Capture Dot" && rect.name != "Capture Dot Halo")
+            {
+                frameTintGraphics.Add(graphic);
+            }
+
+            RawImage rawImage = graphic as RawImage;
+            if (rawImage == null)
+            {
+                continue;
+            }
+
+            rawImage.texture = rect.name == "Capture Dot" ? GetDiskTexture() : GetRingTexture();
+        }
+
+        if (frameRoot == null)
+        {
+            Debug.LogWarning("[CameraAbilitySystem3D] Existing camera canvas has no Shutter Frame; rebuilding runtime frame.", this);
+            GameObject frameObject = new GameObject("Shutter Frame", typeof(RectTransform));
+            frameObject.transform.SetParent(frameCanvas.transform, false);
+            frameRoot = frameObject.GetComponent<RectTransform>();
+            frameRoot.anchorMin = Vector2.zero;
+            frameRoot.anchorMax = Vector2.zero;
+            frameRoot.pivot = new Vector2(0.5f, 0.5f);
+            frameTintGraphics.Clear();
+            CreateCameraCursorVisual(frameRoot);
+        }
+
+        frameCanvas.enabled = false;
     }
 
     private void CreateCameraCursorVisual(RectTransform parent)
@@ -1030,7 +1263,6 @@ public class CameraAbilitySystem3D : MonoBehaviour
         CreateFrameLine(parent, "Bottom Left Slash", new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0.5f, 0.5f), new Vector2(44f, 24f), new Vector2(118f, thick * 1.5f), frameColor, 38f);
         CreateFrameLine(parent, "Bottom Right Slash", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0.5f), new Vector2(-44f, 24f), new Vector2(118f, thick * 1.5f), frameColor, -38f);
 
-        modeLabel = CreateFrameText(parent, "Mode Label", GetCameraModeDisplayName(), new Vector2(0.91f, 0.76f), new Vector2(0f, 0f), new Vector2(132f, 42f), 24, frameColor, TextAnchor.MiddleCenter);
         CreateFrameText(parent, "RSEQ Label", "RSEQ", new Vector2(0.5f, 0f), new Vector2(0f, 21f), new Vector2(126f, 34f), 22, frameColor, TextAnchor.MiddleCenter);
         CreateFrameText(parent, "SUB Label", "SUB", new Vector2(0.78f, 0.12f), new Vector2(0f, 0f), new Vector2(86f, 30f), 18, frameColor, TextAnchor.MiddleCenter);
 
@@ -1131,7 +1363,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
             return;
         }
 
-        bool visible = showCameraFrame && useMouseFrameTargeting && (!Application.isPlaying || cameraModeActive);
+        bool visible = showCameraFrame && useMouseFrameTargeting && (!Application.isPlaying || cameraModeState == CameraModeState.Active);
         frameCanvas.enabled = visible;
         SetSystemCursorHidden(visible && hideSystemCursor && Application.isPlaying);
         if (!visible)
@@ -1152,26 +1384,10 @@ public class CameraAbilitySystem3D : MonoBehaviour
             }
         }
 
-        if (modeLabel != null)
-        {
-            modeLabel.text = GetCameraModeDisplayName();
-        }
-
         if (reticleRoot != null)
         {
             float reticleScale = Mathf.Clamp(frameRect.height / shutterFrameReferenceSize.y, 0.55f, 1.45f);
             reticleRoot.localScale = Vector3.one * reticleScale;
-        }
-    }
-
-    private string GetCameraModeDisplayName()
-    {
-        switch (selectedCameraAbility)
-        {
-            case CameraAbilityId.Focus:
-                return "FOCUS";
-            default:
-                return "SHUTTER";
         }
     }
 
@@ -1247,6 +1463,11 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private Vector2 GetMouseScreenPosition()
     {
+        if (Application.isPlaying && cameraModeState == CameraModeState.Active)
+        {
+            return cameraDragScreenPosition;
+        }
+
         Mouse mouse = Mouse.current;
         if (mouse != null)
         {
@@ -1376,12 +1597,45 @@ public class CameraAbilitySystem3D : MonoBehaviour
         return switcher.TrySwitchVisibleObjects();
     }
 
+    private void UpdateCameraWorldTargetStates()
+    {
+        CameraWorldSwitcher switcher = ResolveCameraWorldSwitcher();
+        if (switcher == null)
+        {
+            return;
+        }
+
+        if (cameraModeState == CameraModeState.Active)
+        {
+            cameraTargetScanActive = true;
+            if (Time.unscaledTime >= nextCameraTargetRefreshTime)
+            {
+                nextCameraTargetRefreshTime = Time.unscaledTime + Mathf.Max(0.02f, cameraTargetRefreshInterval);
+                switcher.RefreshVisibleTargets();
+            }
+        }
+        else if (cameraTargetScanActive)
+        {
+            cameraTargetScanActive = false;
+            nextCameraTargetRefreshTime = 0f;
+            switcher.ClearTargetStates();
+        }
+    }
+
+    private void ClearCameraWorldTargetStates()
+    {
+        cameraTargetScanActive = false;
+        nextCameraTargetRefreshTime = 0f;
+        if (cameraWorldSwitcher != null)
+        {
+            cameraWorldSwitcher.ClearTargetStates();
+        }
+    }
+
     private CameraLightFollower ResolveCameraLightFollower()
     {
         if (cameraLightFollower != null)
         {
-            cameraLightFollower.Bind(GetTargetCamera(), flashLight);
-            cameraLightFollower.SetPlayerTransform(transform);
             return cameraLightFollower;
         }
 
@@ -1410,7 +1664,6 @@ public class CameraAbilitySystem3D : MonoBehaviour
     {
         if (cameraWorldSwitcher != null)
         {
-            cameraWorldSwitcher.SetTargetCamera(GetTargetCamera());
             return cameraWorldSwitcher;
         }
 
@@ -1453,13 +1706,27 @@ public class CameraAbilitySystem3D : MonoBehaviour
             cameraLightFollower.Bind(GetTargetCamera(), flashLight);
             cameraLightFollower.SetPlayerTransform(transform);
             cameraLightFollower.SetLightActive(false);
+            ownsGeneratedFlashLight = false;
             return;
         }
 
-        GameObject lightObject = new GameObject("Camera Toggle Light", typeof(Light));
+        Camera camera = GetTargetCamera();
+        Transform existingLightTransform = camera != null ? camera.transform.Find("Camera Toggle Light") : null;
+        GameObject lightObject = existingLightTransform != null
+            ? existingLightTransform.gameObject
+            : new GameObject("Camera Toggle Light", typeof(Light));
+        ownsGeneratedFlashLight = existingLightTransform == null;
+        if (camera != null && lightObject.transform.parent != camera.transform)
+        {
+            lightObject.transform.SetParent(camera.transform, true);
+        }
         CameraTagUtility3D.TrySetTag(lightObject, CameraTagUtility3D.LightTag);
 
         flashLight = lightObject.GetComponent<Light>();
+        if (flashLight == null)
+        {
+            flashLight = lightObject.AddComponent<Light>();
+        }
         flashLight.type = LightType.Point;
         flashLight.color = flashLightColor;
         flashLight.range = flashLightRange;

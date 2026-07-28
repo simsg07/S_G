@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Serialization;
 
 public enum WorldSwitchableEditorPreviewMode
@@ -19,8 +20,21 @@ public class WorldSwitchable : MonoBehaviour
     [Header("Switch")]
     [FormerlySerializedAs("canSwitch")]
     [SerializeField] private bool canSwitchByCamera = true; // If false, CameraWorldSwitcher ignores this object.
+    [SerializeField] private bool canApplyShutter = true; // Shutter/Capture permission is independent from world switching.
     [SerializeField] private bool initializeFromGlobalWorld = true; // If true, play mode starts from WorldSystem3D.ActiveWorld.
     [SerializeField] private ResearchWorldId initialWorld = ResearchWorldId.WorldA; // Initial world used when initializeFromGlobalWorld is false.
+    [SerializeField, Min(0f)] private float cameraSwitchCooldown = 0.5f;
+    [SerializeField] private bool blockReentryWhileTransitioning = true;
+    [SerializeField, Min(0f)] private float transitionBlockDuration = 0.2f;
+
+    [Header("Camera Switch Feedback")]
+    [SerializeField] private Renderer[] cameraTargetRenderers = new Renderer[0];
+    [SerializeField] private Collider[] cameraTargetColliders = new Collider[0];
+    [SerializeField] private ParticleSystem switchEffect;
+    [SerializeField] private AudioSource switchAudioSource;
+    [SerializeField] private AudioClip switchAudioClip;
+    [SerializeField] private UnityEvent cameraSwitchSucceeded = new UnityEvent();
+    [SerializeField] private bool debugCameraSwitch;
 
     [Header("Editor Display")]
     [SerializeField] private bool showInEditor = true; // Keeps this object visible while editing the map.
@@ -52,8 +66,23 @@ public class WorldSwitchable : MonoBehaviour
     private Vector3 baseLocalScale;
     private bool baseTransformCached;
     private bool targetsCached;
+    private float nextCameraSwitchTime;
+    private float transitionEndTime;
 
     public bool CanSwitchByCamera => canSwitchByCamera;
+    public bool CanApplyShutter => canApplyShutter;
+    public bool IsCameraSwitchCoolingDown => Application.isPlaying && Time.unscaledTime < nextCameraSwitchTime;
+    public bool IsCameraSwitchTransitioning => Application.isPlaying && Time.unscaledTime < transitionEndTime;
+    public CameraWorldTargetState3D CameraTargetState
+    {
+        get
+        {
+            if (!canSwitchByCamera) return CameraWorldTargetState3D.Disabled;
+            if (blockReentryWhileTransitioning && IsCameraSwitchTransitioning) return CameraWorldTargetState3D.Transitioning;
+            if (IsCameraSwitchCoolingDown) return CameraWorldTargetState3D.Cooldown;
+            return CameraWorldTargetState3D.Available;
+        }
+    }
     public bool ShowInEditor
     {
         get => showInEditor;
@@ -74,6 +103,11 @@ public class WorldSwitchable : MonoBehaviour
     public void SetCanSwitchByCamera(bool value)
     {
         canSwitchByCamera = value;
+    }
+
+    public void SetCanApplyShutter(bool value)
+    {
+        canApplyShutter = value;
     }
 
     public void SetInitialWorld(ResearchWorldId world)
@@ -139,6 +173,32 @@ public class WorldSwitchable : MonoBehaviour
             ? ResearchWorldId.WorldB
             : ResearchWorldId.WorldA;
         ApplyWorld(nextWorld, true);
+    }
+
+    public bool TrySwitchWorldByCamera()
+    {
+        if (CameraTargetState != CameraWorldTargetState3D.Available)
+        {
+            return false;
+        }
+
+        ToggleWorld();
+        nextCameraSwitchTime = Time.unscaledTime + Mathf.Max(0f, cameraSwitchCooldown);
+        transitionEndTime = Time.unscaledTime + Mathf.Max(0f, transitionBlockDuration);
+        PlayCameraSwitchFeedback();
+        cameraSwitchSucceeded.Invoke();
+
+        if (debugCameraSwitch)
+        {
+            Debug.Log($"[WorldSwitchable] Camera switched '{name}' to {CurrentWorld}.", this);
+        }
+
+        return true;
+    }
+
+    public static WorldSwitchable FindFor(Component component)
+    {
+        return component != null ? component.GetComponentInParent<WorldSwitchable>() : null;
     }
 
     public void ApplyWorld(ResearchWorldId world, bool force)
@@ -382,12 +442,12 @@ public class WorldSwitchable : MonoBehaviour
         }
 
         cachedRenderers = includeChildRenderers
-            ? MergeTargets(GetComponentsInChildren<Renderer>(true), extraRenderers)
-            : MergeTargets(GetComponents<Renderer>(), extraRenderers);
+            ? MergeTargets(GetComponentsInChildren<Renderer>(true), MergeTargets(extraRenderers, cameraTargetRenderers))
+            : MergeTargets(GetComponents<Renderer>(), MergeTargets(extraRenderers, cameraTargetRenderers));
 
         cachedColliders = includeChildColliders
-            ? MergeTargets(GetComponentsInChildren<Collider>(true), extraColliders)
-            : MergeTargets(GetComponents<Collider>(), extraColliders);
+            ? MergeTargets(GetComponentsInChildren<Collider>(true), MergeTargets(extraColliders, cameraTargetColliders))
+            : MergeTargets(GetComponents<Collider>(), MergeTargets(extraColliders, cameraTargetColliders));
 
         Behaviour[] autoBehaviours = includeChildBehaviours
             ? GetComponentsInChildren<Behaviour>(true)
@@ -542,6 +602,19 @@ public class WorldSwitchable : MonoBehaviour
         }
 
         bounds.Encapsulate(nextBounds);
+    }
+
+    private void PlayCameraSwitchFeedback()
+    {
+        if (switchEffect != null)
+        {
+            switchEffect.Play(true);
+        }
+
+        if (switchAudioSource != null && switchAudioClip != null)
+        {
+            switchAudioSource.PlayOneShot(switchAudioClip);
+        }
     }
 
     private void OnDrawGizmos()

@@ -14,7 +14,7 @@ public static class FullSummerCampMapConnectionSetup
 
     private static readonly SceneSpec[] Specs =
     {
-        S("Start_Room", new[] { "RightEntrance" }, E("RightExit", "hallwa_01", "LeftEntrance")),
+        S("Start_Room", new[] { "LeftEntrance", "RightEntrance" }, E("RightExit", "hallwa_01", "LeftEntrance")),
         S("hallwa_01", new[] { "LeftEntrance", "RightEntrance" }, E("LeftExit", "Start_Room", "RightEntrance"), E("RightExit", "middle_Room", "LeftEntrance")),
         S("middle_Room", new[] { "LeftEntrance", "UpperRightEntrance", "CenterRightEntrance", "LowerRightEntrance" }, E("LeftExit", "hallwa_01", "RightEntrance"), E("UpperRightExit", "hallwa_02", "LeftEntrance"), E("CenterRightExit", "hallwa_03", "LeftEntrance"), E("LowerRightExit", "hallwa_05", "LeftEntrance")),
         S("hallwa_02", new[] { "LeftEntrance", "RightEntrance" }, E("LeftExit", "middle_Room", "UpperRightEntrance"), E("RightExit", "Item_Room_01", "LeftEntrance")),
@@ -75,7 +75,14 @@ public static class FullSummerCampMapConnectionSetup
             }
             SerializedObject data = new SerializedObject(point);
             data.FindProperty("spawnPointId").stringValue = entranceId;
-            if (created) data.FindProperty("isDefaultSpawn").boolValue = false;
+            if (spec.Name == "Start_Room")
+            {
+                data.FindProperty("isDefaultSpawn").boolValue = entranceId == "LeftEntrance";
+            }
+            else if (created)
+            {
+                data.FindProperty("isDefaultSpawn").boolValue = false;
+            }
             data.ApplyModifiedPropertiesWithoutUndo();
         }
 

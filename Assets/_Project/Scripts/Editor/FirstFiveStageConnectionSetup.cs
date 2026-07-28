@@ -282,6 +282,7 @@ public static class FirstFiveStageConnectionSetup
     private static void EnsureCamera(string sceneName)
     {
         Camera camera = Camera.main;
+        bool createdCamera = camera == null;
         if (camera == null)
         {
             GameObject cameraObject = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener), typeof(CameraFollow3D), typeof(UniversalAdditionalCameraData));
@@ -293,8 +294,11 @@ public static class FirstFiveStageConnectionSetup
         camera.enabled = true;
         camera.targetDisplay = 0;
         camera.cullingMask = ~0;
-        camera.orthographic = true;
-        camera.orthographicSize = 5.2f;
+        if (createdCamera)
+        {
+            camera.orthographic = true;
+            camera.orthographicSize = 5.2f;
+        }
         camera.GetUniversalAdditionalCameraData().renderType = CameraRenderType.Base;
         if (camera.GetComponent<CameraFollow3D>() == null)
         {
