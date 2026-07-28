@@ -4,33 +4,24 @@ using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Keeps the existing Player feature set alive while travelling between the summer-camp rooms
-/// and supplies the project's standard CameraFollow3D camera to rooms that only contain map art.
+/// Guarantees one persistent official Player in every scene that contains a spawn point.
+/// This is also invoked when a gameplay scene is played directly in the Editor.
 /// </summary>
 public static class SummerCampStageBootstrap3D
 {
-    private static readonly HashSet<string> StageSceneNames = new HashSet<string>
-    {
-        "Start_Room",
-        "hallwa_01",
-        "hallwa_02",
-        "hallwa_03",
-        "hallwa_04",
-        "hallwa_05",
-        "hallwa_06",
-        "Item_Room_01",
-        "Item_Room_02",
-        "Boss_Hint_Room",
-        "middle_Room"
-    };
+    private const string PlayerResourcePath = "Player/Player";
 
     private static SummerCampPersistentPlayerMarker persistentPlayer;
+    private static bool isEnsuringPlayer;
+    private static readonly HashSet<string> MissingSpawnWarnings = new HashSet<string>();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         persistentPlayer = null;
+        isEnsuringPlayer = false;
+        MissingSpawnWarnings.Clear();
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -42,26 +33,95 @@ public static class SummerCampStageBootstrap3D
 
     private static void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (!StageSceneNames.Contains(scene.name))
+        bool hasSpawnPoint = HasSpawnPointInScene(scene);
+        if (!hasSpawnPoint)
         {
+            if (IsPortalTransitionInProgress())
+            {
+                WarnMissingSpawn(scene.name);
+                return;
+            }
+
             RemovePersistentStagePlayer();
             return;
         }
 
-        PlatformerPlayer3D player = ResolveSinglePlayer();
-        if (player == null)
+        EnsurePlayerForScene(scene);
+    }
+
+    private static void EnsurePlayerForScene(Scene scene)
+    {
+        if (isEnsuringPlayer)
         {
-            Debug.LogError($"[SummerCampStageBootstrap3D] No Player is available in '{scene.name}'. Start from Start_Room so the existing Player prefab can persist between rooms.");
             return;
         }
 
-        PreservePlayer(player);
-        EnsureGameplayCamera(player.transform);
+        isEnsuringPlayer = true;
+        try
+        {
+            PlatformerPlayer3D player = ResolveSinglePlayer(scene);
+            if (player == null)
+            {
+                GameObject prefab = Resources.Load<GameObject>(PlayerResourcePath);
+                if (prefab == null)
+                {
+                    Debug.LogError($"[SummerCampStageBootstrap3D] Official Player prefab was not found at Resources/{PlayerResourcePath}.prefab.");
+                    return;
+                }
+
+                GameObject instance = Object.Instantiate(prefab);
+                instance.name = prefab.name;
+                player = instance.GetComponent<PlatformerPlayer3D>();
+            }
+
+            PreservePlayer(player);
+
+            // Transition managers own portal destinations. Direct scene Play and a newly
+            // recovered Player use the scene's configured default/fallback point here.
+            if (!IsPortalTransitionInProgress())
+            {
+                MovePlayerToSceneSpawn(player, scene.name);
+            }
+
+            EnsureGameplayCamera(player.transform);
+            ValidateSinglePlayer(scene.name, player);
+        }
+        finally
+        {
+            isEnsuringPlayer = false;
+        }
     }
 
-    private static PlatformerPlayer3D ResolveSinglePlayer()
+    private static bool HasSpawnPointInScene(Scene scene)
     {
-        PlatformerPlayer3D[] players = Object.FindObjectsByType<PlatformerPlayer3D>(FindObjectsSortMode.None);
+        PlayerSpawnPoint[] legacyPoints = Object.FindObjectsByType<PlayerSpawnPoint>(FindObjectsSortMode.None);
+        foreach (PlayerSpawnPoint point in legacyPoints)
+        {
+            if (point != null && point.gameObject.scene == scene) return true;
+        }
+
+        SceneSpawnPoint3D[] modernPoints = Object.FindObjectsByType<SceneSpawnPoint3D>(FindObjectsSortMode.None);
+        foreach (SceneSpawnPoint3D point in modernPoints)
+        {
+            if (point != null && point.gameObject.scene == scene) return true;
+        }
+
+        return false;
+    }
+
+    private static void WarnMissingSpawn(string sceneName)
+    {
+        if (MissingSpawnWarnings.Add(sceneName))
+        {
+            Debug.LogWarning($"[SummerCampStageBootstrap3D] Scene '{sceneName}' was reached through a scene transition but has no PlayerSpawnPoint. The persistent Player was kept and was not repositioned. Add a PlayerSpawnPoint with the portal destination Spawn ID.");
+        }
+    }
+
+    private static PlatformerPlayer3D ResolveSinglePlayer(Scene scene)
+    {
+        PlatformerPlayer3D[] players = Object.FindObjectsByType<PlatformerPlayer3D>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
         PlatformerPlayer3D keeper = null;
 
         if (persistentPlayer != null)
@@ -69,15 +129,23 @@ public static class SummerCampStageBootstrap3D
             keeper = persistentPlayer.GetComponent<PlatformerPlayer3D>();
         }
 
-        if (keeper == null && players.Length > 0)
+        if (keeper == null)
         {
-            keeper = players[0];
+            foreach (PlatformerPlayer3D candidate in players)
+            {
+                if (candidate != null && candidate.gameObject.scene == scene)
+                {
+                    keeper = candidate;
+                    break;
+                }
+            }
         }
 
         foreach (PlatformerPlayer3D candidate in players)
         {
             if (candidate != null && candidate != keeper)
             {
+                candidate.gameObject.SetActive(false);
                 Object.Destroy(candidate.gameObject);
             }
         }
@@ -87,6 +155,12 @@ public static class SummerCampStageBootstrap3D
 
     private static void PreservePlayer(PlatformerPlayer3D player)
     {
+        Transform root = player.transform.root;
+        if (root != player.transform)
+        {
+            player.transform.SetParent(null, true);
+        }
+
         SummerCampPersistentPlayerMarker marker = player.GetComponent<SummerCampPersistentPlayerMarker>();
         if (marker == null)
         {
@@ -94,13 +168,85 @@ public static class SummerCampStageBootstrap3D
         }
 
         persistentPlayer = marker;
+        player.gameObject.SetActive(true);
         Object.DontDestroyOnLoad(player.gameObject);
+    }
+
+    private static bool IsPortalTransitionInProgress()
+    {
+        return (SceneTransitionManager.Instance != null && SceneTransitionManager.Instance.IsLoading)
+            || (SceneLoader.Instance != null && SceneLoader.Instance.IsLoadingScene);
+    }
+
+    private static void MovePlayerToSceneSpawn(PlatformerPlayer3D player, string sceneName)
+    {
+        Vector3 destination;
+        PlayerSpawnPoint legacy = FindLegacyFallbackSpawn();
+        SceneSpawnPoint3D modern = legacy == null ? FindModernFallbackSpawn() : null;
+
+        if (legacy != null)
+        {
+            destination = legacy.transform.position;
+        }
+        else if (modern != null)
+        {
+            destination = modern.GetSpawnPosition();
+        }
+        else
+        {
+            WarnMissingSpawn(sceneName);
+            return;
+        }
+
+        Rigidbody body = player.GetComponent<Rigidbody>();
+        if (body != null)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+            body.position = destination;
+        }
+        else
+        {
+            player.transform.position = destination;
+        }
+
+        player.ResetJumpStateAfterTeleport();
+        Physics.SyncTransforms();
+    }
+
+    private static PlayerSpawnPoint FindLegacyFallbackSpawn()
+    {
+        PlayerSpawnPoint[] points = Object.FindObjectsByType<PlayerSpawnPoint>(FindObjectsSortMode.None);
+        foreach (PlayerSpawnPoint point in points)
+        {
+            if (point != null && point.IsDefaultSpawn) return point;
+        }
+        foreach (PlayerSpawnPoint point in points)
+        {
+            if (point != null && point.CanUseAsRespawnPoint) return point;
+        }
+        return points.Length > 0 ? points[0] : null;
+    }
+
+    private static SceneSpawnPoint3D FindModernFallbackSpawn()
+    {
+        SceneSpawnPoint3D[] points = Object.FindObjectsByType<SceneSpawnPoint3D>(FindObjectsSortMode.None);
+        foreach (SceneSpawnPoint3D point in points)
+        {
+            if (point != null && point.IsDefaultSpawn) return point;
+        }
+        foreach (SceneSpawnPoint3D point in points)
+        {
+            if (point != null && point.CanUseAsRespawnPoint) return point;
+        }
+        return points.Length > 0 ? points[0] : null;
     }
 
     private static void EnsureGameplayCamera(Transform player)
     {
         Camera mainCamera = Camera.main;
-        if (mainCamera == null)
+        bool createdCamera = mainCamera == null;
+        if (createdCamera)
         {
             GameObject cameraObject = new GameObject(
                 "Main Camera",
@@ -116,26 +262,46 @@ public static class SummerCampStageBootstrap3D
         mainCamera.enabled = true;
         mainCamera.targetDisplay = 0;
         mainCamera.cullingMask = ~0;
-        mainCamera.orthographic = true;
-        mainCamera.orthographicSize = 5.2f;
-        mainCamera.transform.SetPositionAndRotation(player.position + new Vector3(0f, 1f, -10f), Quaternion.identity);
-
-        if (mainCamera.GetComponent<CameraFollow3D>() == null)
+        if (createdCamera)
         {
-            mainCamera.gameObject.AddComponent<CameraFollow3D>();
+            mainCamera.orthographic = true;
+            mainCamera.orthographicSize = 5.2f;
         }
+
+        CameraFollow3D follow = mainCamera.GetComponent<CameraFollow3D>();
+        if (follow == null)
+        {
+            follow = mainCamera.gameObject.AddComponent<CameraFollow3D>();
+        }
+        follow.SnapToTarget(player);
 
         WorldVisualEffects3D visualEffects = mainCamera.GetComponent<WorldVisualEffects3D>();
         if (visualEffects == null)
         {
             visualEffects = mainCamera.gameObject.AddComponent<WorldVisualEffects3D>();
         }
-
         visualEffects.SetDustTarget(player);
 
         UniversalAdditionalCameraData cameraData = mainCamera.GetUniversalAdditionalCameraData();
         cameraData.renderType = CameraRenderType.Base;
         cameraData.cameraStack.Clear();
+    }
+
+    private static void ValidateSinglePlayer(string sceneName, PlatformerPlayer3D keeper)
+    {
+        PlatformerPlayer3D[] players = Object.FindObjectsByType<PlatformerPlayer3D>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+        int activeKeepers = 0;
+        foreach (PlatformerPlayer3D player in players)
+        {
+            if (player != null && player.gameObject.activeSelf) activeKeepers++;
+        }
+
+        if (activeKeepers != 1 || keeper == null)
+        {
+            Debug.LogError($"[SummerCampStageBootstrap3D] Player invariant failed in '{sceneName}': active players={activeKeepers}.");
+        }
     }
 
     private static void RemovePersistentStagePlayer()

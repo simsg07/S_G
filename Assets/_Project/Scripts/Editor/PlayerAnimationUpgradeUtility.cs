@@ -8,7 +8,7 @@ public static class PlayerAnimationUpgradeUtility
 {
     private const string Art = "Assets/_Project/Art/Player/New/";
     private const string Anim = "Assets/_Project/Animations/Player/";
-    private const string PrefabPath = "Assets/_Project/Prefabs/Player/Player.prefab";
+    private const string PrefabPath = "Assets/_Project/Resources/Player/Player.prefab";
     private const string AutoApplyKey = "Codex.PlayerJumpAnimationApplied.v2";
 
     [MenuItem("Tools/Project/Apply New Player Animation Set")]

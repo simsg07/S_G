@@ -9,7 +9,7 @@ using UnityEngine;
 public static class DionaeaValidationUtility
 {
     private const string PrefabPath = "Assets/_Project/Prefabs/Enemies/Dionaea.prefab";
-    private const string PlayerPrefabPath = "Assets/_Project/Prefabs/Player/Player.prefab";
+    private const string PlayerPrefabPath = "Assets/_Project/Resources/Player/Player.prefab";
     private const string CircleSpikePrefabPath = "Assets/_Project/Prefabs/Objects/Gravity/CircleSpike.prefab";
 
     static DionaeaValidationUtility()

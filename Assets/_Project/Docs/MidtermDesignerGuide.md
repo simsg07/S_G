@@ -59,7 +59,7 @@
 
 ## 5. 플레이어 설정
 
-- Prefab: `Assets/_Project/Prefabs/Player/Player.prefab`
+- Prefab: `Assets/_Project/Resources/Player/Player.prefab`
 - 이동: `Assets/_Project/Scripts/Player/PlatformerPlayer3D.cs`
 - 피격/리스폰: `PlayerDamageReceiver.cs`
 - 경직: `PlayerStunReceiver.cs`

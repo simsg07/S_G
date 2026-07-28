@@ -189,7 +189,7 @@ PlayerAnimatorBridge 역할을 담당합니다.
 씬을 대량 수정하지 않기 위해 기존 씬 Player를 자동 교체하지 않았습니다. 새 씬 또는 정리 작업 시에는 `PLAYER_Main.prefab`을 배치하고 Tag를 `Player`로 유지하세요.
 # 플레이어 시각 애니메이션
 
-- 프리팹: `Assets/_Project/Prefabs/Player/Player.prefab`
+- 프리팹: `Assets/_Project/Resources/Player/Player.prefab`
 - 입력/이동: `Assets/_Project/Scripts/Player/PlatformerPlayer3D.cs`
 - Animator 연결: `Assets/_Project/Scripts/Animation/PlayerAnimationController.cs`
 - Controller: `Assets/_Project/Animations/Player/PlayerAnimator.controller`
