@@ -759,7 +759,7 @@ GameObject:
   - component: {fileID: 9045198406857974343}
   - component: {fileID: 2325371525539068630}
   m_Layer: 0
-  m_Name: VisualRoot
+  m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -774,8 +774,8 @@ Transform:
   m_GameObject: {fileID: 2381551992728538830}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.2, y: 0.04, z: -0.45}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0.25, y: 0.03333333, z: -0.45}
+  m_LocalScale: {x: 1.25, y: 0.8333333, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 597190333988491540}
@@ -881,7 +881,6 @@ GameObject:
   - component: {fileID: 3724999919043864178}
   - component: {fileID: 3532102758068771995}
   - component: {fileID: 6927364512907145031}
-  - component: {fileID: 4263157098061439001}
   m_Layer: 13
   m_Name: Player
   m_TagString: Player
@@ -899,7 +898,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -3.595205, y: 1.2, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.8, y: 1.2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5278597659841166381}
@@ -1001,7 +1000,7 @@ MonoBehaviour:
   frameCooldownColor: {r: 1, g: 0.7, b: 0.25, a: 0.8}
   targetMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 4294967295
   aimHeightOffset: 0.35
   shutterRange: 7
   shutterBoxSize: {x: 1.5, y: 1.5, z: 1}
@@ -1010,7 +1009,7 @@ MonoBehaviour:
   allowUntaggedShutterTargets: 1
   shutterLineOfSightMask:
     serializedVersion: 2
-    m_Bits: 3584
+    m_Bits: 1536
   showShutterDebug: 0
   logShutterEvents: 0
   shutterFreezeDuration: 1.2
@@ -1140,8 +1139,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.12, y: 2.4, z: 1}
-  m_Center: {x: 0.16, y: 0, z: 0}
+  m_Size: {x: 1.4, y: 2, z: 1}
+  m_Center: {x: 0.2, y: 0, z: 0}
 --- !u!114 &3532102758068771995
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1174,28 +1173,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStunReceiver
   movementController: {fileID: 3825017814145501927}
   debugMode: 1
---- !u!114 &4263157098061439001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2916280608873643439}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b8a41c791da54eeca8aa6a430bf25ff9, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerVisualSettings3D
-  visualRoot: {fileID: 5278597659841166381}
-  visualScale: {x: 1, y: 1}
-  useUniformScale: 1
-  visualOffset: {x: 0.2, y: 0.04, z: -0.45}
-  flipVisualX: 1
-  playerCollider: {fileID: 3724999919043864178}
-  colliderCenter: {x: 0.16, y: 0, z: 0}
-  colliderSize: {x: 1.12, y: 2.4, z: 1}
-  previewInEditor: 1
-  debugMode: 0
 --- !u!1 &3398501789853840607
 GameObject:
   m_ObjectHideFlags: 0

@@ -50,7 +50,6 @@ public class SceneTransitionManager : MonoBehaviour
         }
         manager.pendingSceneName = sceneName;
         manager.pendingSpawnId = string.IsNullOrWhiteSpace(spawnId) ? "Spawn_Default" : spawnId;
-        GameProgressSave3D.SaveNow();
         manager.StartCoroutine(manager.LoadSceneRoutine());
         return true;
     }

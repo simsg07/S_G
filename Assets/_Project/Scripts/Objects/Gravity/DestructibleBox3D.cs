@@ -28,7 +28,6 @@ public sealed class DestructibleBox3D : MonoBehaviour, IDamageable
     private bool despawning;
     private Collider[] colliders;
     private SpawnedObjectLifecycle lifecycle;
-    [SerializeField] private PersistentSceneObject3D persistentState;
 
     public bool CanTakeDamage => isDestructible && !despawning && currentHealth > 0;
 
@@ -96,8 +95,6 @@ public sealed class DestructibleBox3D : MonoBehaviour, IDamageable
         if (despawnDelay > 0f) yield return new WaitForSeconds(despawnDelay);
 
         onDespawned?.Invoke();
-        if (persistentState == null) persistentState = GetComponent<PersistentSceneObject3D>();
-        persistentState?.MarkDestroyed();
         if (lifecycle == null) lifecycle = GetComponent<SpawnedObjectLifecycle>();
         if (lifecycle != null) lifecycle.NotifyGameplayDespawn();
 

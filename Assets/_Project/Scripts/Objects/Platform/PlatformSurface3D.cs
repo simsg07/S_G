@@ -37,15 +37,6 @@ public class PlatformSurface3D : MonoBehaviour
         activeSurfaces.Remove(this);
     }
 
-    private void OnDestroy()
-    {
-        activeSurfaces.Remove(this);
-        if (visualMaterial == null) return;
-        if (Application.isPlaying) Destroy(visualMaterial);
-        else DestroyImmediate(visualMaterial);
-        visualMaterial = null;
-    }
-
     private void ConfigurePlatform()
     {
         platformSize.x = Mathf.Max(0.1f, platformSize.x);
