@@ -6,12 +6,6 @@ public class WorldSyncedBoss3D : MonoBehaviour, IAttackable3D
 {
     private static readonly Dictionary<string, BossState> BossStates = new Dictionary<string, BossState>();
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetRuntimeState()
-    {
-        BossStates.Clear();
-    }
-
     [SerializeField] private string bossId = "main_boss";
     [SerializeField] private int maxHealth = 20;
     [SerializeField] private GameObject[] worldAHazards = new GameObject[0];

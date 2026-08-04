@@ -196,11 +196,10 @@ public class MapPiece : MonoBehaviour
             return;
         }
 
-        Collider[] targets = GetComponentsInChildren<Collider>(true);
+        Transform[] targets = GetComponentsInChildren<Transform>(true);
         for (int i = 0; i < targets.Length; i++)
         {
-            Collider target = targets[i];
-            if (target == null || !target.enabled || target.gameObject.layer == obstacleLayer)
+            if (targets[i].gameObject.layer == obstacleLayer)
             {
                 continue;
             }
@@ -208,7 +207,7 @@ public class MapPiece : MonoBehaviour
             if (!layerWarningLogged)
             {
                 Debug.LogWarning(
-                    $"[MapPiece] Collider '{target.name}' under '{name}' is not on layer '{obstacleLayerName}'. Assign the collider object layer manually in the Inspector.",
+                    $"[MapPiece] '{name}' or a child is not on layer '{obstacleLayerName}'. Assign the layer manually in the Inspector.",
                     this);
                 layerWarningLogged = true;
             }

@@ -33,13 +33,6 @@ public class EyeballFlyAI : MonsterAIBase
     [SerializeField] private LayerMask objectAttackLayerMask = ~0;
     [SerializeField] private bool debugAttackHit = true;
 
-    private bool hasLoggedAnimatorState;
-    private EyeballFlyState lastLoggedAnimatorState;
-    private Transform lastLoggedAnimatorTarget;
-    private bool lastLoggedMovingSet;
-    private bool lastLoggedAttackingSet;
-    private bool lastLoggedDeadSet;
-
     [Header("Eyeball Fly State")]
     [SerializeField] private EyeballFlyState currentState = EyeballFlyState.IDLE;
 
@@ -671,27 +664,9 @@ public class EyeballFlyAI : MonsterAIBase
             return;
         }
 
-        Transform target = CurrentTarget;
-        bool stateChanged = !hasLoggedAnimatorState
-            || lastLoggedAnimatorState != currentState
-            || lastLoggedAnimatorTarget != target
-            || lastLoggedMovingSet != movingSet
-            || lastLoggedAttackingSet != attackingSet
-            || lastLoggedDeadSet != deadSet;
-        if (!stateChanged)
-        {
-            return;
-        }
-
         nextAnimatorDebugLogTime = Time.time + 0.5f;
-        hasLoggedAnimatorState = true;
-        lastLoggedAnimatorState = currentState;
-        lastLoggedAnimatorTarget = target;
-        lastLoggedMovingSet = movingSet;
-        lastLoggedAttackingSet = attackingSet;
-        lastLoggedDeadSet = deadSet;
-        string targetName = target != null ? target.name : "None";
-        float distance = target != null ? GetPlanarDistance(target) : -1f;
+        string targetName = CurrentTarget != null ? CurrentTarget.name : "None";
+        float distance = CurrentTarget != null ? GetPlanarDistance(CurrentTarget) : -1f;
         Debug.Log(
             $"[EyeballFlyAI] Animator State={currentState}, Target={targetName}, Distance={distance:0.00}, " +
             $"IsMovingSet={movingSet}, IsAttackingSet={attackingSet}, IsDeadSet={deadSet}",

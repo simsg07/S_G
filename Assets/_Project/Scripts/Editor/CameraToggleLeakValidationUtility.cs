@@ -20,7 +20,7 @@ public static class CameraToggleLeakValidationUtility
     private static float originalFixedDeltaTime;
     private static int findRetries;
 
-    [MenuItem("_Project/Test/Camera Toggle Accumulation Test %#k")]
+    [MenuItem("Tools/Validation/Run Camera Toggle Leak Test %#k")]
     public static void Run()
     {
         if (!EditorApplication.isPlaying)
@@ -50,10 +50,9 @@ public static class CameraToggleLeakValidationUtility
             return;
         }
 
-        ExitMethod.Invoke(ability, new object[] { "Leak validation setup", false });
+        ExitMethod.Invoke(ability, new object[] { "Leak validation setup" });
         originalTimeScale = Time.timeScale;
         originalFixedDeltaTime = Time.fixedDeltaTime;
-        ability.ResetCameraTransitionDiagnostics();
         before = Snapshot.Capture();
         phase = 0;
         cycles = 0;
@@ -81,15 +80,8 @@ public static class CameraToggleLeakValidationUtility
 
         if (phase == 1)
         {
-            ExitMethod.Invoke(ability, new object[] { "Leak validation", false });
+            ExitMethod.Invoke(ability, new object[] { "Leak validation" });
             cycles++;
-            if (cycles == 10 || cycles == 30 || cycles == 60)
-            {
-                Debug.Log($"[CameraToggleLeakTest] Snapshot {cycles}: {Snapshot.Capture()} / "
-                    + $"Transitions={ability.DebugActualEnterCount}/{ability.DebugApplySlowMotionCount}/"
-                    + $"{ability.DebugActualExitCount}/{ability.DebugRestoreSlowMotionCount} / "
-                    + $"fixedDeltaTime={Time.fixedDeltaTime:0.########}");
-            }
             phase = cycles >= ToggleCycles ? 2 : 0;
             return;
         }
@@ -97,20 +89,13 @@ public static class CameraToggleLeakValidationUtility
         Snapshot after = Snapshot.Capture();
         bool resourcesStable = before.HasSameResourceCounts(after);
         bool eventCountsValid = slowEnterEvents == ToggleCycles && slowExitEvents == ToggleCycles;
-        bool transitionCountsValid = ability.DebugActualEnterCount == ToggleCycles
-            && ability.DebugApplySlowMotionCount == ToggleCycles
-            && ability.DebugActualExitCount == ToggleCycles
-            && ability.DebugRestoreSlowMotionCount == ToggleCycles;
         bool timeRestored = Mathf.Approximately(Time.timeScale, originalTimeScale)
             && Mathf.Approximately(Time.fixedDeltaTime, originalFixedDeltaTime);
         bool errorsStable = after.ConsoleErrors == before.ConsoleErrors;
-        bool passed = resourcesStable && eventCountsValid && transitionCountsValid && timeRestored && errorsStable;
+        bool passed = resourcesStable && eventCountsValid && timeRestored && errorsStable;
 
         string result = $"[CameraToggleLeakTest] {(passed ? "PASS" : "FAIL")} after {ToggleCycles} cycles. "
             + $"Before: {before} / After: {after} / SlowEvents={slowEnterEvents}/{slowExitEvents} / TimeRestored={timeRestored}";
-        result += $" / Transitions={ability.DebugActualEnterCount}/{ability.DebugApplySlowMotionCount}/"
-            + $"{ability.DebugActualExitCount}/{ability.DebugRestoreSlowMotionCount}"
-            + $" / Blocked={ability.DebugDuplicateTransitionBlockCount}";
         if (passed) Debug.Log(result);
         else Debug.LogError(result);
         Stop();

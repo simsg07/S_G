@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 using System;
-using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
 public class PlayerDamageReceiver : MonoBehaviour, IDamageable
@@ -125,21 +124,15 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 
     public void Respawn()
     {
-        CameraAbilitySystem3D.ForceExitAllCameraModes();
         StopBlinkCoroutines(true);
         SetRenderersEnabled(true);
 
-        bool checkpointLoadStarted = false;
-        Transform targetRespawnPoint = ResolveCheckpointRespawnPoint(ref checkpointLoadStarted);
-        if (targetRespawnPoint == null && !checkpointLoadStarted)
-        {
-            targetRespawnPoint = ResolveRespawnPoint();
-        }
+        Transform targetRespawnPoint = ResolveRespawnPoint();
         if (targetRespawnPoint != null)
         {
             transform.position = targetRespawnPoint.position;
         }
-        else if (!checkpointLoadStarted)
+        else
         {
             Debug.LogWarning("[PlayerDamageReceiver] Respawn Point is not assigned.", this);
         }
@@ -159,35 +152,6 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         {
             Debug.Log($"[PlayerDamageReceiver] Respawned. HP={currentHp}/{maxHp}", this);
         }
-    }
-
-    private Transform ResolveCheckpointRespawnPoint(ref bool checkpointLoadStarted)
-    {
-        checkpointLoadStarted = false;
-        if (!GameProgressSave3D.TryGetLastCheckpoint(out string checkpointScene, out string checkpointId))
-        {
-            return null;
-        }
-
-        string activeScene = SceneManager.GetActiveScene().name;
-        if (!string.Equals(activeScene, checkpointScene, StringComparison.Ordinal))
-        {
-            checkpointLoadStarted = SceneLoader.TryLoadCheckpointRespawn(checkpointScene, checkpointId);
-            if (!checkpointLoadStarted)
-            {
-                Debug.LogWarning($"[PlayerDamageReceiver] Could not load saved checkpoint '{checkpointScene}/{checkpointId}'. Using current scene Default spawn.", this);
-            }
-            return null;
-        }
-
-        Checkpoint3D checkpoint = SceneLoader.FindCheckpoint(checkpointId);
-        if (checkpoint == null)
-        {
-            Debug.LogWarning($"[PlayerDamageReceiver] Saved checkpoint '{checkpointId}' is missing in scene '{activeScene}'. Using Default PlayerSpawnPoint.", this);
-            return null;
-        }
-
-        return checkpoint.SpawnPosition;
     }
 
     [ContextMenu("Test Kill And Respawn")]
