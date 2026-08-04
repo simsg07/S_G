@@ -343,6 +343,8 @@ MonoBehaviour:
   ceilingAnchor: {fileID: 8409971816136631454}
   ropeEndPoint: {fileID: 6502163295070234332}
   ropeDebugVisual: {fileID: 3198073540637522565}
+  ropeSpriteVisual: {fileID: 0}
+  segmentOverlap: 0
   ropeHitCollider: {fileID: 8490378509487205278}
   ropeThickness: 0.15
   colliderExtraSize: {x: 0, y: 0, z: 0}

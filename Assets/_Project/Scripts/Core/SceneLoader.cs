@@ -16,6 +16,8 @@ public class SceneLoader : MonoBehaviour
     [SerializeField] private string lastTargetSpawnPointId = "Default";
 
     private string pendingSpawnPointId = "Default";
+    private string pendingCheckpointId = string.Empty;
+    private bool isCheckpointRespawn;
     private bool isLoading;
     public bool IsLoadingScene => isLoading;
 
@@ -39,6 +41,32 @@ public class SceneLoader : MonoBehaviour
     public static bool TryLoadStage(string sceneName, string spawnPointId)
     {
         return EnsureInstance().LoadStageInternal(sceneName, spawnPointId);
+    }
+
+    public static bool TryLoadCheckpointRespawn(string sceneName, string checkpointId)
+    {
+        SceneLoader loader = EnsureInstance();
+        if (loader.isLoading)
+        {
+            Debug.LogWarning("[SceneLoader] Scene is already loading. Checkpoint respawn ignored.", loader);
+            return false;
+        }
+
+        if (!IsSceneRegisteredInBuildSettings(sceneName) || string.IsNullOrWhiteSpace(checkpointId))
+        {
+            Debug.LogWarning($"[SceneLoader] Invalid checkpoint destination: scene='{sceneName}', id='{checkpointId}'.", loader);
+            return false;
+        }
+
+        loader.pendingCheckpointId = checkpointId;
+        loader.isCheckpointRespawn = true;
+        bool accepted = loader.LoadStageInternal(sceneName, "Default");
+        if (!accepted)
+        {
+            loader.pendingCheckpointId = string.Empty;
+            loader.isCheckpointRespawn = false;
+        }
+        return accepted;
     }
 
     private static SceneLoader EnsureInstance()
@@ -77,6 +105,11 @@ public class SceneLoader : MonoBehaviour
             Debug.LogWarning("[SceneLoader] targetSpawnPointId is empty. Using Default.", this);
         }
 
+        if (!isCheckpointRespawn)
+        {
+            pendingCheckpointId = string.Empty;
+        }
+        GameProgressSave3D.SaveNow();
         pendingSpawnPointId = string.IsNullOrWhiteSpace(spawnPointId) ? "Default" : spawnPointId;
         lastTargetSpawnPointId = pendingSpawnPointId;
         StartCoroutine(LoadStageRoutine(sceneName));
@@ -118,8 +151,61 @@ public class SceneLoader : MonoBehaviour
 
         StageExitTrigger.BeginSpawnSafety(0.35f);
         yield return null;
-        MovePlayerToSpawnPoint(pendingSpawnPointId);
+        if (isCheckpointRespawn)
+        {
+            MovePlayerToCheckpointOrDefault(pendingCheckpointId);
+        }
+        else
+        {
+            MovePlayerToSpawnPoint(pendingSpawnPointId);
+        }
+        isCheckpointRespawn = false;
+        pendingCheckpointId = string.Empty;
         isLoading = false;
+    }
+
+    public void MovePlayerToCheckpointOrDefault(string checkpointId)
+    {
+        GameObject player = FindPlayer();
+        Checkpoint3D checkpoint = FindCheckpoint(checkpointId);
+        if (player == null)
+        {
+            Debug.LogWarning("[SceneLoader] Player was not found for checkpoint respawn.", this);
+            return;
+        }
+
+        if (checkpoint == null)
+        {
+            Debug.LogWarning($"[SceneLoader] Checkpoint '{checkpointId}' was not found. Falling back to Default PlayerSpawnPoint.", this);
+            MovePlayerToSpawnPoint("Default");
+            return;
+        }
+
+        TeleportPlayer(player, checkpoint.SpawnPosition.position);
+        SnapCamerasToPlayer(player.transform);
+        if (debugMode)
+        {
+            Debug.Log($"[SceneLoader] Player moved to checkpoint '{checkpointId}'.", checkpoint);
+        }
+    }
+
+    public static Checkpoint3D FindCheckpoint(string checkpointId)
+    {
+        if (string.IsNullOrWhiteSpace(checkpointId))
+        {
+            return null;
+        }
+
+        Checkpoint3D[] checkpoints = Object.FindObjectsByType<Checkpoint3D>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (Checkpoint3D checkpoint in checkpoints)
+        {
+            if (checkpoint != null && string.Equals(checkpoint.CheckpointId, checkpointId, System.StringComparison.Ordinal))
+            {
+                return checkpoint;
+            }
+        }
+
+        return null;
     }
 
     public void MovePlayerToSpawnPoint(string spawnPointId)

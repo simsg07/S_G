@@ -119,6 +119,300 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1001 &74639565
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 857596426746229661, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_Name
+      value: Checkpoint
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3.49
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -8.81
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2954969696277576494, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 11e937b7e69192f468c0c7d7e1ebed4a, type: 3}
+--- !u!1 &85218511
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 85218512}
+  - component: {fileID: 85218514}
+  - component: {fileID: 85218513}
+  m_Layer: 9
+  m_Name: MapSolid_Ceiling_006
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &85218512
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 85218511}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &85218513
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 85218511}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: 24, y: 7, z: 0}
+  sizeInCells: {x: 2, y: 1, z: 1}
+  surfaceType: Ceiling
+  edgeStart: {x: 24, y: 7}
+  edgeEnd: {x: 26, y: 7}
+  surfaceNormal: {x: 0, y: -1, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &85218514
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 85218511}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2, y: 0.1, z: 1}
+  m_Center: {x: 25, y: 7.05, z: 0}
+--- !u!1 &88199952
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 88199953}
+  - component: {fileID: 88199955}
+  - component: {fileID: 88199954}
+  m_Layer: 10
+  m_Name: MapSolid_LeftWall_009
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &88199953
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 88199952}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &88199954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 88199952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -17, y: -13, z: 0}
+  sizeInCells: {x: 1, y: 1, z: 1}
+  surfaceType: LeftWall
+  edgeStart: {x: -17, y: -13}
+  edgeEnd: {x: -17, y: -12}
+  surfaceNormal: {x: 1, y: 0, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &88199955
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 88199952}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1, y: 1, z: 1}
+  m_Center: {x: -17.05, y: -12.5, z: 0}
+--- !u!1 &184165128
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 184165129}
+  - component: {fileID: 184165131}
+  - component: {fileID: 184165130}
+  m_Layer: 10
+  m_Name: MapSolid_RightWall_012
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &184165129
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 184165128}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &184165130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 184165128}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -18, y: -13, z: 0}
+  sizeInCells: {x: 1, y: 1, z: 1}
+  surfaceType: RightWall
+  edgeStart: {x: -18, y: -13}
+  edgeEnd: {x: -18, y: -12}
+  surfaceNormal: {x: -1, y: 0, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &184165131
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 184165128}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1, y: 1, z: 1}
+  m_Center: {x: -17.95, y: -12.5, z: 0}
 --- !u!1 &217359474
 GameObject:
   m_ObjectHideFlags: 0
@@ -172,6 +466,164 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 40.52, y: 0.24, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &239521326
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 239521327}
+  - component: {fileID: 239521329}
+  - component: {fileID: 239521328}
+  m_Layer: 9
+  m_Name: MapSolid_Ceiling_005
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &239521327
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 239521326}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &239521328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 239521326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -19, y: 7, z: 0}
+  sizeInCells: {x: 2, y: 1, z: 1}
+  surfaceType: Ceiling
+  edgeStart: {x: -19, y: 7}
+  edgeEnd: {x: -17, y: 7}
+  surfaceNormal: {x: 0, y: -1, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &239521329
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 239521326}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2, y: 0.1, z: 1}
+  m_Center: {x: -18, y: 7.05, z: 0}
+--- !u!1 &313818095
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 313818096}
+  - component: {fileID: 313818098}
+  - component: {fileID: 313818097}
+  m_Layer: 9
+  m_Name: MapSolid_Ceiling_004
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &313818096
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313818095}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &313818097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313818095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: 24, y: -13, z: 0}
+  sizeInCells: {x: 1, y: 1, z: 1}
+  surfaceType: Ceiling
+  edgeStart: {x: 24, y: -13}
+  edgeEnd: {x: 25, y: -13}
+  surfaceNormal: {x: 0, y: -1, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &313818098
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313818095}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 0.1, z: 1}
+  m_Center: {x: 24.5, y: -12.95, z: 0}
 --- !u!1 &657755795
 GameObject:
   m_ObjectHideFlags: 0
@@ -238,6 +690,85 @@ Transform:
   - {fileID: 1990427243}
   m_Father: {fileID: 1293053967}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &812557468
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 812557469}
+  - component: {fileID: 812557471}
+  - component: {fileID: 812557470}
+  m_Layer: 10
+  m_Name: MapSolid_RightWall_015
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &812557469
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 812557468}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &812557470
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 812557468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: 26, y: -14, z: 0}
+  sizeInCells: {x: 1, y: 21, z: 1}
+  surfaceType: RightWall
+  edgeStart: {x: 26, y: -14}
+  edgeEnd: {x: 26, y: 7}
+  surfaceNormal: {x: -1, y: 0, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &812557471
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 812557468}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1, y: 21, z: 1}
+  m_Center: {x: 26.05, y: -3.5, z: 0}
 --- !u!1 &880000001
 GameObject:
   m_ObjectHideFlags: 0
@@ -395,6 +926,85 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!1 &940510407
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 940510408}
+  - component: {fileID: 940510410}
+  - component: {fileID: 940510409}
+  m_Layer: 9
+  m_Name: MapSolid_Ceiling_007
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &940510408
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 940510407}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &940510409
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 940510407}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -17, y: 9, z: 0}
+  sizeInCells: {x: 41, y: 1, z: 1}
+  surfaceType: Ceiling
+  edgeStart: {x: -17, y: 9}
+  edgeEnd: {x: 24, y: 9}
+  surfaceNormal: {x: 0, y: -1, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &940510410
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 940510407}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 41, y: 0.1, z: 1}
+  m_Center: {x: 3.5, y: 9.05, z: 0}
 --- !u!1 &1052475806
 GameObject:
   m_ObjectHideFlags: 0
@@ -480,6 +1090,78 @@ Transform:
   - {fileID: 1423662273}
   m_Father: {fileID: 1293053967}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1197019682
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1197019683}
+  - component: {fileID: 1197019684}
+  m_Layer: 0
+  m_Name: Generated_Reachable_3D_Collision
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &1197019683
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1197019682}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2086491784}
+  - {fileID: 1292314572}
+  - {fileID: 1963503867}
+  - {fileID: 1386034251}
+  - {fileID: 313818096}
+  - {fileID: 239521327}
+  - {fileID: 85218512}
+  - {fileID: 940510408}
+  - {fileID: 1584939732}
+  - {fileID: 88199953}
+  - {fileID: 1986623985}
+  - {fileID: 1333079184}
+  - {fileID: 184165129}
+  - {fileID: 1554382787}
+  - {fileID: 1818929657}
+  - {fileID: 812557469}
+  m_Father: {fileID: 1244746140}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1197019684
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1197019682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 0
+  source: {fileID: 0}
+  sources: []
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: 0, y: 0, z: 0}
+  sizeInCells: {x: 0, y: 0, z: 0}
+  surfaceType: 
+  edgeStart: {x: 0, y: 0}
+  edgeEnd: {x: 0, y: 0}
+  surfaceNormal: {x: 0, y: 0, z: 0}
+  collisionGroup: 
+  seedRegionId: 
 --- !u!1 &1244746138
 GameObject:
   m_ObjectHideFlags: 0
@@ -523,6 +1205,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1246409172}
+  - {fileID: 1197019683}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1246409171
@@ -536,6 +1219,8 @@ GameObject:
   - component: {fileID: 1246409172}
   - component: {fileID: 1246409174}
   - component: {fileID: 1246409173}
+  - component: {fileID: 1246409175}
+  - component: {fileID: 1246409176}
   m_Layer: 0
   m_Name: Visual_Tilemap
   m_TagString: Untagged
@@ -20130,6 +20815,160 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!19719996 &1246409175
+TilemapCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1246409171}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_MaximumTileChangeCount: 1000
+  m_ExtrusionFactor: 0
+  m_UseDelaunayMesh: 0
+--- !u!114 &1246409176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1246409171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38a06c7136cae0541803ef548d1861e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapCollisionAuthoring
+  role: 1
+  collisionCenterZ: 0
+  collisionDepth: 1
+  generatedLayer: 9
+  isTrigger: 0
+  mergeEnabled: 1
+  allowCrossTilemapMerge: 0
+  collisionGroupId: MapSolid
+  bakeMode: 1
+  surfaceThickness: 0.1
+  floorSurfaceOffset: 0
+  ceilingSurfaceOffset: 0
+  leftWallSurfaceOffset: 0
+  rightWallSurfaceOffset: 0
+  floorLayer: 9
+  wallLayer: 10
+  ceilingLayer: 9
+  reachableBoundsPadding: 2
+  usePlayerClearance: 1
+  playerWidthCells: 1
+  playerHeightCells: 2
+  useDominantSolidFillForReachable: 1
+  gizmoColor: {r: 0.15, g: 0.9, b: 0.35, a: 0.3}
+  automaticRoleVersion: 1
+  automaticBakeModeVersion: 3
+--- !u!1 &1292314571
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1292314572}
+  - component: {fileID: 1292314574}
+  - component: {fileID: 1292314573}
+  m_Layer: 9
+  m_Name: MapSolid_Floor_001
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &1292314572
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1292314571}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1292314573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1292314571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -18, y: -12, z: 0}
+  sizeInCells: {x: 1, y: 1, z: 1}
+  surfaceType: Floor
+  edgeStart: {x: -18, y: -12}
+  edgeEnd: {x: -17, y: -12}
+  surfaceNormal: {x: 0, y: 1, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &1292314574
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1292314571}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 0.1, z: 1}
+  m_Center: {x: -17.5, y: -12.05, z: 0}
 --- !u!1 &1293053966
 GameObject:
   m_ObjectHideFlags: 0
@@ -20176,63 +21015,164 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 914d2fa8e4ab45da9ab0307db91c1b31, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneConnectionsAuthoring
---- !u!1001 &1307559018
-PrefabInstance:
+--- !u!1 &1333079183
+GameObject:
   m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1333079184}
+  - component: {fileID: 1333079186}
+  - component: {fileID: 1333079185}
+  m_Layer: 10
+  m_Name: MapSolid_LeftWall_011
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &1333079184
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333079183}
   serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 4.499534
-      objectReference: {fileID: 0}
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -4.949131
-      objectReference: {fileID: 0}
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5806293133280042347, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8631630829956288435, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
-      propertyPath: m_Name
-      value: boss_proto
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 73734b36ca3647a4cae686a74ed6484a, type: 3}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1333079185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333079183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: 25, y: -13, z: 0}
+  sizeInCells: {x: 1, y: 1, z: 1}
+  surfaceType: LeftWall
+  edgeStart: {x: 25, y: -13}
+  edgeEnd: {x: 25, y: -12}
+  surfaceNormal: {x: 1, y: 0, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &1333079186
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333079183}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1, y: 1, z: 1}
+  m_Center: {x: 24.95, y: -12.5, z: 0}
+--- !u!1 &1386034250
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1386034251}
+  - component: {fileID: 1386034253}
+  - component: {fileID: 1386034252}
+  m_Layer: 9
+  m_Name: MapSolid_Ceiling_003
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &1386034251
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1386034250}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1386034252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1386034250}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -18, y: -13, z: 0}
+  sizeInCells: {x: 1, y: 1, z: 1}
+  surfaceType: Ceiling
+  edgeStart: {x: -18, y: -13}
+  edgeEnd: {x: -17, y: -13}
+  surfaceNormal: {x: 0, y: -1, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &1386034253
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1386034250}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 0.1, z: 1}
+  m_Center: {x: -17.5, y: -12.95, z: 0}
 --- !u!1001 &1423662272
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20347,6 +21287,164 @@ Transform:
   - {fileID: 217359475}
   m_Father: {fileID: 657755796}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1554382786
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1554382787}
+  - component: {fileID: 1554382789}
+  - component: {fileID: 1554382788}
+  m_Layer: 10
+  m_Name: MapSolid_RightWall_013
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &1554382787
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554382786}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1554382788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554382786}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: 24, y: -13, z: 0}
+  sizeInCells: {x: 1, y: 1, z: 1}
+  surfaceType: RightWall
+  edgeStart: {x: 24, y: -13}
+  edgeEnd: {x: 24, y: -12}
+  surfaceNormal: {x: -1, y: 0, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &1554382789
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554382786}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1, y: 1, z: 1}
+  m_Center: {x: 24.05, y: -12.5, z: 0}
+--- !u!1 &1584939731
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1584939732}
+  - component: {fileID: 1584939734}
+  - component: {fileID: 1584939733}
+  m_Layer: 10
+  m_Name: MapSolid_LeftWall_008
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &1584939732
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1584939731}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1584939733
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1584939731}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -19, y: -13, z: 0}
+  sizeInCells: {x: 1, y: 20, z: 1}
+  surfaceType: LeftWall
+  edgeStart: {x: -19, y: -13}
+  edgeEnd: {x: -19, y: 7}
+  surfaceNormal: {x: 1, y: 0, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &1584939734
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1584939731}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1, y: 20, z: 1}
+  m_Center: {x: -19.05, y: -3, z: 0}
 --- !u!1 &1735799414
 GameObject:
   m_ObjectHideFlags: 0
@@ -20400,6 +21498,142 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.24, y: 7.02, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1001 &1793306210
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3376966513222767766, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_Name
+      value: Vine_CircleSpike_Set
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -7.03
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -10.53
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7241126950553754950, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 6f44003835da32d49be5f039cb5e96ed, type: 3}
+--- !u!1 &1818929656
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1818929657}
+  - component: {fileID: 1818929659}
+  - component: {fileID: 1818929658}
+  m_Layer: 10
+  m_Name: MapSolid_RightWall_014
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &1818929657
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1818929656}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1818929658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1818929656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: 24, y: 7, z: 0}
+  sizeInCells: {x: 1, y: 2, z: 1}
+  surfaceType: RightWall
+  edgeStart: {x: 24, y: 7}
+  edgeEnd: {x: 24, y: 9}
+  surfaceNormal: {x: -1, y: 0, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &1818929659
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1818929656}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1, y: 2, z: 1}
+  m_Center: {x: 24.05, y: 8, z: 0}
 --- !u!1 &1843536992
 GameObject:
   m_ObjectHideFlags: 0
@@ -20487,6 +21721,221 @@ Transform:
   - {fileID: 1052475807}
   m_Father: {fileID: 657755796}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1955756782
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 8398327653414921045, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_Name
+      value: EyeballFly
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -9.084332
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -9.085197
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9120076286916509478, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f207a0a2b9c1a38429bc56d1860ff861, type: 3}
+--- !u!1 &1963503866
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1963503867}
+  - component: {fileID: 1963503869}
+  - component: {fileID: 1963503868}
+  m_Layer: 9
+  m_Name: MapSolid_Ceiling_002
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &1963503867
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1963503866}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1963503868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1963503866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -20, y: -13, z: 0}
+  sizeInCells: {x: 1, y: 1, z: 1}
+  surfaceType: Ceiling
+  edgeStart: {x: -20, y: -13}
+  edgeEnd: {x: -19, y: -13}
+  surfaceNormal: {x: 0, y: -1, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &1963503869
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1963503866}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 0.1, z: 1}
+  m_Center: {x: -19.5, y: -12.95, z: 0}
+--- !u!1 &1986623984
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1986623985}
+  - component: {fileID: 1986623987}
+  - component: {fileID: 1986623986}
+  m_Layer: 10
+  m_Name: MapSolid_LeftWall_010
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &1986623985
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1986623984}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1986623986
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1986623984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -17, y: 7, z: 0}
+  sizeInCells: {x: 1, y: 1, z: 1}
+  surfaceType: LeftWall
+  edgeStart: {x: -17, y: 7}
+  edgeEnd: {x: -17, y: 8}
+  surfaceNormal: {x: 1, y: 0, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &1986623987
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1986623984}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.1, y: 1, z: 1}
+  m_Center: {x: -17.05, y: 7.5, z: 0}
 --- !u!1001 &1990427242
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20561,6 +22010,85 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 100001, guid: 72369e40a11e4278bc1388848e54d899, type: 3}
   m_PrefabInstance: {fileID: 1990427242}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2086491783
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2086491784}
+  - component: {fileID: 2086491786}
+  - component: {fileID: 2086491785}
+  m_Layer: 9
+  m_Name: MapSolid_Floor_000
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &2086491784
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2086491783}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1197019683}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2086491785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2086491783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5231b5a5c374c8fb06979ed6262d51b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapGeneratedColliderMarker
+  kind: 1
+  source: {fileID: 1246409176}
+  sources:
+  - {fileID: 1246409176}
+  bakeSignature: ReachableSurfaceBoundary.v1
+  minimumCell: {x: -20, y: -14, z: 0}
+  sizeInCells: {x: 46, y: 1, z: 1}
+  surfaceType: Floor
+  edgeStart: {x: -20, y: -14}
+  edgeEnd: {x: 26, y: -14}
+  surfaceNormal: {x: 0, y: 1, z: 0}
+  collisionGroup: MapSolid
+  seedRegionId: Shared:Visual_Map_Grid
+--- !u!65 &2086491786
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2086491783}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 46, y: 0.1, z: 1}
+  m_Center: {x: 3, y: -14.05, z: 0}
 --- !u!1001 &2135027749
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20639,4 +22167,6 @@ SceneRoots:
   - {fileID: 880000002}
   - {fileID: 1293053967}
   - {fileID: 657755796}
-  - {fileID: 1307559018}
+  - {fileID: 74639565}
+  - {fileID: 1955756782}
+  - {fileID: 1793306210}

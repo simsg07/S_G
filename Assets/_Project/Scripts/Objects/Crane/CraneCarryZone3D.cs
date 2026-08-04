@@ -121,6 +121,7 @@ public class CraneCarryZone3D : MonoBehaviour
     private static bool IsCraneInfrastructure(Collider target)
     {
         return target.GetComponentInParent<CraneObject>() != null ||
+               target.GetComponentInParent<VerticalCraneController3D>() != null ||
                target.GetComponentInParent<CraneRailPath3D>() != null ||
                target.GetComponentInParent<CraneLeverSwitch>() != null ||
                target.GetComponentInParent<CraneCarryZone3D>() != null;
@@ -150,6 +151,7 @@ public class CraneCarryZone3D : MonoBehaviour
                         Vector3 platformVelocity = worldDelta / step * playerPlatformVelocityMultiplier;
                         Vector3 velocity = body.linearVelocity;
                         velocity.x += platformVelocity.x;
+                        velocity.y += platformVelocity.y;
                         velocity.z += platformVelocity.z;
                         body.linearVelocity = velocity;
                     }

@@ -36,6 +36,7 @@ public class BlockObject : MonoBehaviour
     [SerializeField] private Collider mainCollider;
     [SerializeField] private Renderer[] renderers;
     [SerializeField] private Animator animator;
+    [SerializeField] private PersistentSceneObject3D persistentState;
 
     [Header("Debug")]
     [SerializeField] private bool debugMode = true;
@@ -176,6 +177,8 @@ public class BlockObject : MonoBehaviour
         }
 
         Log("BreakBlock complete.");
+        if (persistentState == null) persistentState = GetComponent<PersistentSceneObject3D>();
+        persistentState?.MarkDestroyed();
     }
 
     [ContextMenu("Reset Block")]

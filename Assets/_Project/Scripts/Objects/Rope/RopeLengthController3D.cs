@@ -11,6 +11,11 @@ public sealed class RopeLengthController3D : MonoBehaviour
     [SerializeField] private Transform ropeEndPoint;
     [Header("Visible Debug Box")]
     [SerializeField] private Transform ropeDebugVisual;
+    [Header("Rope Sprite Visual")]
+    [Tooltip("Optional tiled SpriteRenderer used for the visible rope without stretching the source sprite.")]
+    [SerializeField] private SpriteRenderer ropeSpriteVisual;
+    [Tooltip("Small visual-only overlap added to the rope length to hide transparent edge gaps.")]
+    [SerializeField, Min(0f)] private float segmentOverlap;
     [Header("3D Hit Collider")]
     [SerializeField] private BoxCollider ropeHitCollider;
     [SerializeField, Min(MinimumThickness)] private float ropeThickness = 0.15f;
@@ -37,6 +42,7 @@ public sealed class RopeLengthController3D : MonoBehaviour
     private void OnValidate()
     {
         ropeThickness = IsFinite(ropeThickness) ? Mathf.Max(MinimumThickness, ropeThickness) : 0.15f;
+        segmentOverlap = IsFinite(segmentOverlap) ? Mathf.Max(0f, segmentOverlap) : 0f;
         colliderExtraSize = SanitizeSize(colliderExtraSize);
         if (updateOnValidate && !Application.isPlaying)
         {
@@ -52,6 +58,12 @@ public sealed class RopeLengthController3D : MonoBehaviour
         ropeDebugVisual = debugVisual;
     }
 
+    public void ConfigureSpriteVisual(SpriteRenderer spriteVisual, float overlap)
+    {
+        ropeSpriteVisual = spriteVisual;
+        segmentOverlap = Mathf.Max(0f, overlap);
+    }
+
     [ContextMenu("Apply Rope Length")]
     public void ApplyRopeLength()
     {
@@ -59,6 +71,7 @@ public sealed class RopeLengthController3D : MonoBehaviour
         CurrentLength = length;
         UpdateCollider(start, end, direction, length);
         UpdateDebugVisual();
+        UpdateSpriteVisual(start, end, direction, length);
         Log($"Applied rope length: {length:0.###}.");
     }
 
@@ -122,6 +135,19 @@ public sealed class RopeLengthController3D : MonoBehaviour
             colliderWorldSize.x / Mathf.Max(MinimumThickness, parentScale.x),
             colliderWorldSize.y / Mathf.Max(MinimumThickness, parentScale.y),
             colliderWorldSize.z / Mathf.Max(MinimumThickness, parentScale.z)));
+    }
+
+    private void UpdateSpriteVisual(Vector3 start, Vector3 end, Vector3 direction, float length)
+    {
+        if (ropeSpriteVisual == null || ropeSpriteVisual.sprite == null) return;
+        Transform visual = ropeSpriteVisual.transform;
+        Transform parent = visual.parent;
+        visual.position = (start + end) * 0.5f;
+        visual.localRotation = DirectionRotation(parent, direction);
+        visual.localScale = Vector3.one;
+        ropeSpriteVisual.drawMode = SpriteDrawMode.Tiled;
+        Vector2 sourceSize = ropeSpriteVisual.sprite.bounds.size;
+        ropeSpriteVisual.size = new Vector2(sourceSize.x, Mathf.Max(MinimumLength, length + segmentOverlap));
     }
 
     private bool TryGetGeometry(out Vector3 start, out Vector3 end, out Vector3 direction, out float length)

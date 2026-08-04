@@ -615,6 +615,7 @@ GameObject:
   - component: {fileID: 880226006}
   - component: {fileID: 880226008}
   - component: {fileID: 880226007}
+  - component: {fileID: 880226009}
   m_Layer: 0
   m_Name: Visual_Tilemap
   m_TagString: Untagged
@@ -64649,6 +64650,43 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &880226009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 880226005}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38a06c7136cae0541803ef548d1861e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TilemapCollisionAuthoring
+  role: 1
+  collisionCenterZ: 0
+  collisionDepth: 1
+  generatedLayer: 9
+  isTrigger: 0
+  mergeEnabled: 1
+  allowCrossTilemapMerge: 0
+  collisionGroupId: MapSolid
+  bakeMode: 1
+  surfaceThickness: 0.1
+  floorSurfaceOffset: 0
+  ceilingSurfaceOffset: 0
+  leftWallSurfaceOffset: 0
+  rightWallSurfaceOffset: 0
+  floorLayer: 9
+  wallLayer: 10
+  ceilingLayer: 9
+  reachableBoundsPadding: 2
+  usePlayerClearance: 0
+  playerWidthCells: 1
+  playerHeightCells: 2
+  useDominantSolidFillForReachable: 1
+  gizmoColor: {r: 0.15, g: 0.9, b: 0.35, a: 0.3}
+  automaticRoleVersion: 1
+  automaticBakeModeVersion: 4
 --- !u!1 &1064676636
 GameObject:
   m_ObjectHideFlags: 0
