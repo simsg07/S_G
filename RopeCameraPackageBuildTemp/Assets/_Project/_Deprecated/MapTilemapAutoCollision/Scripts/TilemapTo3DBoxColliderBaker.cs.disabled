@@ -1,0 +1,645 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Tilemaps;
+
+[DisallowMultipleComponent]
+public class TilemapTo3DBoxColliderBaker : MonoBehaviour
+{
+    [Header("Source Mode")]
+    [Tooltip("True: Tilemap_GroundVisual 같은 이미지 Tilemap을 기준으로 생성합니다. False: Tilemap_GroundCollision 같은 기능 Tilemap을 기준으로 생성합니다.")]
+    [SerializeField] private bool useVisualTilemapAsCollisionSource = true;
+
+    [Tooltip("기본 충돌 소스입니다. 보통 Tilemap_GroundVisual을 연결합니다.")]
+    [SerializeField] private Tilemap visualSourceTilemap;
+
+    [Tooltip("예외 처리용 충돌 소스입니다. 보통 Tilemap_GroundCollision을 연결합니다.")]
+    [SerializeField] private Tilemap functionCollisionTilemap;
+
+    [Header("Generated Collider Parent")]
+    [Tooltip("생성된 3D BoxCollider 오브젝트를 담을 부모입니다. 생성 자식은 이 부모의 Layer를 상속합니다.")]
+    [SerializeField] private Transform generatedParent;
+
+    [Header("Collider Size")]
+    [SerializeField] private float cellWidth = 1f;
+    [SerializeField] private float cellHeight = 1f;
+    [SerializeField] private float colliderDepth = 0.3f;
+    [SerializeField] private float yOffset;
+    [SerializeField] private bool thinGroundCollider = true;
+    [SerializeField] private float groundColliderHeight = 0.08f;
+    [SerializeField] private float groundYOffset = 0.02f;
+
+    [Header("Generation")]
+    [SerializeField] private bool rebuildOnPlay = true;
+    [SerializeField] private bool rebuildOnValidate;
+    [SerializeField] private bool generateInEditor = true;
+    [SerializeField] private bool clearOldGeneratedColliders = true;
+    [SerializeField] private bool mergeHorizontalTiles = true;
+    [SerializeField] private bool mergeVerticalTiles;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugMode = true;
+    [SerializeField] private bool showGizmos = true;
+
+    private readonly List<Bounds> previewBounds = new List<Bounds>();
+
+    public bool UseVisualTilemapAsCollisionSource => useVisualTilemapAsCollisionSource;
+    public Tilemap VisualSourceTilemap => visualSourceTilemap;
+    public Tilemap FunctionCollisionTilemap => functionCollisionTilemap;
+    public Tilemap ActiveSourceTilemap => GetActiveSourceTilemap();
+    public Transform GeneratedParent => generatedParent;
+
+    public void Configure(
+        Tilemap source,
+        Transform parent,
+        bool useThinGroundCollider,
+        bool horizontalMerge,
+        bool verticalMerge)
+    {
+        functionCollisionTilemap = source;
+        if (visualSourceTilemap == null)
+        {
+            visualSourceTilemap = source;
+        }
+
+        generatedParent = parent;
+        thinGroundCollider = useThinGroundCollider;
+        mergeHorizontalTiles = horizontalMerge;
+        mergeVerticalTiles = verticalMerge;
+    }
+
+    public void ConfigureGroundVisualSource(Tilemap visualSource, Tilemap functionSource, Transform parent)
+    {
+        useVisualTilemapAsCollisionSource = true;
+        visualSourceTilemap = visualSource;
+        functionCollisionTilemap = functionSource;
+        generatedParent = parent;
+        thinGroundCollider = true;
+        groundColliderHeight = 0.08f;
+        groundYOffset = 0.02f;
+        colliderDepth = 0.3f;
+        mergeHorizontalTiles = true;
+        mergeVerticalTiles = false;
+        rebuildOnPlay = true;
+    }
+
+    private void Reset()
+    {
+        Tilemap ownTilemap = GetComponent<Tilemap>();
+        visualSourceTilemap = ownTilemap;
+        functionCollisionTilemap = ownTilemap;
+        generatedParent = FindRecommendedGeneratedParent(false);
+        ApplyNameBasedDefaults();
+    }
+
+    private void Start()
+    {
+        if (rebuildOnPlay)
+        {
+            RebuildColliders();
+        }
+    }
+
+    private void OnValidate()
+    {
+        cellWidth = Mathf.Max(0.01f, cellWidth);
+        cellHeight = Mathf.Max(0.01f, cellHeight);
+        colliderDepth = Mathf.Max(0.01f, colliderDepth);
+        groundColliderHeight = Mathf.Max(0.01f, groundColliderHeight);
+        groundYOffset = Mathf.Max(0f, groundYOffset);
+
+        Tilemap ownTilemap = GetComponent<Tilemap>();
+        if (visualSourceTilemap == null)
+        {
+            visualSourceTilemap = ownTilemap;
+        }
+
+        if (functionCollisionTilemap == null)
+        {
+            functionCollisionTilemap = ownTilemap;
+        }
+
+        ApplyNameBasedDefaults();
+
+        if (!Application.isPlaying && rebuildOnValidate && generateInEditor)
+        {
+            RebuildColliders();
+        }
+    }
+
+    [ContextMenu("Validate Baker Setup")]
+    public void ValidateBakerSetup()
+    {
+        Tilemap activeSource = GetActiveSourceTilemap();
+        Debug.Log(
+            "[TilemapBaker] Validate Baker Setup\n" +
+            $"- useVisualTilemapAsCollisionSource: {useVisualTilemapAsCollisionSource}\n" +
+            $"- visualSourceTilemap: {GetTilemapName(visualSourceTilemap)}\n" +
+            $"- functionCollisionTilemap: {GetTilemapName(functionCollisionTilemap)}\n" +
+            $"- ActiveSourceTilemap: {GetTilemapName(activeSource)}\n" +
+            $"- ActiveSourceTilemap Cell Bounds: {GetCellBoundsText(activeSource)}\n" +
+            $"- ActiveSourceTilemap Painted Tile Count: {CountPaintedTiles(activeSource)}\n" +
+            $"- generatedParent: {GetTransformName(generatedParent)}\n" +
+            $"- generatedParent Layer: {GetLayerName(generatedParent)}\n" +
+            $"- Generated BoxCollider Count: {CountGeneratedBoxColliders()}\n" +
+            "- Player가 밟으려면 Generated_GroundCollision Layer를 Ground로 수동 설정하고 PlayerController.groundLayerMask에 Ground가 포함되어야 합니다.",
+            this);
+
+        WarnIfDefaultGeneratedParentLayer();
+    }
+
+    [ContextMenu("Generate Colliders")]
+    public void GenerateColliders()
+    {
+        if (!Application.isPlaying && !generateInEditor)
+        {
+            Debug.LogWarning("[TilemapBaker] Editor generation is disabled.", this);
+            return;
+        }
+
+        Tilemap activeSource = GetActiveSourceTilemap();
+        string sourceMode = GetSourceModeLabel();
+
+        if (activeSource == null)
+        {
+            Debug.LogWarning($"[TilemapBaker] sourceTilemap is null. Source Mode: {sourceMode}", this);
+            return;
+        }
+
+        EnsureGeneratedParent();
+
+        if (generatedParent == null)
+        {
+            Debug.LogWarning("[TilemapBaker] generatedParent is null.", this);
+            return;
+        }
+
+        if (clearOldGeneratedColliders)
+        {
+            ClearColliders();
+        }
+
+        int paintedTileCount = CountPaintedTiles(activeSource);
+        BoundsInt cellBounds = activeSource.cellBounds;
+
+        Debug.Log($"[TilemapBaker] Source Mode: {sourceMode}", this);
+        Debug.Log($"[TilemapBaker] Source Tilemap: {activeSource.name}", this);
+        Debug.Log($"[TilemapBaker] Cell Bounds: {cellBounds}", this);
+        Debug.Log($"[TilemapBaker] Painted Tile Count: {paintedTileCount}", this);
+        Debug.Log($"[TilemapBaker] Generated Parent: {generatedParent.name}", this);
+        Debug.Log($"[TilemapBaker] Generated Parent Layer: {GetLayerName(generatedParent)}", this);
+
+        WarnIfDefaultGeneratedParentLayer();
+
+        if (paintedTileCount <= 0)
+        {
+            Debug.LogWarning("[TilemapBaker] No painted tiles found. Check Active Tilemap. You probably painted on the wrong Tilemap.", this);
+            Debug.Log("[TilemapBaker] Generated Collider Count: 0", this);
+            return;
+        }
+
+        List<TileRun> runs = BuildRuns(activeSource);
+        previewBounds.Clear();
+
+        for (int i = 0; i < runs.Count; i++)
+        {
+            CreateCollider(activeSource, runs[i], i);
+        }
+
+        Debug.Log($"[TilemapBaker] Generated Collider Count: {runs.Count}", this);
+    }
+
+    [ContextMenu("Clear Colliders")]
+    public void ClearColliders()
+    {
+        if (generatedParent == null)
+        {
+            Debug.LogWarning("[TilemapBaker] generatedParent is null. Nothing to clear.", this);
+            return;
+        }
+
+        int clearedCount = 0;
+        for (int i = generatedParent.childCount - 1; i >= 0; i--)
+        {
+            Transform child = generatedParent.GetChild(i);
+            if (child == null || child.GetComponent<TilemapGeneratedColliderMarker>() == null)
+            {
+                continue;
+            }
+
+            DestroyGeneratedObject(child.gameObject);
+            clearedCount++;
+        }
+
+        previewBounds.Clear();
+        Debug.Log($"[TilemapBaker] Cleared Collider Count: {clearedCount}", this);
+    }
+
+    [ContextMenu("Clear Generated Colliders")]
+    public void ClearGeneratedColliders()
+    {
+        ClearColliders();
+    }
+
+    [ContextMenu("Rebuild Colliders")]
+    public void RebuildColliders()
+    {
+        Debug.Log("[TilemapBaker] Rebuild Colliders started.", this);
+        GenerateColliders();
+    }
+
+    [ContextMenu("Apply Parent Layer To Generated Children")]
+    public void ApplyParentLayerToGeneratedChildren()
+    {
+        if (generatedParent == null)
+        {
+            Debug.LogWarning("[TilemapBaker] generatedParent is null.", this);
+            return;
+        }
+
+        int targetLayer = generatedParent.gameObject.layer;
+        int appliedCount = 0;
+        for (int i = 0; i < generatedParent.childCount; i++)
+        {
+            Transform child = generatedParent.GetChild(i);
+            if (child == null || child.GetComponent<TilemapGeneratedColliderMarker>() == null)
+            {
+                continue;
+            }
+
+            child.gameObject.layer = targetLayer;
+            appliedCount++;
+        }
+
+        Debug.Log($"[TilemapBaker] Applied parent layer to generated children. Count: {appliedCount}, Layer: {GetLayerName(generatedParent)}", this);
+        WarnIfDefaultGeneratedParentLayer();
+    }
+
+    private Tilemap GetActiveSourceTilemap()
+    {
+        return useVisualTilemapAsCollisionSource ? visualSourceTilemap : functionCollisionTilemap;
+    }
+
+    private string GetSourceModeLabel()
+    {
+        return useVisualTilemapAsCollisionSource ? "Visual" : "Function";
+    }
+
+    private void EnsureGeneratedParent()
+    {
+        if (generatedParent != null)
+        {
+            return;
+        }
+
+        Transform existing = FindRecommendedGeneratedParent(true);
+        if (existing != null)
+        {
+            generatedParent = existing;
+            return;
+        }
+
+        GameObject parentObject = new GameObject(GetRecommendedGeneratedParentName());
+        Transform parentTransform = transform.parent != null ? transform.parent : transform;
+        parentObject.transform.SetParent(parentTransform);
+        parentObject.transform.localPosition = Vector3.zero;
+        parentObject.transform.localRotation = Quaternion.identity;
+        parentObject.transform.localScale = Vector3.one;
+        generatedParent = parentObject.transform;
+    }
+
+    private Transform FindRecommendedGeneratedParent(bool includeChildren)
+    {
+        string parentName = GetRecommendedGeneratedParentName();
+        if (transform.parent != null)
+        {
+            Transform sibling = transform.parent.Find(parentName);
+            if (sibling != null)
+            {
+                return sibling;
+            }
+        }
+
+        if (includeChildren)
+        {
+            Transform child = transform.Find(parentName);
+            if (child != null)
+            {
+                return child;
+            }
+        }
+
+        return transform.Find("Generated_Colliders");
+    }
+
+    private string GetRecommendedGeneratedParentName()
+    {
+        if (functionCollisionTilemap != null && functionCollisionTilemap.name.Contains("GroundCollision"))
+        {
+            return "Generated_GroundCollision";
+        }
+
+        Tilemap activeSource = GetActiveSourceTilemap();
+        string sourceName = activeSource != null ? activeSource.name : gameObject.name;
+        if (sourceName.Contains("GroundVisual"))
+        {
+            return "Generated_GroundCollision";
+        }
+
+        if (sourceName.StartsWith("Tilemap_"))
+        {
+            return sourceName.Replace("Tilemap_", "Generated_");
+        }
+
+        return $"Generated_{sourceName}_Colliders";
+    }
+
+    private void ApplyNameBasedDefaults()
+    {
+        Tilemap activeSource = GetActiveSourceTilemap();
+        string sourceName = activeSource != null ? activeSource.name : gameObject.name;
+        if (sourceName.Contains("GroundVisual") || sourceName.Contains("GroundCollision") || gameObject.name.Contains("GroundCollision"))
+        {
+            thinGroundCollider = true;
+            mergeHorizontalTiles = true;
+            mergeVerticalTiles = false;
+        }
+    }
+
+    private static int CountPaintedTiles(Tilemap tilemap)
+    {
+        if (tilemap == null)
+        {
+            return 0;
+        }
+
+        BoundsInt bounds = tilemap.cellBounds;
+        int count = 0;
+        for (int y = bounds.yMin; y < bounds.yMax; y++)
+        {
+            for (int x = bounds.xMin; x < bounds.xMax; x++)
+            {
+                if (tilemap.HasTile(new Vector3Int(x, y, 0)))
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    private int CountGeneratedBoxColliders()
+    {
+        if (generatedParent == null)
+        {
+            return 0;
+        }
+
+        int count = 0;
+        for (int i = 0; i < generatedParent.childCount; i++)
+        {
+            Transform child = generatedParent.GetChild(i);
+            if (child != null && child.GetComponent<BoxCollider>() != null)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private List<TileRun> BuildRuns(Tilemap tilemap)
+    {
+        BoundsInt bounds = tilemap.cellBounds;
+        HashSet<Vector3Int> occupied = new HashSet<Vector3Int>();
+        for (int y = bounds.yMin; y < bounds.yMax; y++)
+        {
+            for (int x = bounds.xMin; x < bounds.xMax; x++)
+            {
+                Vector3Int cell = new Vector3Int(x, y, 0);
+                if (tilemap.HasTile(cell))
+                {
+                    occupied.Add(cell);
+                }
+            }
+        }
+
+        List<TileRun> runs = new List<TileRun>();
+        HashSet<Vector3Int> visited = new HashSet<Vector3Int>();
+
+        for (int y = bounds.yMin; y < bounds.yMax; y++)
+        {
+            for (int x = bounds.xMin; x < bounds.xMax; x++)
+            {
+                Vector3Int start = new Vector3Int(x, y, 0);
+                if (!occupied.Contains(start) || visited.Contains(start))
+                {
+                    continue;
+                }
+
+                int width = ResolveHorizontalWidth(start, occupied, visited);
+                int height = mergeVerticalTiles ? ResolveVerticalHeight(start, width, occupied, visited) : 1;
+                MarkVisited(start, width, height, visited);
+                runs.Add(new TileRun(start, width, height));
+            }
+        }
+
+        return runs;
+    }
+
+    private int ResolveHorizontalWidth(Vector3Int start, HashSet<Vector3Int> occupied, HashSet<Vector3Int> visited)
+    {
+        if (!mergeHorizontalTiles)
+        {
+            return 1;
+        }
+
+        int width = 1;
+        while (occupied.Contains(new Vector3Int(start.x + width, start.y, 0)) &&
+               !visited.Contains(new Vector3Int(start.x + width, start.y, 0)))
+        {
+            width++;
+        }
+
+        return width;
+    }
+
+    private int ResolveVerticalHeight(Vector3Int start, int width, HashSet<Vector3Int> occupied, HashSet<Vector3Int> visited)
+    {
+        int height = 1;
+        bool canGrow = true;
+        while (canGrow)
+        {
+            int nextY = start.y + height;
+            for (int x = start.x; x < start.x + width; x++)
+            {
+                Vector3Int cell = new Vector3Int(x, nextY, 0);
+                if (!occupied.Contains(cell) || visited.Contains(cell))
+                {
+                    canGrow = false;
+                    break;
+                }
+            }
+
+            if (canGrow)
+            {
+                height++;
+            }
+        }
+
+        return height;
+    }
+
+    private static void MarkVisited(Vector3Int start, int width, int height, HashSet<Vector3Int> visited)
+    {
+        for (int y = start.y; y < start.y + height; y++)
+        {
+            for (int x = start.x; x < start.x + width; x++)
+            {
+                visited.Add(new Vector3Int(x, y, 0));
+            }
+        }
+    }
+
+    private void CreateCollider(Tilemap tilemap, TileRun run, int index)
+    {
+        Vector3 cellMin = tilemap.CellToWorld(run.startCell);
+        Vector3 cellMax = tilemap.CellToWorld(run.startCell + new Vector3Int(run.width, run.height, 0));
+        float width = Mathf.Max(0.01f, Mathf.Abs(cellMax.x - cellMin.x));
+        float height = Mathf.Max(0.01f, Mathf.Abs(cellMax.y - cellMin.y));
+
+        if (!Mathf.Approximately(cellWidth, 1f))
+        {
+            width = run.width * cellWidth;
+        }
+
+        if (!Mathf.Approximately(cellHeight, 1f))
+        {
+            height = run.height * cellHeight;
+        }
+
+        Vector3 center = new Vector3(
+            (cellMin.x + cellMax.x) * 0.5f,
+            (cellMin.y + cellMax.y) * 0.5f,
+            tilemap.transform.position.z);
+
+        Vector3 size = new Vector3(width, height, colliderDepth);
+        if (thinGroundCollider)
+        {
+            float topSurfaceY = Mathf.Max(cellMin.y, cellMax.y);
+            if (!Mathf.Approximately(cellHeight, 1f))
+            {
+                topSurfaceY = center.y + height * 0.5f;
+            }
+
+            center.y = topSurfaceY + groundYOffset + groundColliderHeight * 0.5f;
+            size.y = groundColliderHeight;
+        }
+        else
+        {
+            center.y += yOffset;
+        }
+
+        GameObject colliderObject = new GameObject($"GroundCollider_{index}");
+        colliderObject.transform.SetParent(generatedParent);
+        colliderObject.transform.position = center;
+        colliderObject.transform.rotation = Quaternion.identity;
+        colliderObject.transform.localScale = Vector3.one;
+        colliderObject.layer = generatedParent.gameObject.layer;
+
+        BoxCollider boxCollider = colliderObject.AddComponent<BoxCollider>();
+        boxCollider.size = size;
+        boxCollider.center = Vector3.zero;
+        boxCollider.isTrigger = false;
+        colliderObject.AddComponent<TilemapGeneratedColliderMarker>();
+
+        previewBounds.Add(new Bounds(center, size));
+
+        Debug.Log(
+            $"[TilemapBaker] Created collider: {colliderObject.name}, Layer: {GetLayerName(colliderObject.layer)}, Size: {boxCollider.size}, Position: {colliderObject.transform.position}",
+            this);
+    }
+
+    private void WarnIfDefaultGeneratedParentLayer()
+    {
+        if (generatedParent != null && generatedParent.gameObject.layer == 0)
+        {
+            Debug.LogWarning("[TilemapBaker] Warning: Generated parent layer is Default. Set Generated_GroundCollision Layer to Ground manually.", this);
+        }
+    }
+
+    private static string GetTilemapName(Tilemap tilemap)
+    {
+        return tilemap != null ? tilemap.name : "None";
+    }
+
+    private static string GetTransformName(Transform target)
+    {
+        return target != null ? target.name : "None";
+    }
+
+    private static string GetCellBoundsText(Tilemap tilemap)
+    {
+        return tilemap != null ? tilemap.cellBounds.ToString() : "None";
+    }
+
+    private static string GetLayerName(Transform target)
+    {
+        return target != null ? GetLayerName(target.gameObject.layer) : "None";
+    }
+
+    private static string GetLayerName(int layer)
+    {
+        string layerName = LayerMask.LayerToName(layer);
+        return string.IsNullOrEmpty(layerName) ? layer.ToString() : layerName;
+    }
+
+    private static void DestroyGeneratedObject(GameObject target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(target);
+        }
+        else
+        {
+            DestroyImmediate(target);
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (!showGizmos)
+        {
+            return;
+        }
+
+        Gizmos.color = thinGroundCollider
+            ? new Color(0.1f, 1f, 0.2f, 0.35f)
+            : new Color(0.2f, 0.6f, 1f, 0.25f);
+
+        for (int i = 0; i < previewBounds.Count; i++)
+        {
+            Gizmos.DrawCube(previewBounds[i].center, previewBounds[i].size);
+            Gizmos.DrawWireCube(previewBounds[i].center, previewBounds[i].size);
+        }
+    }
+
+    private readonly struct TileRun
+    {
+        public readonly Vector3Int startCell;
+        public readonly int width;
+        public readonly int height;
+
+        public TileRun(Vector3Int startCell, int width, int height)
+        {
+            this.startCell = startCell;
+            this.width = Mathf.Max(1, width);
+            this.height = Mathf.Max(1, height);
+        }
+    }
+}

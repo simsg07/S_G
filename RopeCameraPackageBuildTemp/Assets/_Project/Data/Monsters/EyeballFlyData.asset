@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7d2e2ef712c4e18bba5cc1f6ca0d201, type: 3}
+  m_Name: EyeballFlyData
+  m_EditorClassIdentifier: 
+  monsterId: M_EYEBALL_FLY
+  displayName: Eyeball Fly
+  monsterKind: 1
+  maxHp: 1
+  contactDamage: 1
+  canDetectPlayer: 1
+  canDetectLight: 1
+  prioritizePlayer: 1
+  playerDetectRange: 1.5
+  lightDetectRange: 4
+  chaseRange: 2.5
+  requireLineOfSight: 1
+  obstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 7936
+  moveType: 1
+  moveSpeed: 1
+  returnSpeed: 1
+  stopDistance: 0.1
+  lockZPosition: 1
+  useGravity: 0
+  attackType: 1
+  attackDamage: 1
+  attackRange: 1
+  attackCooldown: 1
+  attackDuration: 0.5
+  attackTargetLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  canAttackHitReceivers: 1
+  canAttackPlayer: 1
+  canAttackLight: 1
+  useHowl: 0
+  howlDuration: 1
+  howlStunDuration: 1.5
+  useSelfDestruct: 0
+  explosionRadius: 1.5
+  lockRunDirectionOnDetect: 0
+  speedIncreasePerSecond: 1
+  maxRunSpeed: 7
+  idleBoolName: IsIdle
+  moveBoolName: IsMoving
+  attackBoolName: IsAttacking
+  deadBoolName: IsDead
+  attackTriggerName: Attack
+  debugMode: 1

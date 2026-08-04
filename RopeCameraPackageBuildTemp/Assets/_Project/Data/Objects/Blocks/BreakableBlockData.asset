@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb7a215de13248d6b4b26f38e2df20c7, type: 3}
+  m_Name: BreakableBlockData
+  m_EditorClassIdentifier: 
+  objectId: G_BLOCK_BREAKABLE
+  displayName: Breakable Block
+  objectKind: 5
+  canBeTargeted: 1
+  maxHitCount: 1
+  triggerOnce: 1
+  acceptGenericHit: 1
+  acceptEyeballFlyAttack: 0
+  acceptBoomberContact: 1
+  acceptBoomberExplosion: 1
+  acceptMonsterAttack: 0
+  damage: 0
+  canDamagePlayer: 0
+  canDamageMonster: 0
+  damageOncePerTarget: 1
+  useGravity: 0
+  startAttached: 1
+  disableGravityOnStart: 1
+  dropSpeed: 0
+  lockXWhileFalling: 1
+  lockZPosition: 1
+  breakOnGroundHit: 0
+  remainAsPlatformOnGround: 0
+  canPauseByCamera: 0
+  canPauseByShutter: 0
+  becomePlatformWhenPaused: 0
+  breakMode: 5
+  breakDelay: 0
+  destroyDelay: 0.3
+  disableColliderOnBreak: 1
+  disableRendererOnBreak: 0
+  blockType: 2
+  canBlockPlayer: 1
+  canBlockMonster: 1
+  canBlockSight: 0
+  canBlockLight: 0
+  removeColliderOnBreak: 1
+  hideVisualOnBreak: 1
+  delayHideVisual: 1
+  visualHideDelay: 0.25
+  clearPlayerOverlapOnBreak: 1
+  safePushDistance: 0.25
+  onHitAction: 0
+  onMaxHitAction: 4
+  onBreakAction: 2
+  debugMode: 1
