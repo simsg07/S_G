@@ -34,6 +34,7 @@ public class PlayerAnimationController : MonoBehaviour
     private bool hasIsDead;
     private bool hasState;
     private SpriteRenderer spriteRenderer;
+    private PlayerVisualSettings3D visualSettings;
 
     private void Awake()
     {
@@ -84,10 +85,25 @@ public class PlayerAnimationController : MonoBehaviour
         {
             spriteRenderer = animator.GetComponent<SpriteRenderer>();
         }
+
+        if (visualSettings == null)
+        {
+            visualSettings = GetComponent<PlayerVisualSettings3D>();
+        }
     }
 
     private void CacheParameters()
     {
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            hasSpeed = false;
+            hasYVelocity = false;
+            hasIsGrounded = false;
+            hasIsDead = false;
+            hasState = false;
+            return;
+        }
+
         hasSpeed = AnimatorParameterUtility3D.HasParameter(animator, SpeedHash, AnimatorControllerParameterType.Float);
         hasYVelocity = AnimatorParameterUtility3D.HasParameter(animator, YVelocityHash, AnimatorControllerParameterType.Float);
         hasIsGrounded = AnimatorParameterUtility3D.HasParameter(animator, IsGroundedHash, AnimatorControllerParameterType.Bool);
@@ -105,7 +121,7 @@ public class PlayerAnimationController : MonoBehaviour
 
     private void Refresh()
     {
-        if (animator == null || movement == null)
+        if (!HasPlayableController() || movement == null)
         {
             return;
         }
@@ -117,7 +133,14 @@ public class PlayerAnimationController : MonoBehaviour
 
         if (spriteRenderer != null && Mathf.Abs(movement.FacingDirection) > 0.01f)
         {
-            spriteRenderer.flipX = movement.FacingDirection > 0f;
+            if (visualSettings != null)
+            {
+                visualSettings.ApplyFacing(movement.FacingDirection);
+            }
+            else
+            {
+                spriteRenderer.flipX = movement.FacingDirection > 0f;
+            }
         }
 
         if (hasSpeed)
@@ -144,6 +167,16 @@ public class PlayerAnimationController : MonoBehaviour
         {
             animator.SetInteger(StateHash, ResolveAnimationState(speed, yVelocity, isDead));
         }
+    }
+
+    private bool HasPlayableController()
+    {
+        return Application.isPlaying
+            && animator != null
+            && animator.isActiveAndEnabled
+            && animator.gameObject.activeInHierarchy
+            && animator.runtimeAnimatorController != null
+            && animator.isInitialized;
     }
 
     private int ResolveAnimationState(float speed, float yVelocity, bool isDead)

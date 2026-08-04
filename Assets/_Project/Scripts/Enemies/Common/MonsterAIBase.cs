@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -110,6 +111,16 @@ public abstract class MonsterAIBase : MonoBehaviour
     private bool lastPlayerLineOfSight = true;
     private bool lastLightLineOfSight = true;
     private float nextLineOfSightDebugLogTime;
+    private float nextTargetCacheTime;
+    private Animator cachedParameterAnimator;
+    private RuntimeAnimatorController cachedParameterController;
+    private readonly HashSet<long> cachedAnimatorParameters = new HashSet<long>();
+    private bool hasLoggedDebugState;
+    private Transform lastLoggedTarget;
+    private MonsterTargetType lastLoggedTargetType;
+    private bool lastLoggedMoving;
+    private bool lastLoggedReturningHome;
+    private string lastLoggedSelectionReason;
 
     public Transform CurrentTarget => currentTarget;
     public MonsterTargetType CurrentTargetType => currentTargetType;
@@ -1255,12 +1266,20 @@ public abstract class MonsterAIBase : MonoBehaviour
 
     private void CacheTargetsIfNeeded()
     {
-        if (detectPlayer && playerTarget == null)
+        bool needsPlayer = detectPlayer && playerTarget == null;
+        bool needsLight = detectLight && canDetectLight && lightTarget == null;
+        if ((!needsPlayer && !needsLight) || Time.unscaledTime < nextTargetCacheTime)
+        {
+            return;
+        }
+
+        nextTargetCacheTime = Time.unscaledTime + 0.5f;
+        if (needsPlayer)
         {
             playerTarget = FindTarget(playerTag, "Player", ref warnedPlayerTargetMissing);
         }
 
-        if (detectLight && canDetectLight && lightTarget == null)
+        if (needsLight)
         {
             lightTarget = FindTarget(lightTag, "Light", ref warnedLightTargetMissing);
             if (lightTarget == null)
@@ -1285,7 +1304,11 @@ public abstract class MonsterAIBase : MonoBehaviour
             }
             catch (UnityException)
             {
-                LogDebug($"Tag '{tagName}' does not exist. Falling back to name search.");
+                if (debugMode && !warned)
+                {
+                    warned = true;
+                    Debug.LogWarning($"[{GetType().Name}] Tag '{tagName}' does not exist. Falling back to name search.", this);
+                }
             }
         }
 
@@ -1376,7 +1399,24 @@ public abstract class MonsterAIBase : MonoBehaviour
             return;
         }
 
+        bool stateChanged = !hasLoggedDebugState
+            || lastLoggedTarget != currentTarget
+            || lastLoggedTargetType != currentTargetType
+            || lastLoggedMoving != IsMoving
+            || lastLoggedReturningHome != isReturningHome
+            || !string.Equals(lastLoggedSelectionReason, targetSelectionReason, System.StringComparison.Ordinal);
+        if (!stateChanged)
+        {
+            return;
+        }
+
         nextDebugLogTime = Time.time + detectionLogInterval;
+        hasLoggedDebugState = true;
+        lastLoggedTarget = currentTarget;
+        lastLoggedTargetType = currentTargetType;
+        lastLoggedMoving = IsMoving;
+        lastLoggedReturningHome = isReturningHome;
+        lastLoggedSelectionReason = targetSelectionReason;
         string targetName = currentTarget != null ? currentTarget.name : "None";
         float distance = currentTarget != null ? GetPlanarDistance(currentTarget) : -1f;
         float playerDistance = playerTarget != null ? GetPlanarDistance(playerTarget) : -1f;
@@ -1573,19 +1613,33 @@ public abstract class MonsterAIBase : MonoBehaviour
 
     private bool HasAnimatorParameter(Animator targetAnimator, int parameterHash, AnimatorControllerParameterType parameterType)
     {
-        if (targetAnimator == null)
+        if (targetAnimator == null
+            || !targetAnimator.isActiveAndEnabled
+            || !targetAnimator.gameObject.activeInHierarchy
+            || targetAnimator.runtimeAnimatorController == null
+            || (Application.isPlaying && !targetAnimator.isInitialized))
         {
             return false;
         }
 
-        foreach (AnimatorControllerParameter parameter in targetAnimator.parameters)
+        RuntimeAnimatorController controller = targetAnimator.runtimeAnimatorController;
+        if (cachedParameterAnimator != targetAnimator || cachedParameterController != controller)
         {
-            if (parameter.nameHash == parameterHash && parameter.type == parameterType)
+            cachedParameterAnimator = targetAnimator;
+            cachedParameterController = controller;
+            cachedAnimatorParameters.Clear();
+            AnimatorControllerParameter[] parameters = targetAnimator.parameters;
+            for (int i = 0; i < parameters.Length; i++)
             {
-                return true;
+                cachedAnimatorParameters.Add(GetAnimatorParameterKey(parameters[i].nameHash, parameters[i].type));
             }
         }
 
-        return false;
+        return cachedAnimatorParameters.Contains(GetAnimatorParameterKey(parameterHash, parameterType));
+    }
+
+    private static long GetAnimatorParameterKey(int parameterHash, AnimatorControllerParameterType parameterType)
+    {
+        return ((long)(uint)parameterHash << 32) | (uint)parameterType;
     }
 }

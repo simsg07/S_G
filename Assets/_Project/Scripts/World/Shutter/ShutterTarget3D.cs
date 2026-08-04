@@ -43,10 +43,10 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
     private float lastShutterTime = -1000000f;
     private float markExpireTime;
     private BoomberBrain boomber;
-    private CameraMarkState3D markState;
 
     public bool IsShutterFrozen => isPausedByShutter;
     public bool IsMarked => isMarked;
+    public float VisualMarkEndTime => markDurationInfinite ? float.PositiveInfinity : Time.time + Mathf.Max(0f, markExpireTime - Time.unscaledTime);
 
     private void Awake()
     {
@@ -103,9 +103,6 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
         isMarked = true;
         hasWorldShifted = false;
         markExpireTime = markDurationInfinite || markDuration <= 0f ? float.MaxValue : Time.unscaledTime + markDuration;
-        EnsureMarkState();
-        float visualMarkEnd = markDurationInfinite ? float.MaxValue : Time.time + markDuration;
-        markState?.SetMarkWindow(visualMarkEnd, visualMarkEnd);
         UpdateMarkVisual();
         if (pauseOnFirstUse) PauseByShutter();
         Log("First use: Mark + Pause.");
@@ -189,7 +186,6 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
     {
         isMarked = false;
         markExpireTime = 0f;
-        markState?.ClearMark();
         UpdateMarkVisual();
     }
 
@@ -215,13 +211,6 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
         if (worldSwitchable == null) worldSwitchable = GetComponent<WorldSwitchable>();
         if (boomber == null) boomber = GetComponent<BoomberBrain>();
         if (renderers == null || renderers.Length == 0) renderers = GetComponentsInChildren<Renderer>(true);
-        markState = GetComponent<CameraMarkState3D>();
-    }
-
-    private void EnsureMarkState()
-    {
-        if (markState == null) markState = GetComponent<CameraMarkState3D>();
-        if (markState == null) markState = gameObject.AddComponent<CameraMarkState3D>();
     }
 
     private void PauseListedBehaviours()

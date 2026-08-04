@@ -32,6 +32,7 @@ public class GravityObject3D : MonoBehaviour, ITriggerableObject
     private Quaternion startRotation;
     private bool initialUseGravity;
     private bool initialIsKinematic;
+    private bool horizontalMotionAllowed;
 
     public bool IsDropped => isDropped;
     public bool CanTrigger => !isDropped;
@@ -62,7 +63,7 @@ public class GravityObject3D : MonoBehaviour, ITriggerableObject
         }
 
         Vector3 position = rb.position;
-        if (lockXWhileFalling)
+        if (lockXWhileFalling && !horizontalMotionAllowed)
         {
             position.x = startPosition.x;
         }
@@ -109,6 +110,7 @@ public class GravityObject3D : MonoBehaviour, ITriggerableObject
         }
 
         isDropped = true;
+        horizontalMotionAllowed = false;
         if (rb != null)
         {
             rb.isKinematic = manualDropSpeed > 0f;
@@ -121,13 +123,13 @@ public class GravityObject3D : MonoBehaviour, ITriggerableObject
     public void ResetGravityObject()
     {
         isDropped = false;
+        horizontalMotionAllowed = false;
         transform.SetPositionAndRotation(startPosition, startRotation);
-        ClearVelocity();
-
         if (rb != null)
         {
-            rb.isKinematic = initialIsKinematic;
+            ClearVelocityIfDynamic();
             rb.useGravity = initialUseGravity;
+            rb.isKinematic = initialIsKinematic;
         }
 
         ApplyStartState();
@@ -140,6 +142,11 @@ public class GravityObject3D : MonoBehaviour, ITriggerableObject
         {
             rb = GetComponent<Rigidbody>();
         }
+    }
+
+    public void SetHorizontalMotionAllowed(bool allowed)
+    {
+        horizontalMotionAllowed = allowed;
     }
 
     private void CaptureInitialState()
@@ -161,18 +168,18 @@ public class GravityObject3D : MonoBehaviour, ITriggerableObject
         }
 
         isDropped = false;
-        rb.isKinematic = true;
+        ClearVelocityIfDynamic();
         if (disableGravityOnStart)
         {
             rb.useGravity = false;
         }
 
-        ClearVelocity();
+        rb.isKinematic = true;
     }
 
-    private void ClearVelocity()
+    private void ClearVelocityIfDynamic()
     {
-        if (rb == null)
+        if (rb == null || rb.isKinematic)
         {
             return;
         }

@@ -35,6 +35,15 @@ public class ConnectedObjectLink : MonoBehaviour
         }
 
         GameObject target = ResolveConnectedObject();
+        CircleSpikeProjectile3D projectile = target != null
+            ? target.GetComponentInChildren<CircleSpikeProjectile3D>(true)
+            : null;
+        if (projectile != null && projectile.ReleaseAndDrop())
+        {
+            Log("Connected CircleSpike released into gravity drop.");
+            return;
+        }
+
         PrepareDetach(target);
         if (releasePhysicsOnCut && target != null && target.GetComponentInChildren<FallingBoxObject>(true) != null)
         {
@@ -111,6 +120,17 @@ public class ConnectedObjectLink : MonoBehaviour
 
     public void ResetConnectedObject()
     {
+        GameObject target = ResolveConnectedObject();
+        CircleSpikeProjectile3D projectile = target != null
+            ? target.GetComponentInChildren<CircleSpikeProjectile3D>(true)
+            : null;
+        if (projectile != null)
+        {
+            projectile.ResetProjectile();
+            Log("Connected CircleSpike reset to its attached state.");
+            return;
+        }
+
         ITriggerableObject triggerable = ResolveTriggerable();
         if (triggerable != null)
         {
@@ -121,7 +141,6 @@ public class ConnectedObjectLink : MonoBehaviour
 
         if (connectedBehaviour != null)
         {
-            GameObject target = ResolveConnectedObject();
             FallingBoxObject fallingBox = target != null ? target.GetComponentInChildren<FallingBoxObject>(true) : null;
             if (fallingBox != null)
             {

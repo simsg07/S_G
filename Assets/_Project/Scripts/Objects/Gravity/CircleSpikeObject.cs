@@ -61,7 +61,7 @@ public sealed class CircleSpikeObject : MonoBehaviour, ITriggerableObject
         }
     }
 
-    private void SetDamageEnabled(bool value)
+    public void SetDamageEnabled(bool value)
     {
         if (damageDealer != null)
         {

@@ -19,10 +19,21 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
     private bool usingSpeedMultiplierMethod;
     private MethodInfo controlLockMethod;
     private MethodInfo speedMultiplierMethod;
+    private bool stunApplied;
 
     private void Awake()
     {
         CacheReferences();
+    }
+
+    private void OnDisable()
+    {
+        RestoreStunState();
+    }
+
+    private void OnDestroy()
+    {
+        RestoreStunState();
     }
 
     public void Stun(float duration)
@@ -129,6 +140,7 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
         {
             movementController.enabled = false;
         }
+        stunApplied = true;
 
         if (debugMode)
         {
@@ -141,35 +153,39 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
             yield return null;
         }
 
-        if (usingControlLockMethod)
-        {
-            TrySetControlLocked(false);
-            if (debugMode)
-            {
-                Debug.Log("[PlayerStunReceiver] control locked false", this);
-            }
-        }
-
-        if (usingSpeedMultiplierMethod)
-        {
-            TrySetMoveSpeedMultiplier(1f);
-            if (debugMode)
-            {
-                Debug.Log("[PlayerStunReceiver] speed multiplier restored to 1", this);
-            }
-        }
-
-        if (!usingControlLockMethod && !usingSpeedMultiplierMethod && movementController != null)
-        {
-            movementController.enabled = movementWasEnabledBeforeStun;
-        }
+        stunRoutine = null;
+        RestoreStunState();
 
         if (debugMode)
         {
             Debug.Log("[PlayerStunReceiver] Stun ended.", this);
         }
 
-        stunRoutine = null;
+    }
+
+    private void RestoreStunState()
+    {
+        if (!stunApplied && stunRoutine == null)
+        {
+            return;
+        }
+
+        if (stunRoutine != null)
+        {
+            StopCoroutine(stunRoutine);
+            stunRoutine = null;
+        }
+
+        if (stunApplied && usingControlLockMethod) TrySetControlLocked(false);
+        if (stunApplied && usingSpeedMultiplierMethod) TrySetMoveSpeedMultiplier(1f);
+        if (stunApplied && !usingControlLockMethod && !usingSpeedMultiplierMethod && movementController != null)
+        {
+            movementController.enabled = movementWasEnabledBeforeStun;
+        }
+
+        stunApplied = false;
+        usingControlLockMethod = false;
+        usingSpeedMultiplierMethod = false;
         stunEndTime = 0f;
     }
 

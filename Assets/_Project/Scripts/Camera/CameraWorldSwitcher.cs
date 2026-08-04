@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Serialization;
+using Unity.Profiling;
 
 [DisallowMultipleComponent]
 public class CameraWorldSwitcher : MonoBehaviour
 {
+    private static readonly ProfilerMarker TargetScanMarker = new ProfilerMarker("Camera.TargetScan");
     [Header("References")]
     [SerializeField] private Camera targetCamera; // Camera whose visible bounds decide which objects can switch.
     [SerializeField] private CameraWorldSwitchSettings settings; // Optional default values shared across scenes.
@@ -22,7 +24,8 @@ public class CameraWorldSwitcher : MonoBehaviour
         "Platform"
     }; // Only objects with one of these tags can be switched by camera range.
     [FormerlySerializedAs("targetLayers")]
-    [SerializeField] private LayerMask switchableLayerMask = ~0; // Layer filter for camera range world switching.
+    [SerializeField, Tooltip("실제 카메라 월드 이동 대상 레이어입니다. 생성 맵 충돌 레이어는 포함하지 않습니다.")]
+    private LayerMask switchableLayerMask = 1 << 0;
     [FormerlySerializedAs("boundsMargin")]
     [SerializeField] private float cameraBoundsMargin = 0.2f; // Extra padding around the camera view used for switch target checks.
     [SerializeField] private float queryDepth = 20f; // Z depth of the 2.5D camera range query.
@@ -36,6 +39,7 @@ public class CameraWorldSwitcher : MonoBehaviour
 
     private readonly List<WorldSwitchable> candidates = new List<WorldSwitchable>(64);
     private readonly List<CameraWorldTargetInfo3D> targetStates = new List<CameraWorldTargetInfo3D>(64);
+    private readonly List<CameraWorldTargetInfo3D> publishedTargetStates = new List<CameraWorldTargetInfo3D>(64);
     private readonly HashSet<WorldSwitchable> uniqueCandidates = new HashSet<WorldSwitchable>();
     private readonly Collider[] overlapResults = new Collider[128];
     private Bounds lastQueryBounds;
@@ -125,6 +129,11 @@ public class CameraWorldSwitcher : MonoBehaviour
         }
 
         LastSwitchCount = switchedCount;
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            WorldSwitchable candidate = candidates[i];
+            if (candidate != null) targetStates[i] = new CameraWorldTargetInfo3D(candidate, candidate.CameraTargetState);
+        }
         PublishTargetStates();
         return LastSwitchCount;
     }
@@ -144,12 +153,14 @@ public class CameraWorldSwitcher : MonoBehaviour
 
     public IReadOnlyList<CameraWorldTargetInfo3D> RefreshVisibleTargets()
     {
+        using (TargetScanMarker.Auto())
+        {
         Camera camera = ResolveCamera();
         if (camera == null || !TryBuildCameraBounds(camera, out Bounds cameraBounds))
         {
             candidates.Clear();
             targetStates.Clear();
-            TargetStatesChanged?.Invoke(this, targetStates);
+            PublishTargetStates();
             return targetStates;
         }
 
@@ -157,13 +168,15 @@ public class CameraWorldSwitcher : MonoBehaviour
         lastQueryBounds = cameraBounds;
         CollectCandidates(cameraBounds);
         return targetStates;
+        }
     }
 
     public void ClearTargetStates()
     {
+        bool hadStates = targetStates.Count > 0 || publishedTargetStates.Count > 0;
         candidates.Clear();
         targetStates.Clear();
-        TargetStatesChanged?.Invoke(this, targetStates);
+        if (hadStates) PublishTargetStates();
     }
 
     private void CollectCandidates(Bounds cameraBounds)
@@ -183,6 +196,10 @@ public class CameraWorldSwitcher : MonoBehaviour
         for (int i = 0; i < hitCount; i++)
         {
             Collider hit = overlapResults[i];
+            if (hit == null || hit.GetComponentInParent<TilemapGeneratedColliderMarker>(true) != null)
+            {
+                continue;
+            }
             WorldSwitchable switchable = WorldSwitchable.FindFor(hit);
             if (switchable == null || !uniqueCandidates.Add(switchable) || !IsInspectableCandidate(switchable, layers))
             {
@@ -227,17 +244,25 @@ public class CameraWorldSwitcher : MonoBehaviour
 
     private void PublishTargetStates()
     {
-        targetStates.Clear();
-        for (int i = 0; i < candidates.Count; i++)
+        if (HaveSameTargetStates()) return;
+        publishedTargetStates.Clear();
+        for (int i = 0; i < targetStates.Count; i++)
         {
-            WorldSwitchable candidate = candidates[i];
-            if (candidate != null)
-            {
-                targetStates.Add(new CameraWorldTargetInfo3D(candidate, candidate.CameraTargetState));
-            }
+            publishedTargetStates.Add(targetStates[i]);
         }
-
         TargetStatesChanged?.Invoke(this, targetStates);
+    }
+
+    private bool HaveSameTargetStates()
+    {
+        if (publishedTargetStates.Count != targetStates.Count) return false;
+        for (int i = 0; i < targetStates.Count; i++)
+        {
+            CameraWorldTargetInfo3D current = targetStates[i];
+            CameraWorldTargetInfo3D previous = publishedTargetStates[i];
+            if (current.Target != previous.Target || current.State != previous.State) return false;
+        }
+        return true;
     }
 
     private bool IsProtectedObject(GameObject target)
