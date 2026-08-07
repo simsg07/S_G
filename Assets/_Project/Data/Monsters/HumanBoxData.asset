@@ -45,7 +45,7 @@ MonoBehaviour:
   canAttackPlayer: 1
   canAttackLight: 0
   useHowl: 1
-  howlDuration: 1
+  howlDuration: 1.5
   howlStunDuration: 1.5
   useSelfDestruct: 0
   explosionRadius: 1.5

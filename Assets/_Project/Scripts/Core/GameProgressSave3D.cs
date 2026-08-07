@@ -48,6 +48,20 @@ public static class GameProgressSave3D
         return Contains(LoadPayload().activatedCheckpointIds, checkpointId);
     }
 
+    public static bool IsPuzzlePermanentlyCompleted(string puzzleId)
+    {
+        return Contains(LoadPayload().completedPuzzleIds, puzzleId);
+    }
+
+    public static void RecordPuzzlePermanentlyCompleted(string puzzleId)
+    {
+        if (string.IsNullOrWhiteSpace(puzzleId)) return;
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.completedPuzzleIds, puzzleId);
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 4);
+        WritePayload(payload);
+    }
+
     public static bool TryGetLastCheckpoint(out string sceneName, out string checkpointId)
     {
         SavePayload payload = LoadPayload();
@@ -234,6 +248,7 @@ public static class GameProgressSave3D
         public List<string> activatedDevices = new List<string>();
         public List<string> exploredAreas = new List<string>();
         public List<string> activatedCheckpointIds = new List<string>();
+        public List<string> completedPuzzleIds = new List<string>();
         public string lastCheckpointScene = string.Empty;
         public string lastCheckpointId = string.Empty;
         public List<PersistentObjectRecord> persistentObjectStates = new List<PersistentObjectRecord>();
@@ -265,6 +280,11 @@ public static class GameProgressSave3D
             if (activatedCheckpointIds == null)
             {
                 activatedCheckpointIds = new List<string>();
+            }
+
+            if (completedPuzzleIds == null)
+            {
+                completedPuzzleIds = new List<string>();
             }
 
             if (persistentObjectStates == null)

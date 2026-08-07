@@ -1,14 +1,22 @@
 using System.Collections;
 using UnityEngine;
 
+public enum StoneObjectState
+{
+    IDLE,
+    FALLING,
+    BROKEN
+}
+
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
 public class StoneObject : MonoBehaviour
 {
     [Header("State")]
-    [SerializeField] private bool isDropped;
-    [SerializeField] private bool isBroken;
+    [SerializeField] private StoneObjectState currentState = StoneObjectState.IDLE;
+    [SerializeField, HideInInspector] private bool isDropped;
+    [SerializeField, HideInInspector] private bool isBroken;
 
     [Header("Ground Check")]
     [SerializeField] private LayerMask groundLayerMask;
@@ -16,6 +24,10 @@ public class StoneObject : MonoBehaviour
     [Header("Break")]
     [SerializeField] private bool breakOnGroundHit = true;
     [SerializeField] private float destroyDelay = 0.5f;
+
+    [Header("Switch Interaction")]
+    [SerializeField] private bool canActivateSwitch = true;
+    [SerializeField] private bool breakAfterSwitchContact = true;
 
     [Header("References")]
     [SerializeField] private GravityObject3D gravityObject;
@@ -28,21 +40,29 @@ public class StoneObject : MonoBehaviour
     [SerializeField] private Renderer[] renderers;
 
     [Header("Debug")]
-    [SerializeField] private bool debugMode = true;
+    [SerializeField] private bool debugMode;
+    [SerializeField] private bool logSwitchActivation;
 
     private GravityObjectSpawner ownerSpawner;
     private bool wasSpawnedBySpawner;
     private Vector3 startPosition;
     private Quaternion startRotation;
     private Coroutine removeRoutine;
+    private Coroutine pendingGroundBreakRoutine;
+    private bool hasTriggeredSwitch;
+    private bool isBreaking;
 
-    public bool IsFalling => isDropped && !isBroken;
-    public bool IsBroken => isBroken;
+    public StoneObjectState CurrentState => currentState;
+    public bool IsFalling => currentState == StoneObjectState.FALLING;
+    public bool IsBroken => currentState == StoneObjectState.BROKEN;
 
     private void Awake()
     {
         CacheReferences();
         CaptureStartTransform();
+        currentState = isBroken ? StoneObjectState.BROKEN
+            : isDropped ? StoneObjectState.FALLING
+            : StoneObjectState.IDLE;
         SetDamageEnabled(false);
     }
 
@@ -97,6 +117,7 @@ public class StoneObject : MonoBehaviour
         }
 
         isDropped = true;
+        currentState = StoneObjectState.FALLING;
         SetDamageEnabled(true);
         if (gravityObject != null)
         {
@@ -121,8 +142,17 @@ public class StoneObject : MonoBehaviour
             removeRoutine = null;
         }
 
+        if (pendingGroundBreakRoutine != null)
+        {
+            StopCoroutine(pendingGroundBreakRoutine);
+            pendingGroundBreakRoutine = null;
+        }
+
         isDropped = false;
         isBroken = false;
+        currentState = StoneObjectState.IDLE;
+        hasTriggeredSwitch = false;
+        isBreaking = false;
         transform.SetPositionAndRotation(startPosition, startRotation);
         ClearVelocity();
 
@@ -162,13 +192,20 @@ public class StoneObject : MonoBehaviour
 
     public void BreakStone()
     {
-        if (isBroken)
+        if (isBroken || isBreaking)
         {
             return;
         }
 
+        isBreaking = true;
         isBroken = true;
         isDropped = false;
+        currentState = StoneObjectState.BROKEN;
+        if (pendingGroundBreakRoutine != null)
+        {
+            StopCoroutine(pendingGroundBreakRoutine);
+            pendingGroundBreakRoutine = null;
+        }
         SetDamageEnabled(false);
         ClearVelocity();
 
@@ -219,6 +256,11 @@ public class StoneObject : MonoBehaviour
             return;
         }
 
+        if (TryHandleSwitchContact(collision.collider))
+        {
+            return;
+        }
+
         if (!breakOnGroundHit)
         {
             return;
@@ -231,28 +273,61 @@ public class StoneObject : MonoBehaviour
 
         if (IsGround(collision.collider))
         {
-            BreakStone();
+            QueueGroundBreak();
         }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!isDropped || isBroken || other == null || !breakOnGroundHit || IsPlayerHit(other))
+        if (!isDropped || isBroken || other == null)
         {
             return;
         }
 
+        if (TryHandleSwitchContact(other)) return;
+        if (!breakOnGroundHit || IsPlayerHit(other)) return;
+
         if (IsGround(other))
         {
-            BreakStone();
+            QueueGroundBreak();
         }
+    }
+
+    private bool TryHandleSwitchContact(Collider contact)
+    {
+        if (!canActivateSwitch || !IsFalling || hasTriggeredSwitch || contact == null) return false;
+
+        ISwitchActivation3D switchReceiver = contact.GetComponent<ISwitchActivation3D>()
+            ?? contact.GetComponentInParent<ISwitchActivation3D>();
+        if (switchReceiver == null) return false;
+
+        hasTriggeredSwitch = true;
+        bool accepted = switchReceiver.TryActivate(SwitchActivationSource.Stone, gameObject);
+        if (logSwitchActivation)
+            Debug.Log($"[StoneObject] Switch contact. Accepted={accepted}, Target={contact.name}", this);
+
+        if (breakAfterSwitchContact) BreakStone();
+        return true;
+    }
+
+    private void QueueGroundBreak()
+    {
+        if (pendingGroundBreakRoutine == null && !isBreaking)
+            pendingGroundBreakRoutine = StartCoroutine(ConfirmGroundBreakAfterPhysicsStep());
+    }
+
+    private IEnumerator ConfirmGroundBreakAfterPhysicsStep()
+    {
+        yield return new WaitForFixedUpdate();
+        pendingGroundBreakRoutine = null;
+        if (IsFalling && !hasTriggeredSwitch) BreakStone();
     }
 
     private bool IsGround(Collider other)
     {
         if (groundLayerMask.value == 0)
         {
-            return true;
+            return false;
         }
 
         return (groundLayerMask.value & (1 << other.gameObject.layer)) != 0;
@@ -320,7 +395,9 @@ public class StoneObject : MonoBehaviour
 
         if (gravityObjectDamageDealer != null)
         {
-            gravityObjectDamageDealer.enabled = enabled;
+            // DamageDealer is the shared Player/Monster damage path. Keep the legacy
+            // player-only dealer only as a fallback to avoid double damage.
+            gravityObjectDamageDealer.enabled = enabled && damageDealer == null;
         }
     }
 
@@ -331,7 +408,7 @@ public class StoneObject : MonoBehaviour
 
     private void ClearVelocity()
     {
-        if (rb == null)
+        if (rb == null || rb.isKinematic)
         {
             return;
         }

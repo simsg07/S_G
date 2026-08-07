@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public class EyeballFlyAI : MonsterAIBase
@@ -13,200 +14,267 @@ public class EyeballFlyAI : MonsterAIBase
     {
         IDLE = 0,
         MOVE = 1,
-        ATTACK = 2,
-        DEAD = 3
+        ATTACK_READY = 2,
+        DASH_ATTACK = 3,
+        RECOVERY = 4,
+        RETURN_HOME = 5,
+        DEAD = 6
     }
 
-    [Header("Eyeball Fly Movement")]
-    [SerializeField] private float hoverAmplitude = 0.12f;
-    [SerializeField] private float hoverFrequency = 2f;
+    [Header("Detection")]
+    [SerializeField, Min(0.05f)] private float lightCandidateRefreshInterval = 0.25f;
+
+    [Header("Movement")]
+    [FormerlySerializedAs("hoverAmplitude")]
+    [SerializeField, Min(0f)] private float hoverAmount = 0.12f;
+    [FormerlySerializedAs("hoverFrequency")]
+    [SerializeField, Min(0f)] private float hoverSpeed = 2f;
 
     [Header("Attack")]
-    [SerializeField] private int attackDamage = 1;
-    [SerializeField] private float attackInterval = 1f;
-    [SerializeField] private float attackDuration = 0.5f;
+    [FormerlySerializedAs("attackDamage")]
+    [SerializeField, Min(1)] private int damage = 1;
+    [FormerlySerializedAs("attackDuration")]
+    [SerializeField, Min(0f)] private float attackReadyTime = 0.5f;
+    [SerializeField, Min(0f)] private float dashTriggerRange = 2f;
+    [SerializeField, Min(0f)] private float dashSpeed = 6f;
+    [SerializeField, Min(0f)] private float dashDistance = 2f;
+    [FormerlySerializedAs("objectAttackLayerMask")]
+    [SerializeField] private LayerMask damageableLayers = ~0;
+    [SerializeField] private LayerMask worldBlockingLayers;
     [SerializeField] private bool attackPlayer = true;
-    [SerializeField] private bool attackLight = true;
-    [SerializeField] private bool attackObjects = true;
-    [SerializeField] private bool canAttackHitReceivers = true;
-    [SerializeField] private float objectAttackRange = 0.5f;
-    [SerializeField] private LayerMask objectAttackLayerMask = ~0;
-    [SerializeField] private bool debugAttackHit = true;
+    [FormerlySerializedAs("attackObjects")]
+    [SerializeField] private bool attackPuzzleObjects = true;
+    [SerializeField] private bool damageOtherMonsters;
 
-    private bool hasLoggedAnimatorState;
-    private EyeballFlyState lastLoggedAnimatorState;
-    private Transform lastLoggedAnimatorTarget;
-    private bool lastLoggedMovingSet;
-    private bool lastLoggedAttackingSet;
-    private bool lastLoggedDeadSet;
+    [Header("Recovery")]
+    [FormerlySerializedAs("attackInterval")]
+    [SerializeField, Min(0f)] private float recoveryTime = 0.6f;
 
-    [Header("Eyeball Fly State")]
+    [Header("Return Home")]
+    [SerializeField, Min(0f)] private float homeArrivalDistance = 0.15f;
+
+    [Header("Debug")]
+    [FormerlySerializedAs("debugAttackHit")]
+    [SerializeField] private bool debugAttackHit;
     [SerializeField] private EyeballFlyState currentState = EyeballFlyState.IDLE;
+    [SerializeField] private Transform currentDebugTarget;
+    [SerializeField] private int detectedLightCandidateCount;
+    [SerializeField] private string selectedLightName = "None";
+    [SerializeField] private string lastLightRejectionReason = "None";
+    [SerializeField] private int attackTriggerCount;
+    [SerializeField] private int currentDashDamagedTargetCount;
 
     [Header("References")]
     [SerializeField] private EyeballFlyAnimationController animationController;
     [SerializeField] private Animator animator;
 
+    private readonly RaycastHit[] dashHits = new RaycastHit[24];
+    private readonly HashSet<int> damagedTargetIds = new HashSet<int>();
+    private readonly List<Transform> cachedLightCandidates = new List<Transform>(8);
+    private Collider bodyCollider;
     private float hoverPhase;
-    private float nextAttackTime;
-    private float attackEndTime;
-    private float nextAnimatorDebugLogTime;
-    private bool attackInProgress;
+    private float stateEndsAt;
+    private Vector3 lockedTargetPosition;
+    private Vector3 lockedDashDirection;
+    private Vector3 dashStartPosition;
     private bool dead;
+    private bool initialUseGravity;
+    private bool initialIsKinematic;
+    private RigidbodyConstraints initialConstraints;
+    private float nextLightCandidateRefreshTime;
+    private bool dashDamageEnabled;
 
     public EyeballFlyState CurrentState => currentState;
+    public Vector3 LockedDashDirection => lockedDashDirection;
 
     protected override void Awake()
     {
-        ApplyEyeballMovementDefaults();
+        ApplyEyeballDefaults();
         base.Awake();
         CacheEyeballReferences();
+        CacheInitialPhysics();
         InitializeHover();
         ApplyAnimatorState();
     }
 
     protected override void OnEnable()
     {
-        ApplyEyeballMovementDefaults();
+        ApplyEyeballDefaults();
         base.OnEnable();
         CacheEyeballReferences();
+        RestoreFlightPhysics();
         InitializeHover();
         ApplyAnimatorState();
     }
 
-    protected override void Start()
-    {
-        base.Start();
-        CacheEyeballReferences();
-        LogDebug($"Start executed. AnimatorFound={animator != null}, AnimationControllerFound={animationController != null}");
-    }
-
     protected override void OnValidate()
     {
-        ApplyEyeballMovementDefaults();
+        ApplyEyeballDefaults();
         base.OnValidate();
-        hoverAmplitude = Mathf.Max(0f, hoverAmplitude);
-        hoverFrequency = Mathf.Max(0f, hoverFrequency);
-        attackDamage = Mathf.Max(0, attackDamage);
-        attackInterval = Mathf.Max(0.05f, attackInterval);
-        attackDuration = Mathf.Max(0.01f, attackDuration);
-        objectAttackRange = Mathf.Max(0f, objectAttackRange);
+        hoverAmount = Mathf.Max(0f, hoverAmount);
+        hoverSpeed = Mathf.Max(0f, hoverSpeed);
+        damage = Mathf.Max(1, damage);
+        attackReadyTime = Mathf.Max(0f, attackReadyTime);
+        dashTriggerRange = Mathf.Max(0f, dashTriggerRange);
+        dashSpeed = Mathf.Max(0f, dashSpeed);
+        dashDistance = Mathf.Max(0f, dashDistance);
+        recoveryTime = Mathf.Max(0f, recoveryTime);
+        homeArrivalDistance = Mathf.Max(0f, homeArrivalDistance);
+        lightCandidateRefreshInterval = Mathf.Max(0.05f, lightCandidateRefreshInterval);
         CacheEyeballReferences();
     }
 
-    private void ApplyEyeballMovementDefaults()
+    private void ApplyEyeballDefaults()
     {
         movementType = MonsterMovementType.Flying;
         useGravityForGround = false;
         detectPlayer = true;
         detectLight = true;
         canDetectLight = true;
-        returnHomeWhenTargetLost = true;
+        lightTag = CameraTagUtility3D.LightTag;
     }
 
     protected override void Update()
     {
-        if (dead || currentState == EyeballFlyState.DEAD)
+        if (dead || currentState == EyeballFlyState.DEAD) return;
+
+        if (currentState != EyeballFlyState.ATTACK_READY && currentState != EyeballFlyState.DASH_ATTACK)
         {
-            return;
+            base.Update();
         }
 
-        base.Update();
-        UpdateAttackProgress();
-        UpdateState();
-
-        if (currentState == EyeballFlyState.ATTACK)
+        currentDebugTarget = currentTarget;
+        switch (currentState)
         {
-            AttackTarget();
+            case EyeballFlyState.IDLE:
+            case EyeballFlyState.MOVE:
+                UpdateTrackingState();
+                break;
+            case EyeballFlyState.ATTACK_READY:
+                if (Time.time >= stateEndsAt) BeginDash();
+                break;
+            case EyeballFlyState.RECOVERY:
+                if (Time.time >= stateEndsAt)
+                {
+                    if (HasVisibleSelectedTarget()) ChangeState(EyeballFlyState.MOVE);
+                    else EnterReturnHomeOrIdle();
+                }
+                break;
+            case EyeballFlyState.RETURN_HOME:
+                UpdateReturnHomeState();
+                break;
         }
     }
 
     protected override void UpdateTargetSelection()
     {
         Transform previousTarget = currentTarget;
-        MonsterTargetType previousTargetType = currentTargetType;
+        MonsterTargetType previousType = currentTargetType;
 
-        // Preserve automatic target lookup, then enforce EyeballFly's strict LOS result.
+        // Reuse the project's cached Player/Light lookup, then enforce Light > Player.
         base.UpdateTargetSelection();
 
         bool detectionEnabled = monsterDetection == null || monsterDetection.enableDetection;
+        Transform nearestLight = detectionEnabled && detectLight && canDetectLight
+            ? FindNearestVisibleLight()
+            : null;
+        bool lightDetected = nearestLight != null;
+        bool lightKept = detectionEnabled && previousType == MonsterTargetType.Light && IsLightAvailable(previousTarget) &&
+            IsStrictTargetDetected(previousTarget, targetKeepRange, true);
         bool playerDetected = detectionEnabled && detectPlayer &&
-            IsStrictTargetDetected(playerTarget, playerDetectRange, false, out _);
-        bool playerKept = detectionEnabled && detectPlayer &&
-            previousTargetType == MonsterTargetType.Player && previousTarget != null &&
-            IsStrictTargetDetected(previousTarget, targetKeepRange, false, out _);
-        bool lightDetected = detectionEnabled && detectLight && canDetectLight && IsLightAvailable(lightTarget) &&
-            IsStrictTargetDetected(lightTarget, lightDetectRange, true, out _);
-        bool lightKept = detectionEnabled && detectLight && canDetectLight &&
-            previousTargetType == MonsterTargetType.Light && previousTarget != null && IsLightAvailable(previousTarget) &&
-            IsStrictTargetDetected(previousTarget, targetKeepRange, true, out _);
+            IsStrictTargetDetected(playerTarget, playerDetectRange, false);
+        bool playerKept = detectionEnabled && previousType == MonsterTargetType.Player && previousTarget != null &&
+            IsStrictTargetDetected(previousTarget, targetKeepRange, false);
 
-        if (playerDetected)
+        if (lightDetected || lightKept)
         {
-            currentTarget = playerTarget;
-            currentTargetType = MonsterTargetType.Player;
-            isReturningHome = false;
-            return;
-        }
-
-        if (playerKept)
-        {
-            currentTarget = previousTarget;
-            currentTargetType = MonsterTargetType.Player;
-            isReturningHome = false;
-            return;
-        }
-
-        if (lightDetected)
-        {
-            currentTarget = lightTarget;
+            currentTarget = lightDetected ? nearestLight : previousTarget;
             currentTargetType = MonsterTargetType.Light;
-            isReturningHome = false;
-            return;
         }
-
-        if (lightKept)
+        else if (playerDetected || playerKept)
         {
-            currentTarget = previousTarget;
-            currentTargetType = MonsterTargetType.Light;
-            isReturningHome = false;
-            return;
+            currentTarget = playerDetected ? playerTarget : previousTarget;
+            currentTargetType = MonsterTargetType.Player;
+        }
+        else
+        {
+            currentTarget = null;
+            currentTargetType = MonsterTargetType.None;
         }
 
-        currentTarget = null;
-        currentTargetType = returnHomeWhenTargetLost ? MonsterTargetType.Home : MonsterTargetType.None;
-        Vector3 homeDelta = homePosition - moveAnchorPosition;
-        homeDelta.z = 0f;
-        isReturningHome = returnHomeWhenTargetLost && homeDelta.sqrMagnitude > 0.0001f;
+        isReturningHome = false;
     }
 
     protected override void FixedUpdate()
     {
-        if (dead || currentState == EyeballFlyState.DEAD)
+        if (dead || currentState == EyeballFlyState.DEAD) return;
+
+        if (currentState == EyeballFlyState.DASH_ATTACK)
         {
+            UpdateDash(Time.fixedDeltaTime);
             return;
         }
 
         base.FixedUpdate();
     }
 
-    public void Die()
+    protected override void UpdateBaseMovement(float deltaTime)
     {
-        if (dead)
+        if (currentState == EyeballFlyState.MOVE)
         {
+            base.UpdateBaseMovement(deltaTime);
             return;
         }
+
+        if (currentState == EyeballFlyState.RETURN_HOME)
+        {
+            float speed = returnHomeSpeed > 0f ? returnHomeSpeed : moveSpeed;
+            MoveTowardPosition(homePosition, speed, deltaTime);
+            FaceTargetIfNeeded(homePosition, true);
+            return;
+        }
+
+        lastMoveDirection = Vector3.zero;
+        ApplyPosition(moveAnchorPosition + GetMovementOffset());
+    }
+
+    protected override Vector3 GetMovementOffset()
+    {
+        if (currentState != EyeballFlyState.IDLE) return Vector3.zero;
+        float bob = Mathf.Sin(Time.time * hoverSpeed + hoverPhase) * hoverAmount;
+        return new Vector3(0f, bob, 0f);
+    }
+
+    public void Die()
+    {
+        if (dead) return;
 
         dead = true;
         currentTarget = null;
         currentTargetType = MonsterTargetType.None;
+        dashDamageEnabled = false;
+        damagedTargetIds.Clear();
+        ResetAttackVisual();
         ChangeState(EyeballFlyState.DEAD);
+
+        if (body != null)
+        {
+            body.isKinematic = false;
+            body.useGravity = true;
+            body.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
+            body.linearVelocity = Vector3.zero;
+        }
     }
 
     public override void ResetMonster()
     {
         dead = false;
-        nextAttackTime = 0f;
+        dashDamageEnabled = false;
+        damagedTargetIds.Clear();
+        attackTriggerCount = 0;
+        currentDashDamagedTargetCount = 0;
+        ResetAttackVisual();
+        RestoreFlightPhysics();
         base.ResetMonster();
         SetDeadVisual(false);
         ChangeState(EyeballFlyState.IDLE);
@@ -221,51 +289,366 @@ public class EyeballFlyAI : MonsterAIBase
         bool objectsEnabled,
         bool attackDebug)
     {
-        attackDuration = Mathf.Max(0.01f, duration);
-        objectAttackLayerMask = targetLayerMask;
-        canAttackHitReceivers = hitReceivers;
+        attackReadyTime = Mathf.Max(0f, duration);
+        damageableLayers = targetLayerMask;
         attackPlayer = playerEnabled;
-        attackLight = lightEnabled;
-        attackObjects = objectsEnabled;
+        attackPuzzleObjects = objectsEnabled && hitReceivers;
+        detectLight = lightEnabled;
         debugAttackHit = attackDebug;
     }
 
-    protected override Vector3 GetMovementOffset()
+    private void UpdateTrackingState()
     {
-        float bob = Mathf.Sin(Time.time * hoverFrequency + hoverPhase) * hoverAmplitude;
-        return new Vector3(0f, bob, 0f);
-    }
-
-    protected override void UpdateBaseMovement(float deltaTime)
-    {
-        if (currentState != EyeballFlyState.MOVE)
+        if (!HasVisibleSelectedTarget())
         {
-            lastMoveDirection = Vector3.zero;
-            ApplyPosition(moveAnchorPosition + GetMovementOffset());
+            EnterReturnHomeOrIdle();
             return;
         }
 
-        base.UpdateBaseMovement(deltaTime);
+        if (GetPlanarDistance(currentTarget) <= dashTriggerRange)
+        {
+            BeginAttackReady();
+            return;
+        }
+
+        ChangeState(EyeballFlyState.MOVE);
+    }
+
+    private void BeginAttackReady()
+    {
+        if (currentTarget == null) return;
+
+        moveAnchorPosition = ProjectToFixedZ(GetCurrentPosition());
+        lockedTargetPosition = ProjectToFixedZ(currentTarget.position);
+        lockedDashDirection = lockedTargetPosition - moveAnchorPosition;
+        lockedDashDirection.z = 0f;
+        if (lockedDashDirection.sqrMagnitude <= 0.0001f)
+        {
+            lockedDashDirection = visualFacesRightByDefault ? Vector3.right : Vector3.left;
+        }
+        else
+        {
+            lockedDashDirection.Normalize();
+        }
+
+        stateEndsAt = Time.time + attackReadyTime;
+        ChangeState(EyeballFlyState.ATTACK_READY);
+    }
+
+    private void BeginDash()
+    {
+        moveAnchorPosition = ProjectToFixedZ(GetCurrentPosition());
+        dashStartPosition = moveAnchorPosition;
+        damagedTargetIds.Clear();
+        currentDashDamagedTargetCount = 0;
+        dashDamageEnabled = true;
+        ChangeState(EyeballFlyState.DASH_ATTACK);
+        PlayAttackVisual();
+    }
+
+    private void UpdateDash(float deltaTime)
+    {
+        float travelled = Vector3.Distance(dashStartPosition, moveAnchorPosition);
+        float remaining = Mathf.Max(0f, dashDistance - travelled);
+        if (remaining <= 0.001f)
+        {
+            BeginRecovery();
+            return;
+        }
+
+        float stepDistance = Mathf.Min(dashSpeed * deltaTime, remaining);
+        if (stepDistance <= 0f)
+        {
+            BeginRecovery();
+            return;
+        }
+
+        if (TryGetNearestDashHit(stepDistance, out RaycastHit nearestHit))
+        {
+            float safeDistance = Mathf.Max(0f, nearestHit.distance - 0.01f);
+            moveAnchorPosition += lockedDashDirection * safeDistance;
+            ApplyPosition(moveAnchorPosition);
+            TryDamageDashTarget(nearestHit.collider, nearestHit.point);
+            BeginRecovery();
+            return;
+        }
+
+        moveAnchorPosition += lockedDashDirection * stepDistance;
+        lastMoveDirection = lockedDashDirection;
+        ApplyPosition(moveAnchorPosition);
+
+        if (Vector3.Distance(dashStartPosition, moveAnchorPosition) >= dashDistance - 0.001f)
+        {
+            BeginRecovery();
+        }
+    }
+
+    private bool TryGetNearestDashHit(float distance, out RaycastHit nearestHit)
+    {
+        nearestHit = default(RaycastHit);
+        int combinedMask = worldBlockingLayers.value | damageableLayers.value;
+        float radius = bodyCollider != null
+            ? Mathf.Max(0.05f, Mathf.Min(bodyCollider.bounds.extents.x, bodyCollider.bounds.extents.y))
+            : 0.1f;
+        int count = Physics.SphereCastNonAlloc(
+            GetCurrentPosition(),
+            radius,
+            lockedDashDirection,
+            dashHits,
+            distance + 0.02f,
+            combinedMask,
+            QueryTriggerInteraction.Collide);
+
+        float nearestDistance = float.PositiveInfinity;
+        for (int i = 0; i < count; i++)
+        {
+            Collider candidate = dashHits[i].collider;
+            if (candidate == null || candidate.transform.IsChildOf(transform)) continue;
+            if (dashHits[i].distance >= nearestDistance) continue;
+
+            nearestDistance = dashHits[i].distance;
+            nearestHit = dashHits[i];
+        }
+
+        return nearestHit.collider != null;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (currentState != EyeballFlyState.DASH_ATTACK || !dashDamageEnabled ||
+            other == null || other.transform.IsChildOf(transform)) return;
+        TryDamageDashTarget(other, other.ClosestPoint(transform.position));
+        BeginRecovery();
+    }
+
+    private bool TryDamageDashTarget(Collider hitCollider, Vector3 hitPoint)
+    {
+        if (currentState != EyeballFlyState.DASH_ATTACK || !dashDamageEnabled ||
+            hitCollider == null || !IsLayerIncluded(hitCollider.gameObject.layer, damageableLayers)) return false;
+
+        Transform targetRoot = hitCollider.transform.root != null ? hitCollider.transform.root : hitCollider.transform;
+        if (targetRoot == transform.root) return false;
+        if (!damageOtherMonsters && targetRoot.GetComponentInChildren<MonsterCore>(true) != null) return false;
+
+        IDamageable damageable = FindDamageable(hitCollider.transform);
+        if (damageable == null || !damageable.CanTakeDamage) return false;
+
+        if (!attackPlayer && targetRoot.CompareTag("Player")) return false;
+        if (!attackPuzzleObjects && !targetRoot.CompareTag("Player")) return false;
+
+        int targetId = targetRoot.GetInstanceID();
+        if (!damagedTargetIds.Add(targetId)) return false;
+
+        DamageInfo damageInfo = new DamageInfo(
+            damage,
+            gameObject,
+            gameObject,
+            hitPoint,
+            lockedDashDirection,
+            DamageType.MonsterAttack,
+            HitSourceType.EyeballFlyAttack);
+        damageable.TakeDamage(damageInfo);
+        currentDashDamagedTargetCount++;
+        LogAttack($"Dash damaged {targetRoot.name}. Damage={damage}");
+        return true;
+    }
+
+    private void BeginRecovery()
+    {
+        if (currentState != EyeballFlyState.DASH_ATTACK) return;
+        dashDamageEnabled = false;
+        moveAnchorPosition = ProjectToFixedZ(GetCurrentPosition());
+        lastMoveDirection = Vector3.zero;
+        stateEndsAt = Time.time + recoveryTime;
+        ResetAttackVisual();
+        ChangeState(EyeballFlyState.RECOVERY);
+    }
+
+    private void EnterReturnHomeOrIdle()
+    {
+        currentTarget = null;
+        currentTargetType = MonsterTargetType.None;
+        if (returnHomeWhenTargetLost && !HasReachedHome())
+        {
+            isReturningHome = true;
+            ChangeState(EyeballFlyState.RETURN_HOME);
+            return;
+        }
+
+        isReturningHome = false;
+        if (HasReachedHome())
+        {
+            moveAnchorPosition = homePosition;
+            ClearBodyVelocity();
+        }
+        ChangeState(EyeballFlyState.IDLE);
+    }
+
+    private void UpdateReturnHomeState()
+    {
+        if (HasVisibleSelectedTarget())
+        {
+            isReturningHome = false;
+            ChangeState(EyeballFlyState.MOVE);
+            return;
+        }
+
+        if (!HasReachedHome()) return;
+
+        moveAnchorPosition = homePosition;
+        isReturningHome = false;
+        ClearBodyVelocity();
+        ApplyPosition(homePosition + GetMovementOffset());
+        ChangeState(EyeballFlyState.IDLE);
+    }
+
+    private bool HasReachedHome()
+    {
+        Vector3 delta = homePosition - moveAnchorPosition;
+        delta.z = 0f;
+        return delta.sqrMagnitude <= homeArrivalDistance * homeArrivalDistance;
+    }
+
+    private void ClearBodyVelocity()
+    {
+        lastMoveDirection = Vector3.zero;
+        if (body == null || body.isKinematic) return;
+        body.linearVelocity = Vector3.zero;
+        body.angularVelocity = Vector3.zero;
+    }
+
+    private bool HasVisibleSelectedTarget()
+    {
+        if (currentTargetType == MonsterTargetType.Light)
+        {
+            return IsLightAvailable(currentTarget) &&
+                IsStrictTargetDetected(currentTarget, Mathf.Max(lightDetectRange, targetKeepRange), true);
+        }
+
+        return currentTargetType == MonsterTargetType.Player && currentTarget != null &&
+            IsStrictTargetDetected(currentTarget, Mathf.Max(playerDetectRange, targetKeepRange), false);
+    }
+
+    private bool IsStrictTargetDetected(Transform target, float range, bool requireEnabledLight)
+    {
+        if (monsterDetection != null)
+        {
+            return monsterDetection.IsTargetDetected(transform, target, range, requireEnabledLight, out _);
+        }
+
+        return IsTargetDetected(target, range);
+    }
+
+    private Transform FindNearestVisibleLight()
+    {
+        RefreshLightCandidatesIfNeeded();
+
+        Transform best = null;
+        float bestDistance = float.PositiveInfinity;
+        detectedLightCandidateCount = 0;
+        lastLightRejectionReason = cachedLightCandidates.Count == 0 ? "No tagged light candidates" : "None";
+        for (int i = cachedLightCandidates.Count - 1; i >= 0; i--)
+        {
+            Transform candidate = cachedLightCandidates[i];
+            if (candidate == null)
+            {
+                cachedLightCandidates.RemoveAt(i);
+                lastLightRejectionReason = "Destroyed or missing";
+                continue;
+            }
+
+            if (!candidate.gameObject.activeInHierarchy || !IsLightAvailable(candidate))
+            {
+                lastLightRejectionReason = $"{candidate.name}: inactive or light disabled";
+                continue;
+            }
+
+            Vector3 candidateDelta = candidate.position - moveAnchorPosition;
+            candidateDelta.z = 0f;
+            if (candidateDelta.sqrMagnitude > lightDetectRange * lightDetectRange)
+            {
+                lastLightRejectionReason = $"{candidate.name}: out of range";
+                continue;
+            }
+
+            if (!IsStrictTargetDetected(candidate, lightDetectRange, true))
+            {
+                lastLightRejectionReason = $"{candidate.name}: line of sight blocked";
+                continue;
+            }
+
+            detectedLightCandidateCount++;
+            Vector3 delta = candidate.position - moveAnchorPosition;
+            delta.z = 0f;
+            float distance = delta.sqrMagnitude;
+            if (distance + 0.0001f >= bestDistance) continue;
+            best = candidate;
+            bestDistance = distance;
+        }
+
+        selectedLightName = best != null ? best.name : "None";
+        return best;
+    }
+
+    private void RefreshLightCandidatesIfNeeded()
+    {
+        if (Time.time < nextLightCandidateRefreshTime) return;
+        nextLightCandidateRefreshTime = Time.time + lightCandidateRefreshInterval;
+        cachedLightCandidates.Clear();
+
+        GameObject[] taggedLights;
+        try
+        {
+            taggedLights = GameObject.FindGameObjectsWithTag(lightTag);
+        }
+        catch (UnityException)
+        {
+            return;
+        }
+
+        for (int i = 0; i < taggedLights.Length; i++)
+        {
+            GameObject candidate = taggedLights[i];
+            if (candidate != null) cachedLightCandidates.Add(candidate.transform);
+        }
     }
 
     private void CacheEyeballReferences()
     {
-        if (animationController == null)
-        {
-            animationController = GetComponentInChildren<EyeballFlyAnimationController>(true);
-        }
-
-        if (animator == null)
-        {
-            animator = GetComponentInChildren<Animator>(true);
-        }
+        if (animationController == null) animationController = GetComponentInChildren<EyeballFlyAnimationController>(true);
+        if (animator == null) animator = GetComponentInChildren<Animator>(true);
+        if (bodyCollider == null) bodyCollider = GetComponent<Collider>();
 
         if (monsterAttack != null)
         {
-            attackDamage = monsterAttack.attackDamage;
-            attackInterval = monsterAttack.attackInterval;
+            damage = Mathf.Max(1, monsterAttack.attackDamage);
             attackRange = monsterAttack.attackRange;
-            objectAttackRange = objectAttackRange > 0f ? objectAttackRange : monsterAttack.attackRange;
+        }
+
+        if (worldBlockingLayers.value == 0)
+        {
+            worldBlockingLayers = obstacleLayerMask | movementObstacleLayerMask;
+        }
+    }
+
+    private void CacheInitialPhysics()
+    {
+        if (body == null) return;
+        initialUseGravity = body.useGravity;
+        initialIsKinematic = body.isKinematic;
+        initialConstraints = body.constraints;
+    }
+
+    private void RestoreFlightPhysics()
+    {
+        if (body == null) return;
+        body.useGravity = initialUseGravity;
+        body.isKinematic = initialIsKinematic;
+        body.constraints = initialConstraints;
+        if (!body.isKinematic)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
         }
     }
 
@@ -274,448 +657,113 @@ public class EyeballFlyAI : MonsterAIBase
         hoverPhase = Random.value * Mathf.PI * 2f;
     }
 
-    private void UpdateState()
-    {
-        bool hasVisibleTarget = HasVisibleSelectedTarget();
-        bool hasAttackableObject = HasAttackableObjectInRange();
-
-        if ((hasVisibleTarget && IsTargetInAttackRange) || hasAttackableObject || attackInProgress)
-        {
-            ChangeState(EyeballFlyState.ATTACK);
-            return;
-        }
-
-        if ((HasTarget && hasVisibleTarget) || IsReturningHome)
-        {
-            ChangeState(EyeballFlyState.MOVE);
-            return;
-        }
-
-        ChangeState(EyeballFlyState.IDLE);
-    }
-
-    private void AttackTarget()
-    {
-        bool hasVisibleTarget = HasVisibleSelectedTarget();
-        bool hasAttackableObject = HasAttackableObjectInRange();
-
-        if (!hasVisibleTarget && !hasAttackableObject)
-        {
-            if (!attackInProgress)
-            {
-                ResetAttackAnimationState();
-            }
-
-            LogDebug("Attack cancelled because no visible target or attackable object is in range.");
-            return;
-        }
-
-        if (monsterAttack != null && !monsterAttack.enableAttack)
-        {
-            ResetAttackAnimationState();
-            LogDebug("Attack disabled by MonsterAttack.");
-            return;
-        }
-
-        if (attackInProgress)
-        {
-            return;
-        }
-
-        if (Time.time < nextAttackTime)
-        {
-            return;
-        }
-
-        StartAttack();
-    }
-
-    private void StartAttack()
-    {
-        if (attackInProgress)
-        {
-            return;
-        }
-
-        attackInProgress = true;
-        attackEndTime = Time.time + attackDuration;
-        nextAttackTime = Time.time + attackInterval;
-        SetAttackingVisual(true);
-        bool attackTriggered = PlayAttackVisual();
-        LogAttackHit($"Attack started. TriggerFired={attackTriggered}, TargetType={CurrentTargetType}, InAttackRange={IsTargetInAttackRange}");
-        TryApplyPlayerDamage();
-        TryApplyObjectHitReceivers();
-    }
-
-    private void UpdateAttackProgress()
-    {
-        if (!attackInProgress || Time.time < attackEndTime)
-        {
-            return;
-        }
-
-        EndAttack();
-    }
-
-    private void EndAttack()
-    {
-        if (!attackInProgress)
-        {
-            ResetAttackAnimationState();
-            return;
-        }
-
-        attackInProgress = false;
-        ResetAttackAnimationState();
-        LogAttackHit("Attack ended.");
-        ApplyAnimatorState();
-    }
-
-    private void ResetAttackAnimationState()
-    {
-        SetAttackingVisual(false);
-    }
-
-    private bool HasVisibleSelectedTarget()
-    {
-        if (CurrentTargetType == MonsterTargetType.Player)
-        {
-            if (!attackPlayer)
-            {
-                return false;
-            }
-
-            return CurrentTarget == playerTarget &&
-                IsStrictTargetDetected(playerTarget, Mathf.Max(playerDetectRange, targetKeepRange), false, out _);
-        }
-
-        if (CurrentTargetType == MonsterTargetType.Light)
-        {
-            if (!attackLight)
-            {
-                return false;
-            }
-
-            return CurrentTarget == lightTarget && IsLightAvailable(lightTarget) &&
-                IsStrictTargetDetected(lightTarget, Mathf.Max(lightDetectRange, targetKeepRange), true, out _);
-        }
-
-        return false;
-    }
-
-    private bool IsStrictTargetDetected(
-        Transform target,
-        float range,
-        bool requireEnabledLight,
-        out Collider blockingCollider)
-    {
-        if (monsterDetection != null)
-        {
-            return monsterDetection.IsTargetDetected(
-                transform,
-                target,
-                range,
-                requireEnabledLight,
-                out blockingCollider);
-        }
-
-        blockingCollider = null;
-        return IsTargetDetected(target, range);
-    }
-
-    private void TryApplyPlayerDamage()
-    {
-        if (CurrentTargetType == MonsterTargetType.Light)
-        {
-            LogAttackHit("Light attack visual played. Damage skipped.");
-            return;
-        }
-
-        if (!attackPlayer)
-        {
-            LogAttackHit("Player attack disabled. Damage skipped.");
-            return;
-        }
-
-        if (CurrentTargetType != MonsterTargetType.Player || !IsTargetInAttackRange || playerTarget == null)
-        {
-            LogDebug("Player is not in attack range. Damage skipped.");
-            return;
-        }
-
-        if (!TryDamageTarget(playerTarget, attackDamage))
-        {
-            LogDebug("No IDamageable found on Player.");
-            return;
-        }
-    }
-
     private void ChangeState(EyeballFlyState nextState)
     {
-        if (currentState == nextState)
-        {
-            ApplyAnimatorState();
-            return;
-        }
-
+        if (currentState == nextState) return;
         currentState = nextState;
-        LogDebug($"State changed to {currentState}");
         ApplyAnimatorState();
     }
 
     private void ApplyAnimatorState()
     {
-        if (animationController == null && animator == null)
-        {
-            LogDebug("Animator update skipped. EyeballFlyAnimationController and Animator references are missing.");
-            return;
-        }
+        bool isDead = currentState == EyeballFlyState.DEAD;
+        bool isMoving = currentState == EyeballFlyState.MOVE ||
+            currentState == EyeballFlyState.DASH_ATTACK ||
+            currentState == EyeballFlyState.RETURN_HOME;
+        bool isAttacking = currentState == EyeballFlyState.DASH_ATTACK;
 
-        bool isDeadState = currentState == EyeballFlyState.DEAD;
-        bool isMoving = currentState == EyeballFlyState.MOVE
-            && (!setMoveAnimatorOnlyWhenMoving || IsMoving || IsReturningHome)
-            && !isDeadState;
-        bool isAttacking = attackInProgress && !isDeadState;
-
-        bool movingSet = SetMovingVisual(isMoving);
-        bool attackingSet = SetAttackingVisual(isAttacking);
-        bool deadSet = isDeadState && SetDeadVisual(true);
-
-        LogAnimatorUpdate(movingSet, attackingSet, deadSet);
+        SetMovingVisual(isMoving && !isDead);
+        // Attack Trigger is the only entry path; this bool only keeps/exits the active Attack state.
+        SetAttackingVisual(isAttacking && !isDead);
+        SetDeadVisual(isDead);
     }
 
     private bool SetMovingVisual(bool value)
     {
-        bool wrapperSet = animationController != null && animationController.SetMovingVisual(value);
-        if (!wrapperSet && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        bool handled = animationController != null && animationController.SetMovingVisual(value);
+        if (!handled && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
         {
             monsterAnimatorBridge.SetMoving(value);
             return true;
         }
-
-        bool directSet = !wrapperSet && SetAnimatorBool(IsMovingHash, "IsMoving", value);
-        return wrapperSet || directSet;
+        return handled || SetAnimatorBoolIfExists(animator, IsMovingHash, value);
     }
 
     private bool SetAttackingVisual(bool value)
     {
-        bool wrapperSet = animationController != null && animationController.SetAttackingVisual(value);
-        if (!wrapperSet && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        bool handled = animationController != null && animationController.SetAttackingVisual(value);
+        if (!handled && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
         {
             monsterAnimatorBridge.SetAttacking(value);
             return true;
         }
-
-        bool directSet = !wrapperSet && SetAnimatorBool(IsAttackingHash, "IsAttacking", value);
-        return wrapperSet || directSet;
+        return handled || SetAnimatorBoolIfExists(animator, IsAttackingHash, value);
     }
 
     private bool SetDeadVisual(bool value)
     {
-        bool wrapperSet = animationController != null && animationController.SetDeadVisual(value);
-        if (!wrapperSet && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        bool handled = animationController != null && animationController.SetDeadVisual(value);
+        if (!handled && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
         {
             monsterAnimatorBridge.SetDead(value);
             return true;
         }
-
-        bool directSet = !wrapperSet && SetAnimatorBool(IsDeadHash, "IsDead", value);
-        return wrapperSet || directSet;
+        return handled || SetAnimatorBoolIfExists(animator, IsDeadHash, value);
     }
 
-    private bool PlayAttackVisual()
+    private void PlayAttackVisual()
     {
-        bool wrapperSet = animationController != null && animationController.PlayAttack();
-        if (!wrapperSet && monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
+        attackTriggerCount++;
+        if (animationController != null && animationController.PlayAttack()) return;
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
         {
             monsterAnimatorBridge.TriggerAttack();
-            return true;
-        }
-
-        bool directSet = !wrapperSet && SetAnimatorTrigger(AttackHash, "Attack");
-        return wrapperSet || directSet;
-    }
-
-    private bool HasAttackableObjectInRange()
-    {
-        return attackObjects && canAttackHitReceivers && FindAttackableHitReceivers(false) > 0;
-    }
-
-    private int TryApplyObjectHitReceivers()
-    {
-        if (!attackObjects || !canAttackHitReceivers)
-        {
-            return 0;
-        }
-
-        return FindAttackableHitReceivers(true);
-    }
-
-    private int FindAttackableHitReceivers(bool applyHit)
-    {
-        if (objectAttackRange <= 0f)
-        {
-            return 0;
-        }
-
-        Collider[] hits = Physics.OverlapSphere(
-            transform.position,
-            objectAttackRange,
-            objectAttackLayerMask,
-            QueryTriggerInteraction.Collide);
-
-        if (hits == null || hits.Length == 0)
-        {
-            if (applyHit)
-            {
-                LogAttackHit("No HitReceiver found in object attack range.");
-            }
-
-            return 0;
-        }
-
-        int hitCount = 0;
-        HashSet<int> registeredReceivers = applyHit ? new HashSet<int>() : null;
-        for (int i = 0; i < hits.Length; i++)
-        {
-            Collider hitCollider = hits[i];
-            if (hitCollider == null || hitCollider.transform.IsChildOf(transform))
-            {
-                continue;
-            }
-
-            HitReceiver hitReceiver = FindHitReceiver(hitCollider.transform);
-            if (hitReceiver == null || !hitReceiver.CanAcceptHitSource(HitSourceType.EyeballFlyAttack))
-            {
-                continue;
-            }
-
-            if (!applyHit)
-            {
-                return 1;
-            }
-
-            int receiverId = hitReceiver.GetInstanceID();
-            if (!registeredReceivers.Add(receiverId))
-            {
-                continue;
-            }
-
-            Vector3 hitPoint = hitCollider.ClosestPoint(transform.position);
-            Vector3 hitDirection = (hitReceiver.transform.position - transform.position).normalized;
-            DamageInfo damageInfo = new DamageInfo(
-                Mathf.Max(1, attackDamage),
-                gameObject,
-                gameObject,
-                hitPoint,
-                hitDirection,
-                DamageType.MonsterAttack,
-                HitSourceType.EyeballFlyAttack);
-
-            LogAttackHit($"HitReceiver found: {hitReceiver.name}");
-            hitReceiver.RegisterHit(damageInfo);
-            LogAttackHit($"RegisterHit sent to {hitReceiver.name}. Source: {damageInfo.hitSourceType}");
-            hitCount++;
-        }
-
-        if (applyHit && hitCount == 0)
-        {
-            LogAttackHit("No targetable HitReceiver found in object attack range.");
-        }
-
-        return hitCount;
-    }
-
-    private HitReceiver FindHitReceiver(Transform target)
-    {
-        if (target == null)
-        {
-            return null;
-        }
-
-        HitReceiver hitReceiver = target.GetComponent<HitReceiver>();
-        if (hitReceiver != null)
-        {
-            return hitReceiver;
-        }
-
-        hitReceiver = target.GetComponentInParent<HitReceiver>();
-        if (hitReceiver != null)
-        {
-            return hitReceiver;
-        }
-
-        return target.GetComponentInChildren<HitReceiver>(true);
-    }
-
-    private bool SetAnimatorBool(int parameterHash, string parameterName, bool value)
-    {
-        return SetAnimatorBoolIfExists(animator, parameterHash, value);
-    }
-
-    private bool SetAnimatorTrigger(int parameterHash, string parameterName)
-    {
-        if (!TriggerAnimatorIfExists(animator, parameterHash))
-        {
-            LogDebug($"Animator trigger skipped. Missing Animator or parameter: {parameterName}");
-            return false;
-        }
-
-        return true;
-    }
-
-    private void LogAnimatorUpdate(bool movingSet, bool attackingSet, bool deadSet)
-    {
-        if (!debugMode || Time.time < nextAnimatorDebugLogTime)
-        {
             return;
         }
-
-        Transform target = CurrentTarget;
-        bool stateChanged = !hasLoggedAnimatorState
-            || lastLoggedAnimatorState != currentState
-            || lastLoggedAnimatorTarget != target
-            || lastLoggedMovingSet != movingSet
-            || lastLoggedAttackingSet != attackingSet
-            || lastLoggedDeadSet != deadSet;
-        if (!stateChanged)
-        {
-            return;
-        }
-
-        nextAnimatorDebugLogTime = Time.time + 0.5f;
-        hasLoggedAnimatorState = true;
-        lastLoggedAnimatorState = currentState;
-        lastLoggedAnimatorTarget = target;
-        lastLoggedMovingSet = movingSet;
-        lastLoggedAttackingSet = attackingSet;
-        lastLoggedDeadSet = deadSet;
-        string targetName = target != null ? target.name : "None";
-        float distance = target != null ? GetPlanarDistance(target) : -1f;
-        Debug.Log(
-            $"[EyeballFlyAI] Animator State={currentState}, Target={targetName}, Distance={distance:0.00}, " +
-            $"IsMovingSet={movingSet}, IsAttackingSet={attackingSet}, IsDeadSet={deadSet}",
-            this);
+        TriggerAnimatorIfExists(animator, AttackHash);
     }
 
-    private void LogAttackHit(string message)
+    private void ResetAttackVisual()
     {
-        if (debugMode || debugAttackHit)
-        {
-            Debug.Log($"[EyeballFlyAttack] {message}", this);
-        }
+        if (animator != null) animator.ResetTrigger(AttackHash);
+        SetAttackingVisual(false);
     }
 
-    protected override void OnDrawGizmos()
+    private static IDamageable FindDamageable(Transform target)
     {
-        base.OnDrawGizmos();
+        IDamageable damageable = target.GetComponent<IDamageable>();
+        if (damageable != null) return damageable;
+        damageable = target.GetComponentInParent<IDamageable>();
+        return damageable ?? target.GetComponentInChildren<IDamageable>(true);
+    }
 
-        if (!showGizmos || !attackObjects || objectAttackRange <= 0f)
+    private static bool IsLayerIncluded(int layer, LayerMask mask)
+    {
+        return (mask.value & (1 << layer)) != 0;
+    }
+
+    private void LogAttack(string message)
+    {
+        if (debugAttackHit) Debug.Log($"[EyeballFlyAI] {message}", this);
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (!showGizmos) return;
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, dashTriggerRange);
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, playerDetectRange);
+        Gizmos.color = Color.white;
+        Gizmos.DrawWireSphere(transform.position, lightDetectRange);
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(homePosition, homeArrivalDistance);
+        Gizmos.DrawLine(transform.position, homePosition);
+        if (currentState == EyeballFlyState.ATTACK_READY || currentState == EyeballFlyState.DASH_ATTACK)
         {
-            return;
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(transform.position, transform.position + lockedDashDirection * dashDistance);
+            Gizmos.DrawWireSphere(lockedTargetPosition, 0.08f);
         }
-
-        Gizmos.color = new Color(1f, 0.45f, 0.05f, 0.35f);
-        Gizmos.DrawWireSphere(transform.position, objectAttackRange);
     }
 }

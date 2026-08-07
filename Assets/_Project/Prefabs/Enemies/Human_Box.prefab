@@ -24,6 +24,8 @@ GameObject:
   - component: {fileID: 110010}
   - component: {fileID: 8379647905918372171}
   - component: {fileID: 110011}
+  - component: {fileID: 110012}
+  - component: {fileID: 110013}
   m_Layer: 0
   m_Name: Human_Box
   m_TagString: Untagged
@@ -45,6 +47,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 100201}
+  - {fileID: 100301}
+  - {fileID: 100401}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &100102
@@ -69,7 +73,7 @@ MonoBehaviour:
   playerDetectRange: 3
   lightDetectRange: 4
   targetKeepRange: 5
-  attackRange: 3
+  attackRange: 0.5
   requireLineOfSight: 1
   obstacleLayerMask:
     serializedVersion: 2
@@ -121,8 +125,6 @@ MonoBehaviour:
   useVisualScaleFacing: 1
   showGizmos: 1
   debugMode: 1
-  maxHp: 4
-  currentHp: 4
   detectRange: 3
   chaseRange: 5
   testMoveSpeed: 1
@@ -130,17 +132,18 @@ MonoBehaviour:
   stopDistance: 0.1
   lockZPosition: 1
   enableHowl: 1
-  howlStunDuration: 1.5
-  howlDuration: 1
+  howlDuration: 1.5
   howlOnlyOncePerDetection: 1
-  attackWindup: 0.5
+  attackReadyTime: 0.8
+  attackHitWindow: 0.2
   attackDamage: 1
   attackCooldown: 1
   attackFalseStunDuration: 1
-  disableColliderOnDeath: 1
-  destroyOnDeath: 0
-  destroyDelay: 2
   animator: {fileID: 100203}
+  health: {fileID: 110012}
+  howling: {fileID: 110007}
+  deadPlatform: {fileID: 110013}
+  attackHitboxTransform: {fileID: 100301}
   facePlayerWhenDetected: 1
   logInterval: 0.5
   showDetectionDebug: 1
@@ -263,10 +266,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableAttack: 1
-  attackRange: 3
+  attackRange: 0.5
   attackDamage: 1
   attackInterval: 1
-  attackWindup: 0.5
+  attackWindup: 0.8
   attackCooldown: 1
   allowLightAttackVisual: 0
   debugMode: 1
@@ -308,17 +311,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableHowling: 1
-  howlDuration: 1
-  howlStunDuration: 1.5
-  howlOnlyOncePerDetection: 1
-  howlOrigin: {fileID: 100101}
-  howlBoxOffset: {x: 0, y: 0, z: 0}
-  howlBoxSize: {x: 3, y: 2, z: 1.5}
-  playerLayerMask:
+  howlingDuration: 1.5
+  howlingOncePerLife: 1
+  howlingRadius: 3
+  howlingInteractableMask:
     serializedVersion: 2
-    m_Bits: 8192
-  useBoxRange: 1
-  requirePlayerInsideHowlRange: 1
+    m_Bits: 4294967295
+  howlOrigin: {fileID: 100101}
+  howlingStunsPlayer: 1
+  howlingPlayerStunDuration: 1.5
   debugMode: 1
   showGizmo: 1
 --- !u!114 &110008
@@ -417,7 +418,7 @@ MonoBehaviour:
   detection: {fileID: 110002}
   movement: {fileID: 110003}
   attack: {fileID: 110005}
-  health: {fileID: 0}
+  health: {fileID: 110012}
   animatorBridge: {fileID: 110006}
   brain: {fileID: 100102}
   debugMode: 1
@@ -468,6 +469,42 @@ MonoBehaviour:
   legacyVisualRoot: {fileID: 0}
   legacyAffectMonsterAI: 1
   legacyAffectBehaviours: 0
+--- !u!114 &110012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a498f0ff07954147a187c8f506143d4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHealth
+  enableHealth: 1
+  maxHp: 4
+  currentHp: 4
+  destroyOnDeath: 0
+  destroyDelay: 2
+  disableColliderOnDeath: 0
+  debugMode: 0
+--- !u!114 &110013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32b82ca0a0924e50a3cb01aeeff54202, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HumanBoxDeadPlatform3D
+  bodyBlockingCollider: {fileID: 100104}
+  attackCollider: {fileID: 100304}
+  topPlatformCollider: {fileID: 100404}
+  body: {fileID: 100103}
+  freezeRigidbodyOnDeath: 1
 --- !u!114 &110011
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -606,3 +643,115 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!1 &100300
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 100301}
+  - component: {fileID: 100304}
+  - component: {fileID: 100305}
+  m_Layer: 0
+  m_Name: AttackHitbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &100301
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100300}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.65, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 100101}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &100304
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100300}
+  m_Material: {fileID: 0}
+  m_IncludeLayers: {serializedVersion: 2, m_Bits: 0}
+  m_ExcludeLayers: {serializedVersion: 2, m_Bits: 0}
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 0.6, y: 1.2, z: 0.8}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &100305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100300}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21a71b9e9f8147a0bc343eb182b36101, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HumanBoxAttackHitbox3D
+  owner: {fileID: 100102}
+--- !u!1 &100400
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 100401}
+  - component: {fileID: 100404}
+  m_Layer: 12
+  m_Name: DeadPlatformCollider
+  m_TagString: Platform
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &100401
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100400}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.15, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 100101}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &100404
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100400}
+  m_Material: {fileID: 0}
+  m_IncludeLayers: {serializedVersion: 2, m_Bits: 0}
+  m_ExcludeLayers: {serializedVersion: 2, m_Bits: 0}
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 1.1, y: 0.15, z: 0.8}
+  m_Center: {x: 0, y: 0, z: 0}

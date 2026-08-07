@@ -28,24 +28,18 @@ public static class CraneXYObjectMoverPrefabBuilder
         }
 
         Dictionary<string, Sprite> sprites = LoadCraneSprites();
-        Sprite hoist = Require(sprites, "Hoist");
         Sprite wire = Require(sprites, "wire");
-        Sprite hook = Require(sprites, "hook");
-        Sprite platform = Require(sprites, "cable car");
         float segmentLength = Mathf.Max(0.01f, wire.bounds.size.y);
-        Material leverMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Materials/Debug/MAT_Debug_Lever.mat");
 
         GameObject root = new GameObject("Crane_XY_ObjectMover_Set");
         try
         {
             Transform fixedRoot = Child(root.transform, "FixedRoot", Vector3.zero);
-            Transform railVisual = CreateCube(fixedRoot, "RailVisual", new Vector3(0f, 1.5f, 0f), new Vector3(8.5f, 0.2f, 0.35f), leverMaterial);
             Transform leftPoint = Child(fixedRoot, "HorizontalLeftPoint", new Vector3(-4f, 0f, 0f));
             Transform rightPoint = Child(fixedRoot, "HorizontalRightPoint", new Vector3(4f, 0f, 0f));
 
             Transform horizontal = Child(root.transform, "HorizontalMovingRoot", new Vector3(-4f, 0f, 0f));
-            CreateSprite(horizontal, "CraneBodyVisual", hoist, Vector3.zero, 12);
-            Transform topAnchor = Child(horizontal, "RopeTopAnchor", new Vector3(0f, -hoist.bounds.extents.y, 0f));
+            Transform topAnchor = Child(horizontal, "RopeTopAnchor", new Vector3(0f, -1.105f, 0f));
             Transform ropeRoot = Child(horizontal, "RopeVisualRoot", Vector3.zero);
             List<SpriteRenderer> segments = new List<SpriteRenderer>(SegmentCount);
             for (int i = 0; i < SegmentCount; i++)
@@ -57,35 +51,13 @@ public static class CraneXYObjectMoverPrefabBuilder
 
             Transform vertical = Child(horizontal, "VerticalMovingRoot", topAnchor.localPosition);
             Transform bottomAnchor = Child(vertical, "RopeBottomAnchor", Vector3.zero);
-            CreateSprite(vertical, "HookVisual", hook, new Vector3(0f, -hook.bounds.extents.y, 0f), 12);
-            Transform carryAnchor = Child(vertical, "CarryAnchor", new Vector3(0f, -hook.bounds.size.y - 0.2f, 0f));
-            CreateSprite(vertical, "CarryPlatformVisual", platform,
-                carryAnchor.localPosition + Vector3.down * platform.bounds.extents.y, 11);
-            Transform carryAreaRoot = Child(vertical, "CarryArea", carryAnchor.localPosition);
-            BoxCollider carryTrigger = carryAreaRoot.gameObject.AddComponent<BoxCollider>();
-            carryTrigger.isTrigger = true;
-            carryTrigger.center = new Vector3(0f, -0.15f, 0f);
-            carryTrigger.size = new Vector3(Mathf.Max(1f, platform.bounds.size.x * 0.9f), 1f, 0.9f);
-            CraneCarryZone3D carryZone = carryAreaRoot.gameObject.AddComponent<CraneCarryZone3D>();
-            Set(carryZone, "carryLayerMask", 1);
-            Set(carryZone, "carryRigidbodies", true);
-            Set(carryZone, "carryTransformsWithoutRigidbody", false);
-            Set(carryZone, "autoAttach", true);
-            Set(carryZone, "releaseAtDestination", false);
-            Set(carryZone, "preserveWorldPositionOnAttach", true);
-            Set(carryZone, "carryAnchor", carryAnchor);
-            Set(carryZone, "carryOffset", Vector3.zero);
-            Set(carryZone, "maximumCarryMass", 100f);
-            Set(carryZone, "allowPlayerCarry", false);
-            Set(carryZone, "maximumCarriedTargets", 1);
-            Set(carryZone, "carryBoxCenterOffset", carryTrigger.center);
-            Set(carryZone, "carryBoxSize", carryTrigger.size);
+            Child(vertical, "CarryAnchor", new Vector3(0f, -1.6800001f, 0f));
 
             CraneXYController3D controller = root.AddComponent<CraneXYController3D>();
             CraneXYLeverSwitch3D horizontalLever = CreateLever(root.transform, "HorizontalLeverRoot", new Vector3(-5f, -1f, 0f),
-                "HorizontalLeverVisual", CraneXYAxis.Horizontal, controller, leverMaterial);
+                CraneXYAxis.Horizontal, controller);
             CraneXYLeverSwitch3D verticalLever = CreateLever(root.transform, "VerticalLeverRoot", new Vector3(5f, -1f, 0f),
-                "VerticalLeverVisual", CraneXYAxis.Vertical, controller, leverMaterial);
+                CraneXYAxis.Vertical, controller);
 
             Set(controller, "fixedRoot", fixedRoot);
             Set(controller, "horizontalMovingRoot", horizontal);
@@ -97,8 +69,6 @@ public static class CraneXYObjectMoverPrefabBuilder
             Set(controller, "ropeVisualRoot", ropeRoot);
             Set(controller, "horizontalLever", horizontalLever);
             Set(controller, "verticalLever", verticalLever);
-            Set(controller, "carryArea", carryZone);
-            Set(controller, "carryAnchor", carryAnchor);
             Set(controller, "horizontalMoveSpeed", 2f);
             Set(controller, "horizontalAcceleration", 4f);
             Set(controller, "horizontalDeceleration", 4f);
@@ -122,7 +92,6 @@ public static class CraneXYObjectMoverPrefabBuilder
             Set(controller, "includeCarriedObjectBounds", true);
             Set(controller, "stopOnObstruction", true);
             Set(controller, "obstructionCheckPadding", 0.05f);
-            Set(controller, "carryAreaCollider", carryTrigger);
             Set(controller, "debugMode", false);
 
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool success);
@@ -146,11 +115,10 @@ public static class CraneXYObjectMoverPrefabBuilder
         CraneXYController3D controller = prefab.GetComponent<CraneXYController3D>();
         if (controller == null) throw new MissingComponentException("CraneXYController3D is missing.");
         string[] paths = {
-            "FixedRoot/RailVisual", "FixedRoot/HorizontalLeftPoint", "FixedRoot/HorizontalRightPoint",
-            "HorizontalMovingRoot/CraneBodyVisual", "HorizontalMovingRoot/RopeTopAnchor",
+            "FixedRoot/HorizontalLeftPoint", "FixedRoot/HorizontalRightPoint",
+            "HorizontalMovingRoot/RopeTopAnchor",
             "HorizontalMovingRoot/RopeVisualRoot", "HorizontalMovingRoot/VerticalMovingRoot/RopeBottomAnchor",
-            "HorizontalMovingRoot/VerticalMovingRoot/HookVisual", "HorizontalMovingRoot/VerticalMovingRoot/CarryAnchor",
-            "HorizontalMovingRoot/VerticalMovingRoot/CarryArea", "HorizontalLeverRoot/InteractionTrigger",
+            "HorizontalMovingRoot/VerticalMovingRoot/CarryAnchor", "HorizontalLeverRoot/InteractionTrigger",
             "VerticalLeverRoot/InteractionTrigger"
         };
         foreach (string path in paths)
@@ -165,10 +133,9 @@ public static class CraneXYObjectMoverPrefabBuilder
     }
 
     private static CraneXYLeverSwitch3D CreateLever(Transform parent, string rootName, Vector3 position,
-        string visualName, CraneXYAxis axis, CraneXYController3D controller, Material material)
+        CraneXYAxis axis, CraneXYController3D controller)
     {
         Transform leverRoot = Child(parent, rootName, position);
-        Transform visual = CreateCube(leverRoot, visualName, Vector3.zero, new Vector3(0.55f, 1f, 0.55f), material);
         Transform triggerRoot = Child(leverRoot, "InteractionTrigger", Vector3.zero);
         BoxCollider trigger = triggerRoot.gameObject.AddComponent<BoxCollider>();
         trigger.isTrigger = true;
@@ -178,7 +145,7 @@ public static class CraneXYObjectMoverPrefabBuilder
         Set(lever, "controlledAxis", (int)axis);
         Set(lever, "interactionTrigger", trigger);
         Set(lever, "playerLayerMask", 1 << 13);
-        Set(lever, "leverRenderer", visual.GetComponent<Renderer>());
+        Set(lever, "leverRenderer", null);
         return lever;
     }
 
@@ -211,18 +178,6 @@ public static class CraneXYObjectMoverPrefabBuilder
         renderer.sprite = sprite;
         renderer.sortingOrder = order;
         return child;
-    }
-
-    private static Transform CreateCube(Transform parent, string name, Vector3 position, Vector3 scale, Material material)
-    {
-        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        cube.name = name;
-        cube.transform.SetParent(parent, false);
-        cube.transform.localPosition = position;
-        cube.transform.localScale = scale;
-        Object.DestroyImmediate(cube.GetComponent<Collider>());
-        if (material != null) cube.GetComponent<MeshRenderer>().sharedMaterial = material;
-        return cube.transform;
     }
 
     private static SerializedProperty Property(Object target, string name)

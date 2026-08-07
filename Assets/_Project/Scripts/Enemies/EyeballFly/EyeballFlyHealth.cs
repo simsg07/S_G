@@ -6,11 +6,13 @@ public class EyeballFlyHealth : MonoBehaviour, IAttackable3D
 {
     [SerializeField] private int maxHealth = 3;
     [SerializeField] private float destroyDelay = 2f;
+    [Tooltip("Legacy fallback fall speed used only when no Rigidbody is available.")]
     [SerializeField] private float fallSpeed = 1.8f;
     [SerializeField] private EyeballFlyAI ai;
 
     private int currentHealth;
     private bool dead;
+    private Rigidbody body;
 
     public int CurrentHealth => currentHealth;
     public bool IsDead => dead;
@@ -73,6 +75,11 @@ public class EyeballFlyHealth : MonoBehaviour, IAttackable3D
         {
             ai = GetComponent<EyeballFlyAI>();
         }
+
+        if (body == null)
+        {
+            body = GetComponent<Rigidbody>();
+        }
     }
 
     private void Die()
@@ -96,7 +103,10 @@ public class EyeballFlyHealth : MonoBehaviour, IAttackable3D
         float endTime = Time.time + destroyDelay;
         while (Time.time < endTime)
         {
-            transform.position += Vector3.down * fallSpeed * Time.deltaTime;
+            if (body == null)
+            {
+                transform.position += Vector3.down * fallSpeed * Time.deltaTime;
+            }
             yield return null;
         }
 

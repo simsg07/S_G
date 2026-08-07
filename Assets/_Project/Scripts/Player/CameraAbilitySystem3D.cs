@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
-using UnityEngine.UI;
 using Unity.Profiling;
 
 [DisallowMultipleComponent]
@@ -25,7 +24,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
         ForcedExitBlocked
     }
 
-    private const CameraAbilityFlags ActiveCameraAbilityMask = CameraAbilityFlags.Shutter | CameraAbilityFlags.Focus;
+    private const CameraAbilityFlags ActiveCameraAbilityMask = CameraAbilityUnlockState3D.KnownAbilityMask;
 
     [Header("Unlocked")]
     [SerializeField] private CameraAbilityFlags unlockedAbilities = ActiveCameraAbilityMask; // 처음부터 사용할 수 있는 카메라 기능 목록입니다.
@@ -110,40 +109,26 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private readonly Collider[] targetHits = new Collider[64];
     private readonly RaycastHit[] targetCastHits = new RaycastHit[40];
-    private readonly Dictionary<Component, ShutterMarkRecord> shutterMarks = new Dictionary<Component, ShutterMarkRecord>();
-    private readonly List<Component> expiredMarkTargets = new List<Component>();
-    private readonly List<Graphic> frameTintGraphics = new List<Graphic>();
+    private readonly ShutterMarkRegistry3D shutterMarkRegistry = new ShutterMarkRegistry3D();
+    private readonly CameraAbilityCooldowns3D cameraAbilityCooldowns = new CameraAbilityCooldowns3D();
+    private readonly CameraDiagnostics3D cameraDiagnostics = new CameraDiagnostics3D();
+    private readonly CameraModeTimeController3D cameraModeTimeController = new CameraModeTimeController3D();
+    private readonly CameraModeInputReader3D cameraModeInputReader = new CameraModeInputReader3D();
+    private readonly CameraWorldTargetStateController3D cameraWorldTargetStateController = new CameraWorldTargetStateController3D();
+    private readonly CameraModeDragController3D cameraModeDragController = new CameraModeDragController3D();
     private readonly List<MonoBehaviour> interfaceSearchBuffer = new List<MonoBehaviour>(16);
 
     private PlatformerPlayer3D movement;
     private Camera targetCamera;
-    private Canvas frameCanvas;
-    private RectTransform frameRoot;
-    private RectTransform reticleRoot;
-    private Texture2D ringTexture;
-    private Texture2D diskTexture;
-    private Light flashLight;
-    private bool cursorHiddenByFrame;
+    private CameraFramePresenter3D cameraFramePresenter;
+    private CameraLightAbilityController3D cameraLightController;
+    private CameraAbilityUnlockState3D cameraAbilityUnlockState;
+    private ShutterAbilityController3D shutterAbilityController;
     private CameraModeState cameraModeState = CameraModeState.Ready;
-    private bool cameraModeSlowActive;
-    private bool cameraModeTimeSnapshotValid;
-    private bool cameraLightOn;
-    private bool cameraTargetScanActive;
-    private bool ownsGeneratedFlashLight;
-    private float shutterCooldownTimer;
-    private float focusCooldownTimer;
-    private float relayCooldownTimer;
-    private float storedTimeScale = 1f;
-    private float storedFixedDeltaTime = 0.02f;
-    private float appliedCameraTimeScale = 0.25f;
-    private float appliedCameraFixedDeltaTime = 0.005f;
     private Vector3 lastShutterTargetPosition;
     private bool lastShutterTargetBlocked;
     private float pendingPrimaryFireTime;
     private bool primaryFirePending;
-    private Vector2 cameraDragScreenPosition;
-    private Vector2 cameraDragDelta;
-    private float nextCameraTargetRefreshTime;
     private float cameraCooldownEndTime;
     private bool requireRightMouseRelease;
     private Predicate<Collider> shutterCandidatePredicate;
@@ -157,19 +142,21 @@ public class CameraAbilitySystem3D : MonoBehaviour
     public static event Action CameraCooldownFinished;
 
     public static CameraAbilityFlags KnownAbilities { get; private set; } = CameraAbilityFlags.None;
-    public CameraAbilityFlags UnlockedAbilities => unlockedAbilities;
+    public CameraAbilityFlags UnlockedAbilities => cameraAbilityUnlockState != null
+        ? cameraAbilityUnlockState.UnlockedAbilities
+        : unlockedAbilities;
     public bool IsCameraModeActive => cameraModeState == CameraModeState.Active;
     public bool IsCameraOnCooldown => CameraCooldownRemaining > 0f;
     public float CameraCooldownRemaining => Mathf.Max(0f, cameraCooldownEndTime - Time.unscaledTime);
     public bool CanEnterCameraMode => cameraModeState == CameraModeState.Ready && !requireRightMouseRelease && !IsCameraOnCooldown;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-    public int DebugEnterRequestCount { get; private set; }
-    public int DebugActualEnterCount { get; private set; }
-    public int DebugApplySlowMotionCount { get; private set; }
-    public int DebugExitRequestCount { get; private set; }
-    public int DebugActualExitCount { get; private set; }
-    public int DebugRestoreSlowMotionCount { get; private set; }
-    public int DebugDuplicateTransitionBlockCount { get; private set; }
+    public int DebugEnterRequestCount => cameraDiagnostics.EnterRequestCount;
+    public int DebugActualEnterCount => cameraDiagnostics.ActualEnterCount;
+    public int DebugApplySlowMotionCount => cameraDiagnostics.ApplySlowMotionCount;
+    public int DebugExitRequestCount => cameraDiagnostics.ExitRequestCount;
+    public int DebugActualExitCount => cameraDiagnostics.ActualExitCount;
+    public int DebugRestoreSlowMotionCount => cameraDiagnostics.RestoreSlowMotionCount;
+    public int DebugDuplicateTransitionBlockCount => cameraDiagnostics.DuplicateTransitionBlockCount;
 #endif
     private void Awake()
     {
@@ -180,10 +167,27 @@ public class CameraAbilitySystem3D : MonoBehaviour
         EnsureCameraInterventionLimiter();
         targetHighlightManager = GetComponent<CameraTargetHighlightManager3D>();
         if (targetHighlightManager == null) targetHighlightManager = gameObject.AddComponent<CameraTargetHighlightManager3D>();
-        SetupCameraFrame();
-        SetupFlashLight();
+        shutterAbilityController = new ShutterAbilityController3D(shutterMarkRegistry, cameraAbilityCooldowns);
+        cameraFramePresenter = new CameraFramePresenter3D(
+            transform,
+            showCameraFrame,
+            frameBorderThickness,
+            frameColor,
+            frameAccentColor,
+            frameRecordColor,
+            frameCooldownColor,
+            shutterFrameReferenceSize.y);
+        cameraFramePresenter.Initialize();
+        cameraLightController = new CameraLightAbilityController3D(
+            transform,
+            flashLightIntensity,
+            flashLightRange,
+            flashLightColor);
+        cameraLightController.Initialize(GetTargetCamera(), cameraLightFollower);
+        cameraLightFollower = cameraLightController.Follower;
         SetupCameraHelpers();
-        ClampUnlockedAbilities();
+        EnsureCameraAbilityUnlockState();
+        SyncUnlockedAbilitiesMirror();
         PublishAbilityState();
     }
 
@@ -191,8 +195,9 @@ public class CameraAbilitySystem3D : MonoBehaviour
     {
         if (loadProgressOnStart)
         {
-            unlockedAbilities |= GameProgressSave3D.GetUnlockedAbilities();
-            ClampUnlockedAbilities();
+            EnsureCameraAbilityUnlockState();
+            cameraAbilityUnlockState.Merge(GameProgressSave3D.GetUnlockedAbilities());
+            SyncUnlockedAbilitiesMirror();
             PublishAbilityState();
         }
 
@@ -219,8 +224,8 @@ public class CameraAbilitySystem3D : MonoBehaviour
         cameraModeState = CameraModeState.Ready;
         cameraCooldownEndTime = 0f;
         requireRightMouseRelease = false;
-        RestoreSystemCursor();
-        TurnOffCameraLight();
+        cameraFramePresenter?.RestoreCursor();
+        cameraLightController?.TurnOff();
         ClearCameraWorldTargetStates();
         ClearAllShutterMarks();
     }
@@ -228,22 +233,18 @@ public class CameraAbilitySystem3D : MonoBehaviour
     private void OnDestroy()
     {
         ForceExitCameraMode("Object destroyed", false, false);
-        RestoreSystemCursor();
-        TurnOffCameraLight();
-        if (ownsGeneratedFlashLight && flashLight != null)
-        {
-            DestroyGenerated(flashLight.gameObject);
-            flashLight = null;
-            ownsGeneratedFlashLight = false;
-        }
-        DestroyGenerated(ringTexture);
-        DestroyGenerated(diskTexture);
+        cameraFramePresenter?.RestoreCursor();
+        cameraLightController?.TurnOff();
+        cameraLightController?.Dispose();
+        cameraLightController = null;
+        cameraFramePresenter?.Dispose();
+        cameraFramePresenter = null;
     }
 
     private void Update()
     {
-        TickCooldowns();
-        TickShutterMarks();
+        cameraAbilityCooldowns.Tick(Time.unscaledDeltaTime);
+        TickShutterMarkRegistry();
         UpdateFlashLight();
 
         if (!Application.isPlaying)
@@ -252,21 +253,24 @@ public class CameraAbilitySystem3D : MonoBehaviour
             return;
         }
 
-        Keyboard keyboard = Keyboard.current;
-        Mouse mouse = Mouse.current;
         DetectPauseTimeOverride();
-        UpdateCameraModeInput(mouse);
+        CameraInputSnapshot3D input = cameraModeInputReader.Read(
+            usePrimaryFireForCameraAbility,
+            useSecondaryFireForCameraMode,
+            worldSwitchKey,
+            lightToggleKey);
+        UpdateCameraModeInput(input);
         TickPendingPrimaryCameraClick();
         UpdateCameraWorldTargetStates();
 
         UpdateCameraFrame();
-        if (WasPressed(keyboard, worldSwitchKey))
+        if (input.WorldSwitchPressedThisFrame)
         {
             TryUseGlobalWorldSwitch();
             return;
         }
 
-        if (WasPressed(keyboard, lightToggleKey))
+        if (input.LightPressedThisFrame)
         {
             ToggleCameraLight();
         }
@@ -276,23 +280,23 @@ public class CameraAbilitySystem3D : MonoBehaviour
             return;
         }
 
-        if (usePrimaryFireForCameraAbility && mouse != null && mouse.leftButton.wasPressedThisFrame)
+        if (input.PrimaryPressedThisFrame)
         {
             HandlePrimaryCameraClick();
         }
     }
 
-    private void UpdateCameraModeInput(Mouse mouse)
+    private void UpdateCameraModeInput(in CameraInputSnapshot3D input)
     {
-        if (!useSecondaryFireForCameraMode || mouse == null)
+        if (!input.HasSecondaryInput)
         {
             ExitCameraMode("Secondary camera input unavailable");
             return;
         }
 
-        bool rightPressed = mouse.rightButton.isPressed;
-        bool rightDown = mouse.rightButton.wasPressedThisFrame;
-        bool rightUp = mouse.rightButton.wasReleasedThisFrame;
+        bool rightPressed = input.SecondaryHeld;
+        bool rightDown = input.SecondaryPressedThisFrame;
+        bool rightUp = input.SecondaryReleasedThisFrame;
 
         TickCameraReactivationCooldown(rightPressed, rightUp);
 
@@ -322,7 +326,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
         if (rightDown)
         {
             LogCameraMode("Right Mouse Down");
-            EnterCameraMode("Right Mouse Down");
+            EnterCameraMode("Right Mouse Down", input.PointerScreenPosition);
         }
 
         if (cameraModeState != CameraModeState.Active)
@@ -337,27 +341,33 @@ public class CameraAbilitySystem3D : MonoBehaviour
             return;
         }
 
-        UpdateCameraDrag(mouse);
+        UpdateCameraDrag(input.HasMouse, input.PointerDelta);
     }
 
     private void EnterCameraMode(string reason)
     {
+        Vector2 fallback = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        EnterCameraMode(reason, cameraModeInputReader.ReadPointerScreenPosition(fallback));
+    }
+
+    private void EnterCameraMode(string reason, Vector2 pointerScreenPosition)
+    {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        DebugEnterRequestCount++;
+        cameraDiagnostics.RecordEnterRequest();
 #endif
         if (!CanEnterCameraMode || !Application.isPlaying || Time.timeScale <= 0f)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            DebugDuplicateTransitionBlockCount++;
+            cameraDiagnostics.RecordDuplicateTransitionBlock();
 #endif
             return;
         }
 
         cameraModeState = CameraModeState.Active;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        DebugActualEnterCount++;
+        cameraDiagnostics.RecordActualEnter();
 #endif
-        InitializeCameraDrag();
+        InitializeCameraDrag(pointerScreenPosition);
         ApplyCameraModeSlowMotion();
         LogCameraTransition("Camera Enter", reason);
     }
@@ -365,19 +375,19 @@ public class CameraAbilitySystem3D : MonoBehaviour
     private void ExitCameraMode(string reason, bool startCooldown = true)
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        DebugExitRequestCount++;
+        cameraDiagnostics.RecordExitRequest();
 #endif
         if (cameraModeState != CameraModeState.Active)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            DebugDuplicateTransitionBlockCount++;
+            cameraDiagnostics.RecordDuplicateTransitionBlock();
 #endif
             return;
         }
 
         cameraModeState = startCooldown ? CameraModeState.Cooldown : CameraModeState.Ready;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        DebugActualExitCount++;
+        cameraDiagnostics.RecordActualExit();
 #endif
         ResetCameraDrag();
         primaryFirePending = false;
@@ -424,57 +434,30 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private void ApplyCameraModeSlowMotion()
     {
-        if (!Application.isPlaying || cameraModeSlowActive || cameraModeTimeSnapshotValid || cameraModeTimeScale <= 0f || Time.timeScale <= 0f)
+        if (!cameraModeTimeController.Apply(cameraModeTimeScale))
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            DebugDuplicateTransitionBlockCount++;
+            cameraDiagnostics.RecordDuplicateTransitionBlock();
 #endif
             return;
         }
 
-        storedTimeScale = Time.timeScale;
-        storedFixedDeltaTime = Time.fixedDeltaTime;
-        cameraModeTimeSnapshotValid = true;
-
-        appliedCameraTimeScale = Mathf.Clamp(cameraModeTimeScale, 0.01f, 1f);
-        float normalizedFixedDelta = storedTimeScale > 0.001f
-            ? storedFixedDeltaTime / storedTimeScale
-            : storedFixedDeltaTime;
-        appliedCameraFixedDeltaTime = normalizedFixedDelta * appliedCameraTimeScale;
-
-        Time.timeScale = appliedCameraTimeScale;
-        Time.fixedDeltaTime = appliedCameraFixedDeltaTime;
-        cameraModeSlowActive = true;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        DebugApplySlowMotionCount++;
+        cameraDiagnostics.RecordApplySlowMotion();
 #endif
         CameraSlowMotionChanged?.Invoke(true);
     }
 
     private void RestoreCameraModeSlowMotion()
     {
-        if (!cameraModeTimeSnapshotValid)
+        bool wasSlowActive = cameraModeTimeController.IsActive;
+        if (!cameraModeTimeController.Restore())
         {
             return;
         }
 
-        bool wasSlowActive = cameraModeSlowActive;
-        bool externalPauseActive = Mathf.Approximately(Time.timeScale, 0f);
-        cameraModeSlowActive = false;
-        cameraModeTimeSnapshotValid = false;
-
-        // A valid snapshot belongs to exactly one camera cycle. Always restore the
-        // physics step so a slightly changed slow-mode value cannot become the next
-        // cycle's baseline. Preserve an external pause instead of unpausing it.
-        if (!externalPauseActive)
-        {
-            Time.timeScale = storedTimeScale;
-        }
-
-        Time.fixedDeltaTime = storedFixedDeltaTime;
-
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        DebugRestoreSlowMotionCount++;
+        cameraDiagnostics.RecordRestoreSlowMotion();
 #endif
         if (wasSlowActive) CameraSlowMotionChanged?.Invoke(false);
     }
@@ -482,19 +465,13 @@ public class CameraAbilitySystem3D : MonoBehaviour
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     public void ResetCameraTransitionDiagnostics()
     {
-        DebugEnterRequestCount = 0;
-        DebugActualEnterCount = 0;
-        DebugApplySlowMotionCount = 0;
-        DebugExitRequestCount = 0;
-        DebugActualExitCount = 0;
-        DebugRestoreSlowMotionCount = 0;
-        DebugDuplicateTransitionBlockCount = 0;
+        cameraDiagnostics.Reset();
     }
 #endif
 
     private void DetectPauseTimeOverride()
     {
-        if (!cameraModeSlowActive || Time.timeScale > 0f)
+        if (!cameraModeTimeController.HasExternalPauseOverride())
         {
             return;
         }
@@ -513,7 +490,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private void ForceExitCameraMode(string reason, bool blockUntilRightMouseRelease, bool startCooldown = true)
     {
-        bool wasActive = cameraModeState == CameraModeState.Active || cameraModeSlowActive;
+        bool wasActive = cameraModeState == CameraModeState.Active || cameraModeTimeController.IsActive;
         if (cameraModeState == CameraModeState.Active)
         {
             ExitCameraMode(reason, startCooldown);
@@ -575,48 +552,34 @@ public class CameraAbilitySystem3D : MonoBehaviour
         ForceExitCameraMode("Application quit", false, false);
     }
 
-    private void InitializeCameraDrag()
+    private void InitializeCameraDrag(Vector2 pointerScreenPosition)
     {
-        Mouse mouse = Mouse.current;
-        cameraDragScreenPosition = mouse != null
-            ? mouse.position.ReadValue()
-            : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-        cameraDragDelta = Vector2.zero;
+        cameraModeDragController.Initialize(pointerScreenPosition);
     }
 
-    private void UpdateCameraDrag(Mouse mouse)
+    private void UpdateCameraDrag(bool hasMouse, Vector2 pointerDelta)
     {
-        if (mouse == null)
-        {
-            return;
-        }
-
-        float unscaledFrameFactor = Mathf.Clamp(Time.unscaledDeltaTime * 60f, 0f, 3f);
-        cameraDragDelta = mouse.delta.ReadValue() * Mathf.Max(0f, cameraDragSensitivity) * unscaledFrameFactor;
-        cameraDragScreenPosition += cameraDragDelta;
-        cameraDragScreenPosition.x = Mathf.Clamp(cameraDragScreenPosition.x, 0f, Screen.width);
-        cameraDragScreenPosition.y = Mathf.Clamp(cameraDragScreenPosition.y, 0f, Screen.height);
+        cameraModeDragController.Tick(
+            hasMouse,
+            pointerDelta,
+            cameraDragSensitivity,
+            Time.unscaledDeltaTime,
+            new Vector2(Screen.width, Screen.height));
     }
 
     private void ResetCameraDrag()
     {
-        cameraDragDelta = Vector2.zero;
+        cameraModeDragController.Reset();
     }
 
     private void LogCameraMode(string message)
     {
-        if (debugCameraMode)
-        {
-            Debug.Log($"[CameraMode] {message}", this);
-        }
+        cameraDiagnostics.LogCameraMode(debugCameraMode, message, this);
     }
 
     private void LogCameraTransition(string transition, string reason)
     {
-        if (debugCameraMode)
-        {
-            Debug.Log($"[CameraMode] {transition} ({reason})", this);
-        }
+        cameraDiagnostics.LogCameraTransition(debugCameraMode, transition, reason, this);
     }
 
     private void HandlePrimaryCameraClick()
@@ -646,26 +609,19 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     public bool IsUnlocked(CameraAbilityId ability)
     {
-        CameraAbilityFlags flag = ToFlag(ability);
-        return flag != CameraAbilityFlags.None
-            && (ActiveCameraAbilityMask & flag) != 0
-            && (unlockedAbilities & flag) != 0;
+        EnsureCameraAbilityUnlockState();
+        return cameraAbilityUnlockState.IsUnlocked(ability);
     }
 
     public bool UnlockAbility(CameraAbilityId ability)
     {
-        CameraAbilityFlags flag = ToFlag(ability);
-        if (flag == CameraAbilityFlags.None || (ActiveCameraAbilityMask & flag) == 0)
+        EnsureCameraAbilityUnlockState();
+        if (!cameraAbilityUnlockState.TryUnlock(ability))
         {
             return false;
         }
 
-        if ((unlockedAbilities & flag) != 0)
-        {
-            return false;
-        }
-
-        unlockedAbilities |= flag;
+        SyncUnlockedAbilitiesMirror();
         PublishAbilityState();
         GameProgressSave3D.RecordAbilityUnlocked(ability);
         return true;
@@ -678,19 +634,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     public static CameraAbilityFlags ToFlag(CameraAbilityId ability)
     {
-        switch (ability)
-        {
-            case CameraAbilityId.Shutter:
-                return CameraAbilityFlags.Shutter;
-            case CameraAbilityId.Focus:
-                return CameraAbilityFlags.Focus;
-            case CameraAbilityId.Flash:
-                return CameraAbilityFlags.Flash;
-            case CameraAbilityId.Relay:
-                return CameraAbilityFlags.Relay;
-            default:
-                return CameraAbilityFlags.None;
-        }
+        return CameraAbilityUnlockState3D.ToFlag(ability);
     }
 
     private void TryUseShutter()
@@ -700,7 +644,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private void TryUseShutterCore()
     {
-        if (!IsUnlocked(CameraAbilityId.Shutter) || shutterCooldownTimer > 0f)
+        if (!IsUnlocked(CameraAbilityId.Shutter) || !cameraAbilityCooldowns.CanUseShutter)
         {
             LogShutter(!IsUnlocked(CameraAbilityId.Shutter) ? "사용 불가: 미해금" : "사용 불가: 쿨다운");
             return;
@@ -712,74 +656,61 @@ public class CameraAbilitySystem3D : MonoBehaviour
             return;
         }
 
-        if (target is ShutterTarget3D shutterTarget)
+        if (!(target is ShutterTarget3D))
         {
-            if (!shutterTarget.CanReceiveShutter())
-            {
+            EnsureCameraInterventionLimiter();
+        }
+
+        ShutterExecutionResult3D result = shutterAbilityController.TryExecute(
+            target,
+            targetComponent,
+            this,
+            interventionLimiter,
+            targetHighlightManager,
+            Time.time,
+            shutterFreezeDuration,
+            shutterCooldown,
+            shutterMarkDuration,
+            shutterRemarkCooldown,
+            refreshFreezeWhileFrozen,
+            refreshMarkOnShutter,
+            allowFreezeWhileMarked,
+            allowFreezeDuringRemarkCooldown);
+
+        switch (result)
+        {
+            case ShutterExecutionResult3D.SpecialTargetUnavailable:
                 LogShutter("대상별 쿨다운 또는 대상 상태 때문에 사용할 수 없습니다.");
                 return;
-            }
-
-            shutterTarget.ApplyShutter();
-            if (shutterTarget.IsMarked)
-            {
-                targetHighlightManager.SetMark(shutterTarget, shutterTarget.VisualMarkEndTime, shutterTarget.VisualMarkEndTime);
-            }
-            else
-            {
-                targetHighlightManager.ClearMark(shutterTarget);
-            }
-            StartShutterCooldown();
-            LogShutter($"공통 셔터 대상 처리 성공: {shutterTarget.name}");
-            return;
+            case ShutterExecutionResult3D.SpecialTargetSucceeded:
+                LogShutter($"공통 셔터 대상 처리 성공: {targetComponent.name}");
+                return;
+            case ShutterExecutionResult3D.InterventionUnavailable:
+                return;
+            case ShutterExecutionResult3D.MarkRulesBlocked:
+                LogShutter("마크 설정에 의해 시간 정지 재사용이 제한되었습니다.");
+                return;
+            case ShutterExecutionResult3D.AlreadyFrozen:
+                LogShutter("대상이 아직 정지 중이므로 정지 시간을 갱신하지 않았습니다.");
+                return;
+            case ShutterExecutionResult3D.InterventionConsumeFailed:
+                LogShutter("사용 불가: 카메라 개입 횟수 부족");
+                return;
+            case ShutterExecutionResult3D.TargetRejected:
+                LogShutter("대상이 시간 정지를 거부해 개입 횟수를 복구했습니다.");
+                return;
+            case ShutterExecutionResult3D.SucceededWithExistingMark:
+                LogShutter($"촬영 성공: {targetComponent.name}, Mark=유지");
+                return;
+            case ShutterExecutionResult3D.SucceededDuringRemarkCooldown:
+                LogShutter($"촬영 성공: {targetComponent.name}, Mark=재마크 대기");
+                return;
+            case ShutterExecutionResult3D.SucceededWithNewMark:
+                LogShutter($"촬영 성공: {targetComponent.name}, Mark=생성");
+                return;
+            default:
+                return;
         }
-
-        if (!CanUseCameraIntervention())
-        {
-            return;
-        }
-
-        bool isMarked = IsMarked(targetComponent);
-        bool isInRemarkCooldown = IsInRemarkCooldown(targetComponent);
-        bool isFrozen = target is IShutterFreezeState3D freezeState && freezeState.IsShutterFrozen;
-
-        if ((isMarked && !allowFreezeWhileMarked) || (isInRemarkCooldown && !allowFreezeDuringRemarkCooldown))
-        {
-            LogShutter("마크 설정에 의해 시간 정지 재사용이 제한되었습니다.");
-            return;
-        }
-
-        if (isFrozen && !refreshFreezeWhileFrozen)
-        {
-            LogShutter("대상이 아직 정지 중이므로 정지 시간을 갱신하지 않았습니다.");
-            return;
-        }
-
-        if (!ConsumeCameraIntervention("Freeze object"))
-        {
-            LogShutter("사용 불가: 카메라 개입 횟수 부족");
-            return;
-        }
-
-        if (!target.ApplyShutterFreeze(shutterFreezeDuration, this))
-        {
-            RestoreCameraInterventions(1);
-            LogShutter("대상이 시간 정지를 거부해 개입 횟수를 복구했습니다.");
-            return;
-        }
-
-        StartShutterCooldown();
-        if ((!isMarked && !isInRemarkCooldown) || (isMarked && refreshMarkOnShutter))
-        {
-            MarkTarget(targetComponent, target);
-        }
-
-        LogShutter($"촬영 성공: {targetComponent.name}, Mark={(isMarked ? "유지" : isInRemarkCooldown ? "재마크 대기" : "생성")}");
-    }
-
-    private void StartShutterCooldown()
-    {
-        shutterCooldownTimer = Mathf.Max(0.01f, shutterCooldown);
     }
 
     private void TryUseGlobalWorldSwitch()
@@ -797,7 +728,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private void TryUseFocusCore()
     {
-        if (!IsUnlocked(CameraAbilityId.Focus) || focusCooldownTimer > 0f)
+        if (!IsUnlocked(CameraAbilityId.Focus) || !cameraAbilityCooldowns.CanUseFocus)
         {
             return;
         }
@@ -811,50 +742,33 @@ public class CameraAbilitySystem3D : MonoBehaviour
         {
             if (ConsumeCameraIntervention("Camera-range world switch"))
             {
-                focusCooldownTimer = focusCooldown;
+                cameraAbilityCooldowns.StartFocus(focusCooldown);
             }
         }
     }
 
     private void ToggleCameraLight()
     {
-        if (flashLight == null)
-        {
-            SetupFlashLight();
-        }
-
-        CameraLightFollower follower = ResolveCameraLightFollower();
-        if (follower == null)
-        {
-            return;
-        }
-
-        cameraLightOn = follower.ToggleLight();
-        if (flashLight != null)
-        {
-            flashLight.intensity = cameraLightOn ? flashLightIntensity : 0f;
-            flashLight.range = flashLightRange;
-            flashLight.color = flashLightColor;
-        }
+        cameraLightController?.Toggle();
     }
 
     private void TryUseRelay()
     {
-        if (!IsUnlocked(CameraAbilityId.Relay) || relayCooldownTimer > 0f)
+        if (!IsUnlocked(CameraAbilityId.Relay) || !cameraAbilityCooldowns.CanUseRelay)
         {
             return;
         }
 
         if (!TryFindRelayTarget(out IRelayTransferable3D target))
         {
-            relayCooldownTimer = relayCooldown;
+            cameraAbilityCooldowns.StartRelay(relayCooldown);
             return;
         }
 
         ResearchWorldId targetWorld = WorldSystem3D.GetOpposite(WorldSystem3D.ActiveWorld);
         if (target.TryRelayToWorld(targetWorld, this))
         {
-            relayCooldownTimer = relayCooldown;
+            cameraAbilityCooldowns.StartRelay(relayCooldown);
         }
     }
 
@@ -1040,10 +954,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private void LogShutter(string message)
     {
-        if (logShutterEvents)
-        {
-            Debug.Log($"[Shutter] {message}", this);
-        }
+        cameraDiagnostics.LogShutter(logShutterEvents, message, this);
     }
 
     private void OnDrawGizmosSelected()
@@ -1193,331 +1104,59 @@ public class CameraAbilitySystem3D : MonoBehaviour
         return hit != null ? hit.GetComponentInParent<MonoBehaviour>() : null;
     }
 
-    private void MarkTarget(Component targetComponent, IShutterFreezable3D target)
-    {
-        if (targetComponent == null || target == null)
-        {
-            return;
-        }
-
-        float markEnd = Time.time + Mathf.Max(0.1f, shutterMarkDuration);
-        float cooldownEnd = markEnd + Mathf.Max(0f, shutterRemarkCooldown);
-        shutterMarks[targetComponent] = new ShutterMarkRecord(target, markEnd, cooldownEnd);
-
-        targetHighlightManager.SetMark(targetComponent, markEnd, cooldownEnd);
-    }
-
     private void StartRemarkCooldown(Component targetComponent)
     {
-        if (targetComponent == null)
+        if (!shutterMarkRegistry.StartRemarkCooldown(
+                targetComponent,
+                Time.time,
+                shutterRemarkCooldown,
+                out float cooldownEnd))
         {
             return;
-        }
-
-        float cooldownEnd = Time.time + Mathf.Max(0f, shutterRemarkCooldown);
-        if (shutterMarks.TryGetValue(targetComponent, out ShutterMarkRecord record))
-        {
-            shutterMarks[targetComponent] = new ShutterMarkRecord(record.Target, 0f, cooldownEnd);
         }
 
         targetHighlightManager.SetMark(targetComponent, 0f, cooldownEnd);
     }
 
-    private bool IsMarked(Component targetComponent)
+    private void TickShutterMarkRegistry()
     {
-        return targetComponent != null
-            && shutterMarks.TryGetValue(targetComponent, out ShutterMarkRecord record)
-            && Time.time < record.MarkEndTime;
-    }
-
-    private bool IsInRemarkCooldown(Component targetComponent)
-    {
-        return targetComponent != null
-            && shutterMarks.TryGetValue(targetComponent, out ShutterMarkRecord record)
-            && Time.time >= record.MarkEndTime
-            && Time.time < record.CooldownEndTime;
-    }
-
-    private void TickShutterMarks()
-    {
-        using (MarkUpdateMarker.Auto()) TickShutterMarksCore();
-    }
-
-    private void TickShutterMarksCore()
-    {
-        expiredMarkTargets.Clear();
-        foreach (KeyValuePair<Component, ShutterMarkRecord> pair in shutterMarks)
+        using (MarkUpdateMarker.Auto())
         {
-            if (pair.Key == null || !pair.Key.gameObject.activeInHierarchy || Time.time >= pair.Value.CooldownEndTime)
+            IReadOnlyList<Component> expiredTargets = shutterMarkRegistry.Tick(Time.time);
+            for (int i = 0; i < expiredTargets.Count; i++)
             {
-                expiredMarkTargets.Add(pair.Key);
-            }
-        }
+                Component target = expiredTargets[i];
+                if (target != null)
+                {
+                    targetHighlightManager.ClearMark(target);
+                }
 
-        for (int i = 0; i < expiredMarkTargets.Count; i++)
-        {
-            Component target = expiredMarkTargets[i];
-            if (target != null)
-            {
-                targetHighlightManager.ClearMark(target);
+                shutterMarkRegistry.Remove(target);
             }
-
-            shutterMarks.Remove(target);
         }
     }
 
     private void ClearAllShutterMarks()
     {
-        foreach (KeyValuePair<Component, ShutterMarkRecord> pair in shutterMarks)
+        foreach (Component target in shutterMarkRegistry.MarkedTargets)
         {
-            if (pair.Key == null)
+            if (target == null)
             {
                 continue;
             }
 
-            targetHighlightManager.ClearMark(pair.Key);
+            targetHighlightManager.ClearMark(target);
         }
 
-        shutterMarks.Clear();
-        expiredMarkTargets.Clear();
+        shutterMarkRegistry.Clear();
         if (targetHighlightManager != null) targetHighlightManager.ClearAll();
-    }
-
-    private void SetupCameraFrame()
-    {
-        if (!showCameraFrame || frameCanvas != null)
-        {
-            return;
-        }
-
-        Canvas[] existingCanvases = GetComponentsInChildren<Canvas>(true);
-        for (int i = 0; i < existingCanvases.Length; i++)
-        {
-            Canvas candidate = existingCanvases[i];
-            if (candidate != null && candidate.name == "Camera Ability Frame")
-            {
-                BindExistingCameraFrame(candidate);
-                return;
-            }
-        }
-
-        GameObject canvasObject = new GameObject("Camera Ability Frame", typeof(Canvas));
-        canvasObject.transform.SetParent(transform, false);
-
-        frameCanvas = canvasObject.GetComponent<Canvas>();
-        frameCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        frameCanvas.sortingOrder = 490;
-
-        GameObject frameObject = new GameObject("Shutter Frame", typeof(RectTransform));
-        frameObject.transform.SetParent(canvasObject.transform, false);
-        frameRoot = frameObject.GetComponent<RectTransform>();
-        frameRoot.anchorMin = Vector2.zero;
-        frameRoot.anchorMax = Vector2.zero;
-        frameRoot.pivot = new Vector2(0.5f, 0.5f);
-
-        frameTintGraphics.Clear();
-        CreateCameraCursorVisual(frameRoot);
-    }
-
-    private void BindExistingCameraFrame(Canvas existingCanvas)
-    {
-        frameCanvas = existingCanvas;
-        frameCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        frameCanvas.sortingOrder = 490;
-
-        frameTintGraphics.Clear();
-        RectTransform[] rects = frameCanvas.GetComponentsInChildren<RectTransform>(true);
-        for (int i = 0; i < rects.Length; i++)
-        {
-            RectTransform rect = rects[i];
-            if (rect == null)
-            {
-                continue;
-            }
-
-            if (rect.name == "Shutter Frame") frameRoot = rect;
-            else if (rect.name == "Cursor Reticle") reticleRoot = rect;
-
-            Graphic graphic = rect.GetComponent<Graphic>();
-            if (graphic != null && rect.name != "Capture Dot" && rect.name != "Capture Dot Halo")
-            {
-                frameTintGraphics.Add(graphic);
-            }
-
-            RawImage rawImage = graphic as RawImage;
-            if (rawImage == null)
-            {
-                continue;
-            }
-
-            rawImage.texture = rect.name == "Capture Dot" ? GetDiskTexture() : GetRingTexture();
-        }
-
-        if (frameRoot == null)
-        {
-            Debug.LogWarning("[CameraAbilitySystem3D] Existing camera canvas has no Shutter Frame; rebuilding runtime frame.", this);
-            GameObject frameObject = new GameObject("Shutter Frame", typeof(RectTransform));
-            frameObject.transform.SetParent(frameCanvas.transform, false);
-            frameRoot = frameObject.GetComponent<RectTransform>();
-            frameRoot.anchorMin = Vector2.zero;
-            frameRoot.anchorMax = Vector2.zero;
-            frameRoot.pivot = new Vector2(0.5f, 0.5f);
-            frameTintGraphics.Clear();
-            CreateCameraCursorVisual(frameRoot);
-        }
-
-        frameCanvas.enabled = false;
-    }
-
-    private void CreateCameraCursorVisual(RectTransform parent)
-    {
-        float thick = Mathf.Max(1f, frameBorderThickness);
-        CreateFrameLine(parent, "Top Rail", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(0f, thick * 1.8f), frameColor);
-        CreateFrameLine(parent, "Bottom Rail", new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(0f, thick * 1.8f), frameColor);
-        CreateFrameLine(parent, "Left Rail", new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(thick * 1.8f, 0f), frameColor);
-        CreateFrameLine(parent, "Right Rail", new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(thick * 1.8f, 0f), frameColor);
-
-        CreateFrameLine(parent, "Top Inner Rail", new Vector2(0.09f, 1f), new Vector2(0.91f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -18f), new Vector2(0f, thick), frameAccentColor);
-        CreateFrameLine(parent, "Bottom Inner Rail", new Vector2(0.09f, 0f), new Vector2(0.91f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(0f, thick), frameAccentColor);
-        CreateFrameLine(parent, "Top Scanline A", new Vector2(0.22f, 1f), new Vector2(0.78f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -34f), new Vector2(0f, 1f), frameAccentColor);
-        CreateFrameLine(parent, "Bottom Scanline A", new Vector2(0.22f, 0f), new Vector2(0.78f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 34f), new Vector2(0f, 1f), frameAccentColor);
-
-        CreateFrameLine(parent, "Center Left Trace", new Vector2(0.04f, 0.5f), new Vector2(0.36f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(0f, 1f), frameAccentColor);
-        CreateFrameLine(parent, "Center Right Trace", new Vector2(0.64f, 0.5f), new Vector2(0.96f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(0f, 1f), frameAccentColor);
-        CreateFrameLine(parent, "Left Interior Tick", new Vector2(0.06f, 0.32f), new Vector2(0.28f, 0.32f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(0f, 1f), frameAccentColor);
-        CreateFrameLine(parent, "Right Interior Tick", new Vector2(0.72f, 0.32f), new Vector2(0.94f, 0.32f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(0f, 1f), frameAccentColor);
-
-        CreateFrameLine(parent, "Top Left Slash", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0.5f, 0.5f), new Vector2(44f, -24f), new Vector2(118f, thick * 1.5f), frameColor, -38f);
-        CreateFrameLine(parent, "Top Right Slash", new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 0.5f), new Vector2(-44f, -24f), new Vector2(118f, thick * 1.5f), frameColor, 38f);
-        CreateFrameLine(parent, "Bottom Left Slash", new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0.5f, 0.5f), new Vector2(44f, 24f), new Vector2(118f, thick * 1.5f), frameColor, 38f);
-        CreateFrameLine(parent, "Bottom Right Slash", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0.5f), new Vector2(-44f, 24f), new Vector2(118f, thick * 1.5f), frameColor, -38f);
-
-        CreateFrameText(parent, "RSEQ Label", "RSEQ", new Vector2(0.5f, 0f), new Vector2(0f, 21f), new Vector2(126f, 34f), 22, frameColor, TextAnchor.MiddleCenter);
-        CreateFrameText(parent, "SUB Label", "SUB", new Vector2(0.78f, 0.12f), new Vector2(0f, 0f), new Vector2(86f, 30f), 18, frameColor, TextAnchor.MiddleCenter);
-
-        GameObject reticleObject = new GameObject("Cursor Reticle", typeof(RectTransform));
-        reticleObject.transform.SetParent(parent, false);
-        reticleRoot = reticleObject.GetComponent<RectTransform>();
-        reticleRoot.anchorMin = new Vector2(0.5f, 0.5f);
-        reticleRoot.anchorMax = new Vector2(0.5f, 0.5f);
-        reticleRoot.pivot = new Vector2(0.5f, 0.5f);
-        reticleRoot.anchoredPosition = Vector2.zero;
-        reticleRoot.sizeDelta = new Vector2(170f, 170f);
-
-        CreateFrameTexture(reticleRoot, "Outer Reticle Ring", GetRingTexture(), Vector2.zero, new Vector2(170f, 170f), frameColor, true);
-        CreateFrameTexture(reticleRoot, "Inner Reticle Ring", GetRingTexture(), Vector2.zero, new Vector2(108f, 108f), frameAccentColor, true);
-        CreateFrameTexture(reticleRoot, "Capture Dot Halo", GetRingTexture(), Vector2.zero, new Vector2(64f, 64f), frameRecordColor, false);
-        CreateFrameTexture(reticleRoot, "Capture Dot", GetDiskTexture(), Vector2.zero, new Vector2(34f, 34f), frameRecordColor, false);
-        CreateFrameLine(reticleRoot, "Reticle Top Gap", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -11f), new Vector2(76f, thick * 1.8f), frameColor);
-        CreateFrameLine(reticleRoot, "Reticle Bottom Gap", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0.5f), new Vector2(0f, 11f), new Vector2(76f, thick * 1.8f), frameColor);
-        CreateFrameLine(reticleRoot, "Reticle Left Tick", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(12f, 0f), new Vector2(36f, thick * 1.5f), frameColor, 45f);
-        CreateFrameLine(reticleRoot, "Reticle Right Tick", new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-12f, 0f), new Vector2(36f, thick * 1.5f), frameColor, -45f);
-    }
-
-    private Image CreateFrameLine(RectTransform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPosition, Vector2 size, Color color, float rotation = 0f, bool tintWithFrame = true)
-    {
-        GameObject lineObject = new GameObject(name, typeof(RectTransform), typeof(Image));
-        lineObject.transform.SetParent(parent, false);
-
-        RectTransform rectTransform = lineObject.GetComponent<RectTransform>();
-        rectTransform.anchorMin = anchorMin;
-        rectTransform.anchorMax = anchorMax;
-        rectTransform.pivot = pivot;
-        rectTransform.anchoredPosition = anchoredPosition;
-        rectTransform.sizeDelta = size;
-        rectTransform.localRotation = Quaternion.Euler(0f, 0f, rotation);
-
-        Image image = lineObject.GetComponent<Image>();
-        image.color = color;
-        image.raycastTarget = false;
-        if (tintWithFrame)
-        {
-            frameTintGraphics.Add(image);
-        }
-
-        return image;
-    }
-
-    private RawImage CreateFrameTexture(RectTransform parent, string name, Texture texture, Vector2 anchoredPosition, Vector2 size, Color color, bool tintWithFrame)
-    {
-        GameObject textureObject = new GameObject(name, typeof(RectTransform), typeof(RawImage));
-        textureObject.transform.SetParent(parent, false);
-
-        RectTransform rectTransform = textureObject.GetComponent<RectTransform>();
-        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-        rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        rectTransform.anchoredPosition = anchoredPosition;
-        rectTransform.sizeDelta = size;
-
-        RawImage rawImage = textureObject.GetComponent<RawImage>();
-        rawImage.texture = texture;
-        rawImage.color = color;
-        rawImage.raycastTarget = false;
-        if (tintWithFrame)
-        {
-            frameTintGraphics.Add(rawImage);
-        }
-
-        return rawImage;
-    }
-
-    private Text CreateFrameText(RectTransform parent, string name, string textValue, Vector2 anchor, Vector2 anchoredPosition, Vector2 size, int fontSize, Color color, TextAnchor alignment)
-    {
-        GameObject textObject = new GameObject(name, typeof(RectTransform), typeof(Text));
-        textObject.transform.SetParent(parent, false);
-
-        RectTransform rectTransform = textObject.GetComponent<RectTransform>();
-        rectTransform.anchorMin = anchor;
-        rectTransform.anchorMax = anchor;
-        rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        rectTransform.anchoredPosition = anchoredPosition;
-        rectTransform.sizeDelta = size;
-
-        Text text = textObject.GetComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        text.text = textValue;
-        text.fontSize = fontSize;
-        text.alignment = alignment;
-        text.color = color;
-        text.raycastTarget = false;
-        frameTintGraphics.Add(text);
-        return text;
     }
 
     private void UpdateCameraFrame()
     {
-        if (frameCanvas == null || frameRoot == null)
-        {
-            return;
-        }
-
         bool visible = showCameraFrame && useMouseFrameTargeting && (!Application.isPlaying || cameraModeState == CameraModeState.Active);
-        frameCanvas.enabled = visible;
-        SetSystemCursorHidden(visible && hideSystemCursor && Application.isPlaying);
-        if (!visible)
-        {
-            return;
-        }
-
-        Rect frameRect = GetMouseFrameRect();
-        frameRoot.position = frameRect.center;
-        frameRoot.sizeDelta = frameRect.size;
-
-        Color color = shutterCooldownTimer > 0f ? frameCooldownColor : frameColor;
-        for (int i = 0; i < frameTintGraphics.Count; i++)
-        {
-            if (frameTintGraphics[i] != null)
-            {
-                frameTintGraphics[i].color = color;
-            }
-        }
-
-        if (reticleRoot != null)
-        {
-            float reticleScale = Mathf.Clamp(frameRect.height / shutterFrameReferenceSize.y, 0.55f, 1.45f);
-            reticleRoot.localScale = Vector3.one * reticleScale;
-        }
+        Rect frameRect = visible ? GetMouseFrameRect() : default;
+        cameraFramePresenter?.Present(visible, frameRect, cameraAbilityCooldowns.ShutterRemaining > 0f, hideSystemCursor);
     }
 
     private Rect GetMouseFrameRect()
@@ -1539,98 +1178,15 @@ public class CameraAbilitySystem3D : MonoBehaviour
         );
     }
 
-    private Texture2D GetRingTexture()
-    {
-        if (ringTexture == null)
-        {
-            ringTexture = CreateCircleTexture("Generated Camera Ring Texture", 128, false, 0.075f);
-        }
-
-        return ringTexture;
-    }
-
-    private Texture2D GetDiskTexture()
-    {
-        if (diskTexture == null)
-        {
-            diskTexture = CreateCircleTexture("Generated Camera Dot Texture", 64, true, 0.1f);
-        }
-
-        return diskTexture;
-    }
-
-    private Texture2D CreateCircleTexture(string textureName, int size, bool filled, float ringThickness)
-    {
-        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
-        {
-            name = textureName,
-            hideFlags = HideFlags.HideAndDontSave,
-            filterMode = FilterMode.Bilinear,
-            wrapMode = TextureWrapMode.Clamp
-        };
-
-        Color32[] pixels = new Color32[size * size];
-        float radius = (size - 1) * 0.5f;
-        float innerRadius = radius * Mathf.Clamp01(1f - ringThickness);
-        Vector2 center = new Vector2(radius, radius);
-
-        for (int y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++)
-            {
-                float distance = Vector2.Distance(new Vector2(x, y), center);
-                bool inside = filled ? distance <= radius : distance <= radius && distance >= innerRadius;
-                byte alpha = inside ? (byte)255 : (byte)0;
-                pixels[y * size + x] = new Color32(255, 255, 255, alpha);
-            }
-        }
-
-        texture.SetPixels32(pixels);
-        texture.Apply(false);
-        return texture;
-    }
-
     private Vector2 GetMouseScreenPosition()
     {
         if (Application.isPlaying && cameraModeState == CameraModeState.Active)
         {
-            return cameraDragScreenPosition;
+            return cameraModeDragController.ScreenPosition;
         }
 
-        Mouse mouse = Mouse.current;
-        if (mouse != null)
-        {
-            return mouse.position.ReadValue();
-        }
-
-        return new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-    }
-
-    private void SetSystemCursorHidden(bool hidden)
-    {
-        if (!Application.isPlaying)
-        {
-            return;
-        }
-
-        if (cursorHiddenByFrame == hidden)
-        {
-            return;
-        }
-
-        Cursor.visible = !hidden;
-        cursorHiddenByFrame = hidden;
-    }
-
-    private void RestoreSystemCursor()
-    {
-        if (!cursorHiddenByFrame)
-        {
-            return;
-        }
-
-        Cursor.visible = true;
-        cursorHiddenByFrame = false;
+        Vector2 fallback = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        return cameraModeInputReader.ReadPointerScreenPosition(fallback);
     }
 
     private bool BoundsIntersectsFrame(Bounds bounds, Rect frameRect, Camera camera)
@@ -1711,7 +1267,6 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private void SetupCameraHelpers()
     {
-        ResolveCameraLightFollower();
         ResolveCameraWorldSwitcher();
     }
 
@@ -1728,61 +1283,22 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private void UpdateCameraWorldTargetStates()
     {
-        if (cameraModeState == CameraModeState.Active)
+        bool cameraModeActive = cameraModeState == CameraModeState.Active;
+        if (cameraModeActive)
         {
-            CameraWorldSwitcher switcher = ResolveCameraWorldSwitcher();
-            if (switcher == null) return;
-            cameraTargetScanActive = true;
-            if (Time.unscaledTime >= nextCameraTargetRefreshTime)
-            {
-                nextCameraTargetRefreshTime = Time.unscaledTime + Mathf.Max(0.02f, cameraTargetRefreshInterval);
-                switcher.RefreshVisibleTargets();
-            }
+            ResolveCameraWorldSwitcher();
         }
-        else if (cameraTargetScanActive)
-        {
-            cameraTargetScanActive = false;
-            nextCameraTargetRefreshTime = 0f;
-            if (cameraWorldSwitcher != null) cameraWorldSwitcher.ClearTargetStates();
-        }
+
+        cameraWorldTargetStateController.Tick(
+            cameraModeActive,
+            cameraWorldSwitcher,
+            Time.unscaledTime,
+            cameraTargetRefreshInterval);
     }
 
     private void ClearCameraWorldTargetStates()
     {
-        cameraTargetScanActive = false;
-        nextCameraTargetRefreshTime = 0f;
-        if (cameraWorldSwitcher != null)
-        {
-            cameraWorldSwitcher.ClearTargetStates();
-        }
-    }
-
-    private CameraLightFollower ResolveCameraLightFollower()
-    {
-        if (cameraLightFollower != null)
-        {
-            return cameraLightFollower;
-        }
-
-        Camera camera = GetTargetCamera();
-        if (camera == null)
-        {
-            return null;
-        }
-
-        cameraLightFollower = camera.GetComponent<CameraLightFollower>();
-        if (cameraLightFollower == null && Application.isPlaying)
-        {
-            cameraLightFollower = camera.gameObject.AddComponent<CameraLightFollower>();
-        }
-
-        if (cameraLightFollower != null)
-        {
-            cameraLightFollower.Bind(camera, flashLight);
-            cameraLightFollower.SetPlayerTransform(transform);
-        }
-
-        return cameraLightFollower;
+        cameraWorldTargetStateController.Clear(cameraWorldSwitcher);
     }
 
     private CameraWorldSwitcher ResolveCameraWorldSwitcher()
@@ -1812,133 +1328,21 @@ public class CameraAbilitySystem3D : MonoBehaviour
         return cameraWorldSwitcher;
     }
 
-    private Vector3 ResolveCameraLightPosition(Vector3 origin, bool instant)
-    {
-        Vector3 fallback = origin + new Vector3(0f, 0f, -0.55f);
-        CameraLightFollower follower = ResolveCameraLightFollower();
-        return follower != null ? follower.MoveBoundLight(fallback, instant) : fallback;
-    }
-
-    private void SetupFlashLight()
-    {
-        if (cameraLightFollower != null && cameraLightFollower.LightObject != null)
-        {
-            flashLight = cameraLightFollower.LightObject;
-            flashLight.type = LightType.Point;
-            flashLight.color = flashLightColor;
-            flashLight.range = flashLightRange;
-            flashLight.intensity = 0f;
-            cameraLightFollower.Bind(GetTargetCamera(), flashLight);
-            cameraLightFollower.SetPlayerTransform(transform);
-            cameraLightFollower.SetLightActive(false);
-            ownsGeneratedFlashLight = false;
-            return;
-        }
-
-        Camera camera = GetTargetCamera();
-        Transform existingLightTransform = camera != null ? camera.transform.Find("Camera Toggle Light") : null;
-        GameObject lightObject = existingLightTransform != null
-            ? existingLightTransform.gameObject
-            : new GameObject("Camera Toggle Light", typeof(Light));
-        ownsGeneratedFlashLight = existingLightTransform == null;
-        if (camera != null && lightObject.transform.parent != camera.transform)
-        {
-            lightObject.transform.SetParent(camera.transform, true);
-        }
-        CameraTagUtility3D.TrySetTag(lightObject, CameraTagUtility3D.LightTag);
-
-        flashLight = lightObject.GetComponent<Light>();
-        if (flashLight == null)
-        {
-            flashLight = lightObject.AddComponent<Light>();
-        }
-        flashLight.type = LightType.Point;
-        flashLight.color = flashLightColor;
-        flashLight.range = flashLightRange;
-        flashLight.intensity = 0f;
-        flashLight.enabled = false;
-        if (cameraLightFollower != null)
-        {
-            cameraLightFollower.Bind(GetTargetCamera(), flashLight);
-            cameraLightFollower.SetPlayerTransform(transform);
-        }
-    }
-
-    private void SetCameraLight(bool active, Vector3 origin)
-    {
-        if (flashLight == null)
-        {
-            SetupFlashLight();
-        }
-
-        if (!active)
-        {
-            flashLight.intensity = 0f;
-            CameraLightFollower follower = ResolveCameraLightFollower();
-            if (follower != null)
-            {
-                follower.SetLightActive(false);
-            }
-            else
-            {
-                flashLight.enabled = false;
-            }
-            return;
-        }
-
-        flashLight.range = flashLightRange;
-        flashLight.color = flashLightColor;
-        flashLight.intensity = flashLightIntensity;
-        CameraLightFollower activeFollower = ResolveCameraLightFollower();
-        if (activeFollower != null)
-        {
-            activeFollower.SetLightActive(true, false);
-        }
-        else
-        {
-            flashLight.transform.position = ResolveCameraLightPosition(origin, false);
-            flashLight.enabled = true;
-        }
-    }
-
-    private void TurnOffCameraLight()
-    {
-        cameraLightOn = false;
-        if (flashLight == null)
-        {
-            return;
-        }
-
-        flashLight.intensity = 0f;
-        CameraLightFollower follower = ResolveCameraLightFollower();
-        if (follower != null)
-        {
-            follower.SetLightActive(false);
-        }
-        else
-        {
-            flashLight.enabled = false;
-        }
-    }
-
     private void UpdateFlashLight()
     {
-        if (flashLight == null)
+        if (cameraLightController == null)
         {
             return;
         }
 
-        if (cameraLightOn)
+        if (cameraLightController.IsOn)
         {
             Vector3 origin = useMouseFrameTargeting ? GetMouseWorldPoint(transform.position.z) : transform.position;
-            SetCameraLight(true, origin);
+            cameraLightController.Tick(origin);
             return;
         }
 
-        if (flashLight.enabled)
-        {
-            SetCameraLight(false, transform.position);
-        }
+        cameraLightController.Tick(transform.position);
     }
 
     private Vector3 GetMouseWorldPoint(float targetZ)
@@ -1996,29 +1400,25 @@ public class CameraAbilitySystem3D : MonoBehaviour
         return false;
     }
 
-    private void TickCooldowns()
-    {
-        float cooldownDelta = Time.unscaledDeltaTime;
-        shutterCooldownTimer = Mathf.Max(0f, shutterCooldownTimer - cooldownDelta);
-        focusCooldownTimer = Mathf.Max(0f, focusCooldownTimer - cooldownDelta);
-        relayCooldownTimer = Mathf.Max(0f, relayCooldownTimer - cooldownDelta);
-    }
-
     private void PublishAbilityState()
     {
-        ClampUnlockedAbilities();
-        KnownAbilities = unlockedAbilities;
+        EnsureCameraAbilityUnlockState();
+        KnownAbilities = cameraAbilityUnlockState.UnlockedAbilities;
         AbilitiesChanged?.Invoke(KnownAbilities);
     }
 
-    private void ClampUnlockedAbilities()
+    private void EnsureCameraAbilityUnlockState()
     {
-        unlockedAbilities &= ActiveCameraAbilityMask;
+        if (cameraAbilityUnlockState == null)
+        {
+            cameraAbilityUnlockState = new CameraAbilityUnlockState3D(unlockedAbilities);
+            unlockedAbilities = cameraAbilityUnlockState.UnlockedAbilities;
+        }
     }
 
-    private static bool WasPressed(Keyboard keyboard, Key key)
+    private void SyncUnlockedAbilitiesMirror()
     {
-        return keyboard != null && key != Key.None && keyboard[key].wasPressedThisFrame;
+        unlockedAbilities = cameraAbilityUnlockState.UnlockedAbilities;
     }
 
     private static bool IsHeld(Keyboard keyboard, Key key)
@@ -2043,17 +1443,4 @@ public class CameraAbilitySystem3D : MonoBehaviour
         }
     }
 
-    private readonly struct ShutterMarkRecord
-    {
-        public ShutterMarkRecord(IShutterFreezable3D target, float markEndTime, float cooldownEndTime)
-        {
-            Target = target;
-            MarkEndTime = markEndTime;
-            CooldownEndTime = cooldownEndTime;
-        }
-
-        public IShutterFreezable3D Target { get; }
-        public float MarkEndTime { get; }
-        public float CooldownEndTime { get; }
-    }
 }

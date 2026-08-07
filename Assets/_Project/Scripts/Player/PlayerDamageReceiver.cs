@@ -55,6 +55,7 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 
     public int CurrentHp => currentHp;
     public bool CanTakeDamage => !isDead && (infiniteHealth || currentHp > 0);
+    public bool IsDead => isDead || (!infiniteHealth && currentHp <= 0);
 
     private void Awake()
     {

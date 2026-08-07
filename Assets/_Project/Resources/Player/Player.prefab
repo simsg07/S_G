@@ -882,6 +882,7 @@ GameObject:
   - component: {fileID: 3532102758068771995}
   - component: {fileID: 6927364512907145031}
   - component: {fileID: 4263157098061439001}
+  - component: {fileID: 880000000000000001}
   m_Layer: 13
   m_Name: Player
   m_TagString: Player
@@ -906,6 +907,35 @@ Transform:
   - {fileID: 7328960942149588238}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &880000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2916280608873643439}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6be9ff241e0e4786b35581a185dd4fd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FocusingRingController3D
+  abilityAvailable: 1
+  resetPresentationTime: 0.1
+  resetCooldownDuration: 0.5
+  resetInputBufferDuration: 0.2
+  includeRegisteredSpawners: 1
+  explicitSpawners: []
+  state: 0
+  resetCooldownRemaining: 0
+  resetStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  resetCompleted:
+    m_PersistentCalls:
+      m_Calls: []
+  cooldownCompleted:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &3825017814145501927
 MonoBehaviour:
   m_ObjectHideFlags: 0

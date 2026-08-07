@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 1184703830122454737}
   serializedVersion: 2
   m_LocalRotation: {x: 1, y: -0, z: 0, w: 0}
-  m_LocalPosition: {x: 0, y: 2.375, z: 0}
+  m_LocalPosition: {x: 0, y: 2.365, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -564,7 +564,13 @@ MonoBehaviour:
   ropeEndPoint: {fileID: 2780336313921519123}
   ropeDebugVisual: {fileID: 190722959010202817}
   ropeSpriteVisual: {fileID: 6419788125557747308}
-  segmentOverlap: 0.02
+  ropeBottomOverlap: 0.02
+  ropeVisualOffset: {x: 0, y: 0}
+  boxConnectionOffset: 0
+  ropeSortingOffset: -1
+  boxTopAnchor: {fileID: 0}
+  boxSpriteVisual: {fileID: 0}
+  anchorErrorTolerance: 0.01
   ropeHitCollider: {fileID: 2834752407286484662}
   ropeThickness: 0.15
   colliderExtraSize: {x: 0, y: 0, z: 0}

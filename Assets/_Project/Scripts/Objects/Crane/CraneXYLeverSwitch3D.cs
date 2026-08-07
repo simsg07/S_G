@@ -8,7 +8,7 @@ public enum CraneXYAxis
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider))]
-public sealed class CraneXYLeverSwitch3D : MonoBehaviour, IInteractable3D
+public sealed class CraneXYLeverSwitch3D : MonoBehaviour, IInteractable3D, ISwitchActivation3D
 {
     [SerializeField] private CraneXYController3D targetCrane;
     [SerializeField] private CraneXYAxis controlledAxis;
@@ -16,8 +16,13 @@ public sealed class CraneXYLeverSwitch3D : MonoBehaviour, IInteractable3D
     [SerializeField] private LayerMask playerLayerMask;
     [SerializeField] private string playerTag = "Player";
     [SerializeField] private Renderer leverRenderer;
+    [SerializeField] private LeverSpriteVisual3D leverVisual;
     [SerializeField] private bool playerInRange;
     [SerializeField] private int lastEnterSequence;
+    [Header("Activation Sources")]
+    [SerializeField] private bool allowPlayerActivation = true;
+    [SerializeField] private bool allowStoneActivation = true;
+    [SerializeField] private bool allowCircleSpikeActivation = true;
 
     private static int enterSequence;
 
@@ -39,12 +44,32 @@ public sealed class CraneXYLeverSwitch3D : MonoBehaviour, IInteractable3D
     public bool TryInteract(GameObject actor)
     {
         if (actor == null || !IsPlayer(actor.transform)) return false;
-        return targetCrane != null && targetCrane.RequestAxisMove(controlledAxis, this, actor.transform);
+        return TryActivate(SwitchActivationSource.Player, actor);
+    }
+
+    public bool TryActivate(SwitchActivationSource source, GameObject instigator)
+    {
+        if (!IsActivationSourceAllowed(source)) return false;
+        return RequestAndAnimate(instigator != null ? instigator.transform : null);
     }
 
     public void Interact()
     {
-        if (targetCrane != null) targetCrane.RequestAxisMove(controlledAxis, this, null);
+        RequestAndAnimate(null);
+    }
+
+    private bool RequestAndAnimate(Transform actor)
+    {
+        if (targetCrane == null) return false;
+        bool negativeDirection = targetCrane.WillNextMoveInNegativeDirection(controlledAxis);
+        bool accepted = targetCrane.RequestAxisMove(controlledAxis, this, actor);
+        if (accepted && leverVisual != null) leverVisual.PlayAcceptedCommand(negativeDirection);
+        return accepted;
+    }
+
+    public void NotifyCommandFinished(bool cancelled)
+    {
+        if (leverVisual != null) leverVisual.FinishAcceptedCommand(cancelled);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -67,5 +92,16 @@ public sealed class CraneXYLeverSwitch3D : MonoBehaviour, IInteractable3D
             if (!string.IsNullOrWhiteSpace(playerTag) && current.CompareTag(playerTag)) return true;
         }
         return false;
+    }
+
+    private bool IsActivationSourceAllowed(SwitchActivationSource source)
+    {
+        switch (source)
+        {
+            case SwitchActivationSource.Player: return allowPlayerActivation;
+            case SwitchActivationSource.Stone: return allowStoneActivation;
+            case SwitchActivationSource.CircleSpike: return allowCircleSpikeActivation;
+            default: return false;
+        }
     }
 }

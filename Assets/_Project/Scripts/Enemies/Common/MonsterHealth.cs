@@ -4,6 +4,7 @@ using UnityEngine;
 // Optional shared health component used by component-based monster prefabs.
 public class MonsterHealth : MonoBehaviour, IDamageable
 {
+    public event System.Action<MonsterHealth> Died;
     [Header("Health - Designer Settings")]
     [Tooltip("Turn off only for test monsters that should ignore damage.")]
     public bool enableHealth = true;
@@ -60,6 +61,7 @@ public class MonsterHealth : MonoBehaviour, IDamageable
     private void OnDead()
     {
         Log("Dead");
+        Died?.Invoke(this);
 
         if (disableColliderOnDeath)
         {

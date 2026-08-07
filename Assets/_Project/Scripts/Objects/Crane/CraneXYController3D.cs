@@ -20,8 +20,6 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
     [SerializeField] private Transform ropeVisualRoot;
     [SerializeField] private CraneXYLeverSwitch3D horizontalLever;
     [SerializeField] private CraneXYLeverSwitch3D verticalLever;
-    [SerializeField] private CraneCarryZone3D carryArea;
-    [SerializeField] private Transform carryAnchor;
 
     [Header("Horizontal Movement")]
     [Min(0f)] [SerializeField] private float horizontalMoveSpeed = 2f;
@@ -68,7 +66,6 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
     [SerializeField] private CraneXYActiveAxis activeAxis;
     [SerializeField] private CraneXYActiveAxis pendingCommand;
     [SerializeField] private float activationRemainingTime;
-    [SerializeField] private bool isCarryingObject;
 
     private readonly RaycastHit[] obstacleHits = new RaycastHit[16];
     private float currentAxisSpeed;
@@ -76,6 +73,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
     private float shutterReleaseTime;
     private bool initialized;
     private bool obstructionWarned;
+    private CraneXYLeverSwitch3D activeLever;
 
     public CraneXYOperationState State => state;
     public bool IsMoving => state == CraneXYOperationState.MovingHorizontal || state == CraneXYOperationState.MovingVertical;
@@ -106,6 +104,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
 
     private void OnDisable()
     {
+        FinishLeverVisual(true);
         state = CraneXYOperationState.Idle;
         activeAxis = CraneXYActiveAxis.None;
         pendingCommand = CraneXYActiveAxis.None;
@@ -164,11 +163,20 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         }
         if (IsBusy) return false;
         activeAxis = requested;
+        activeLever = sourceLever;
         pendingCommand = CraneXYActiveAxis.None;
         currentAxisSpeed = 0f;
         activationRemainingTime = axis == CraneXYAxis.Horizontal ? horizontalActivationDelay : verticalActivationDelay;
         state = CraneXYOperationState.ActivationDelay;
         return true;
+    }
+
+    public bool WillNextMoveInNegativeDirection(CraneXYAxis axis)
+    {
+        InitializeOnce();
+        return axis == CraneXYAxis.Horizontal
+            ? horizontalSide == CraneHorizontalSide.Right
+            : verticalSide == CraneVerticalSide.Bottom;
     }
 
     private bool LeverWins(CraneXYAxis axis, CraneXYLeverSwitch3D source, Transform actor)
@@ -194,7 +202,6 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         float nextX = Mathf.MoveTowards(horizontalMovingRoot.position.x, destination, currentAxisSpeed * Time.fixedDeltaTime);
         Vector3 delta = new Vector3(nextX - horizontalMovingRoot.position.x, 0f, 0f);
         if (HasObstruction(delta, horizontalObstacleMask)) { Block(); return; }
-        carryArea?.CarryBy(delta);
         horizontalMovingRoot.position += delta;
     }
 
@@ -208,7 +215,6 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         float nextY = Mathf.MoveTowards(verticalMovingRoot.localPosition.y, destination, currentAxisSpeed * Time.fixedDeltaTime);
         Vector3 worldDelta = verticalMovingRoot.parent.TransformVector(new Vector3(0f, nextY - verticalMovingRoot.localPosition.y, 0f));
         if (HasObstruction(worldDelta, verticalObstacleMask)) { Block(); return; }
-        carryArea?.CarryBy(worldDelta);
         Vector3 local = verticalMovingRoot.localPosition;
         local.y = nextY;
         verticalMovingRoot.localPosition = local;
@@ -256,10 +262,10 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
     private void Arrive()
     {
         currentAxisSpeed = 0f;
-        carryArea?.ReleaseAtDestinationIfConfigured();
         state = CraneXYOperationState.Arrived;
         activeAxis = CraneXYActiveAxis.None;
         obstructionWarned = false;
+        FinishLeverVisual(false);
         state = CraneXYOperationState.Idle;
     }
 
@@ -269,6 +275,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         state = CraneXYOperationState.Blocked;
         activeAxis = CraneXYActiveAxis.None;
         pendingCommand = CraneXYActiveAxis.None;
+        FinishLeverVisual(true);
         onObstructed?.Invoke();
         if (!obstructionWarned)
         {
@@ -280,9 +287,16 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
 
     private void CancelCommand()
     {
+        FinishLeverVisual(true);
         state = CraneXYOperationState.Idle;
         activeAxis = CraneXYActiveAxis.None;
         currentAxisSpeed = 0f;
+    }
+
+    private void FinishLeverVisual(bool cancelled)
+    {
+        if (activeLever != null) activeLever.NotifyCommandFinished(cancelled);
+        activeLever = null;
     }
 
     private void RefreshRopeVisual()

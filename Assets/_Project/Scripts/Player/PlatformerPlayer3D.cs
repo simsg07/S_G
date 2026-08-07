@@ -95,6 +95,7 @@ public class PlatformerPlayer3D : MonoBehaviour
         ApplyDatabaseTuning();
         ConfigureComponents();
         EnsureCameraAbilitySystem();
+        EnsureFocusingRingSystem();
         EnsurePlayerInteractionSystem();
     }
 
@@ -193,6 +194,12 @@ public class PlatformerPlayer3D : MonoBehaviour
         }
 
         cameraAbilities = gameObject.AddComponent<CameraAbilitySystem3D>();
+    }
+
+    private void EnsureFocusingRingSystem()
+    {
+        if (!Application.isPlaying || GetComponent<FocusingRingController3D>() != null) return;
+        gameObject.AddComponent<FocusingRingController3D>();
     }
 
     private void EnsurePlayerInteractionSystem()

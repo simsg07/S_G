@@ -26,13 +26,21 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
         CacheReferences();
     }
 
+    private void OnEnable()
+    {
+        PlayerDamageReceiver.PlayerDied -= HandlePlayerDied;
+        PlayerDamageReceiver.PlayerDied += HandlePlayerDied;
+    }
+
     private void OnDisable()
     {
+        PlayerDamageReceiver.PlayerDied -= HandlePlayerDied;
         RestoreStunState();
     }
 
     private void OnDestroy()
     {
+        PlayerDamageReceiver.PlayerDied -= HandlePlayerDied;
         RestoreStunState();
     }
 
@@ -53,6 +61,14 @@ public class PlayerStunReceiver : MonoBehaviour, IStunnable
         }
 
         stunRoutine = StartCoroutine(StunRoutine(duration));
+    }
+
+    private void HandlePlayerDied(PlayerDamageReceiver receiver)
+    {
+        if (receiver == null) return;
+        Transform receiverRoot = receiver.transform.root;
+        Transform stunRoot = transform.root;
+        if (receiverRoot == stunRoot) RestoreStunState();
     }
 
     private void CacheReferences()

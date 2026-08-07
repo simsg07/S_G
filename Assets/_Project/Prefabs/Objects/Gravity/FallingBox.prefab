@@ -19,7 +19,8 @@ GameObject:
   - component: {fileID: 220008}
   - component: {fileID: 220009}
   - component: {fileID: 220012}
-  m_Layer: 0
+  - component: {fileID: 7141094275798631066}
+  m_Layer: 9
   m_Name: FallingBox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -279,6 +280,31 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   persistentState: {fileID: 0}
+--- !u!114 &7141094275798631066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 220001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a15cb78fd6a4dd8a59686716b9e5961, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MagneticCarryable3D
+  canBeMovedByMagnet: 1
+  magneticAnchorOverride: {fileID: 0}
+  massOverride: 0
+  preserveRotation: 1
+  lockRotationWhileHeld: 1
+  allowWorldA: 1
+  allowWorldB: 1
+  canBeReleased: 1
+  restoreOriginalParent: 1
+  restoreRigidbodyState: 1
+  restoreGravityState: 1
+  restoreConstraints: 1
+  magnetHoldOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &220101
 GameObject:
   m_ObjectHideFlags: 0
@@ -290,7 +316,7 @@ GameObject:
   - component: {fileID: 220102}
   - component: {fileID: 220103}
   - component: {fileID: 220104}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -378,7 +404,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1988410887564171785}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: BoxTopAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -410,7 +436,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4977712123056890043}
   - component: {fileID: 6999148935436547871}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: BoxVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}

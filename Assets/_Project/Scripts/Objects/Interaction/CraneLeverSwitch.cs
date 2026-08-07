@@ -16,7 +16,7 @@ public enum CraneLeverOperationState
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider))]
-public class CraneLeverSwitch : MonoBehaviour, IInteractable3D
+public class CraneLeverSwitch : MonoBehaviour, IInteractable3D, ISwitchActivation3D
 {
     [Header("Crane Target")]
     [Tooltip("Existing horizontal Crane target. Kept for scene/prefab serialization compatibility.")]
@@ -43,6 +43,11 @@ public class CraneLeverSwitch : MonoBehaviour, IInteractable3D
     [FormerlySerializedAs("fallbackInteractKey")]
     [SerializeField] private Key interactionKey = Key.F;
     [SerializeField] private bool playerInRange;
+
+    [Header("Activation Sources")]
+    [SerializeField] private bool allowPlayerActivation = true;
+    [SerializeField] private bool allowStoneActivation = true;
+    [SerializeField] private bool allowCircleSpikeActivation = true;
 
     [Header("Lever Feedback")]
     [SerializeField] private Animator animator;
@@ -116,6 +121,13 @@ public class CraneLeverSwitch : MonoBehaviour, IInteractable3D
     {
         if (actor != null && !IsPlayer(actor.transform)) return false;
         if (requirePlayerInRange && !playerInRange) return false;
+        return TryActivate(SwitchActivationSource.Player, actor);
+    }
+
+    public bool TryActivate(SwitchActivationSource source, GameObject instigator)
+    {
+        if (!IsActivationSourceAllowed(source)) return false;
+        if (source != SwitchActivationSource.Player && state != CraneLeverOperationState.Idle) return false;
         return ActivateLever();
     }
 
@@ -240,6 +252,17 @@ public class CraneLeverSwitch : MonoBehaviour, IInteractable3D
             if (!string.IsNullOrWhiteSpace(playerTag) && current.CompareTag(playerTag)) return true;
         }
         return false;
+    }
+
+    private bool IsActivationSourceAllowed(SwitchActivationSource source)
+    {
+        switch (source)
+        {
+            case SwitchActivationSource.Player: return allowPlayerActivation;
+            case SwitchActivationSource.Stone: return allowStoneActivation;
+            case SwitchActivationSource.CircleSpike: return allowCircleSpikeActivation;
+            default: return false;
+        }
     }
 
     private void ResolveTarget(bool logResult)
