@@ -20,7 +20,7 @@ GameObject:
   - component: {fileID: 220009}
   - component: {fileID: 220012}
   - component: {fileID: 7141094275798631066}
-  m_Layer: 9
+  m_Layer: 14
   m_Name: FallingBox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -316,7 +316,7 @@ GameObject:
   - component: {fileID: 220102}
   - component: {fileID: 220103}
   - component: {fileID: 220104}
-  m_Layer: 9
+  m_Layer: 14
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -404,7 +404,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1988410887564171785}
-  m_Layer: 9
+  m_Layer: 14
   m_Name: BoxTopAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -436,7 +436,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4977712123056890043}
   - component: {fileID: 6999148935436547871}
-  m_Layer: 9
+  m_Layer: 14
   m_Name: BoxVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}

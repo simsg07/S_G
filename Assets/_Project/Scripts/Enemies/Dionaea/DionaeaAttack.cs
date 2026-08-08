@@ -72,6 +72,12 @@ public sealed class DionaeaAttack : MonoBehaviour
         playerLayerMask = configuredPlayerMask;
     }
 
+    public void ResetRuntimeState()
+    {
+        damaged.Clear();
+        for (int i = 0; i < hits.Length; i++) hits[i] = null;
+    }
+
     private IDamageable FindDamageable(Transform target)
     {
         IDamageable result = target.GetComponent<IDamageable>();

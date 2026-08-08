@@ -32,6 +32,7 @@ public class GravityObject3D : MonoBehaviour, ITriggerableObject
     private Quaternion startRotation;
     private bool initialUseGravity;
     private bool initialIsKinematic;
+    private RigidbodyConstraints initialConstraints;
     private bool horizontalMotionAllowed;
 
     public bool IsDropped => isDropped;
@@ -113,6 +114,7 @@ public class GravityObject3D : MonoBehaviour, ITriggerableObject
         horizontalMotionAllowed = false;
         if (rb != null)
         {
+            rb.constraints = initialConstraints;
             rb.isKinematic = manualDropSpeed > 0f;
             rb.useGravity = manualDropSpeed <= 0f;
         }
@@ -157,6 +159,7 @@ public class GravityObject3D : MonoBehaviour, ITriggerableObject
         {
             initialUseGravity = rb.useGravity;
             initialIsKinematic = rb.isKinematic;
+            initialConstraints = rb.constraints;
         }
     }
 

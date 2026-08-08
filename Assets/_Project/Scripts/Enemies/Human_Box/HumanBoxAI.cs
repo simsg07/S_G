@@ -62,6 +62,7 @@ public sealed class HumanBoxAI : MonsterAIBase
 
     private float ActiveMoveSpeed => useTestMoveSpeed ? testMoveSpeed : moveSpeed;
     public HumanBoxState CurrentState => currentState;
+    public float PlayerDetectionRange => monsterDetection != null ? monsterDetection.PlayerDetectionRange : detectRange;
 
     public void ConfigureDataDrivenStats(int configuredMaxHp, float configuredHowlDuration,
         float legacyHowlStunDuration, bool configuredEnableHowl)
@@ -109,6 +110,7 @@ public sealed class HumanBoxAI : MonsterAIBase
     {
         ApplyGroundDefaults();
         base.OnValidate();
+        if (monsterDetection == null) monsterDetection = GetComponent<MonsterDetection>();
         detectRange = Mathf.Max(0f, detectRange);
         chaseRange = Mathf.Max(detectRange, chaseRange);
         testMoveSpeed = Mathf.Max(0f, testMoveSpeed);
@@ -159,7 +161,7 @@ public sealed class HumanBoxAI : MonsterAIBase
     private void UpdateIdle()
     {
         SetMoving(false);
-        if (!CanDetectPlayer(detectRange)) return;
+        if (!CanDetectPlayer(PlayerDetectionRange)) return;
         patrolController?.PauseForCombat();
         bool repeatHowling = howling != null && !howling.howlingOncePerLife;
         if (enableHowl && (!hasUsedHowling || repeatHowling)) ChangeState(HumanBoxState.HOWLING);
@@ -441,7 +443,6 @@ public sealed class HumanBoxAI : MonsterAIBase
     protected override void OnDrawGizmos()
     {
         if (!showGizmos || !showDetectionDebug) return;
-        Gizmos.color = Color.yellow; Gizmos.DrawWireSphere(transform.position, detectRange);
         Gizmos.color = Color.red; Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }

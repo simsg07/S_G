@@ -62,6 +62,7 @@ public sealed class FocusingSpawner3D : MonoBehaviour
     private FocusingSpawnedInstance3D instanceRelay;
     private bool suppressInstanceNotifications;
     private bool missingPrefabWarningLogged;
+    private bool fullResetPrepared;
 
     public static IEnumerable<FocusingSpawner3D> RegisteredSpawners => Registered;
     public GameObject CurrentInstance => currentInstance;
@@ -84,6 +85,7 @@ public sealed class FocusingSpawner3D : MonoBehaviour
     private void OnDisable()
     {
         Registered.Remove(this);
+        fullResetPrepared = false;
         UnsubscribeInstanceEvents();
     }
 
@@ -119,7 +121,15 @@ public sealed class FocusingSpawner3D : MonoBehaviour
             // A defeated instance can remain temporarily registered until the full reset.
             ClearTemporaryObjects();
             Transform point = spawnPoint != null ? spawnPoint : transform;
-            currentInstance = Instantiate(spawnPrefab, point.position, point.rotation, spawnParent);
+            DirectPlacedMonsterSpawnOwner3D.BeginSpawnerInstantiation();
+            try
+            {
+                currentInstance = Instantiate(spawnPrefab, point.position, point.rotation, spawnParent);
+            }
+            finally
+            {
+                DirectPlacedMonsterSpawnOwner3D.EndSpawnerInstantiation();
+            }
             currentInstance.name = spawnPrefab.name;
             BindInstanceEvents(currentInstance);
             NotifyAfterSpawn(currentInstance);
@@ -132,6 +142,61 @@ public sealed class FocusingSpawner3D : MonoBehaviour
         {
             spawnInProgress = false;
         }
+    }
+
+    public void ConfigureRuntimeMonsterSpawner(GameObject prefab, Transform point, Transform parent,
+        bool includeInReset)
+    {
+        spawnerType = FocusingSpawnerType.Monster;
+        spawnPrefab = prefab;
+        spawnPoint = point;
+        spawnParent = parent;
+        spawnOnSceneStart = false;
+        includeInFullReset = includeInReset;
+        missingPrefabWarningLogged = false;
+    }
+
+    public bool AdoptExistingInstance(GameObject instance)
+    {
+        if (instance == null || spawnInProgress || currentInstance != null) return false;
+        RefreshPersistentState();
+        if (state == FocusingSpawnerState.Disabled) return false;
+
+        currentInstance = instance;
+        BindInstanceEvents(instance);
+        state = FocusingSpawnerState.Alive;
+        return true;
+    }
+
+    /// <summary>
+    /// Starts the explicit full-reset contract. A live owned instance is included and removed.
+    /// Missing-prefab spawners are skipped without destroying their current instance.
+    /// </summary>
+    public bool PrepareForFullReset()
+    {
+        fullResetPrepared = false;
+        RefreshPersistentState();
+        if (!includeInFullReset || state == FocusingSpawnerState.Disabled) return false;
+        if (spawnPrefab == null)
+        {
+            WarnMissingPrefabOnce();
+            return false;
+        }
+
+        DespawnCurrent();
+        fullResetPrepared = true;
+        return true;
+    }
+
+    /// <summary>
+    /// Completes a prepared full reset by creating exactly one fresh prefab at SpawnPoint.
+    /// </summary>
+    public bool CompleteFullReset()
+    {
+        if (!fullResetPrepared) return false;
+        fullResetPrepared = false;
+        RefreshPersistentState();
+        return state != FocusingSpawnerState.Disabled && SpawnFresh();
     }
 
     public void DespawnCurrent()

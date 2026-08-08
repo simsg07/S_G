@@ -4,7 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(MonsterCore))]
 [RequireComponent(typeof(MonsterDetection))]
 [RequireComponent(typeof(MonsterAttack))]
-public class DionaeaAI : MonoBehaviour
+public class DionaeaAI : MonoBehaviour, IFocusingInPlaceResettable3D
 {
     [Header("Detection")]
     [SerializeField] private Transform detectionOrigin;
@@ -68,6 +68,9 @@ public class DionaeaAI : MonoBehaviour
     private float nextAttackTime;
     private float nextAllowedAttackTime;
     private float attackResolveTime = -1f;
+    private Vector3 initialLocalPosition;
+    private Quaternion initialLocalRotation;
+    private Vector3 initialLocalScale;
 
     public DionaeaState CurrentState => currentState;
     public bool CanDie => canDie;
@@ -83,6 +86,7 @@ public class DionaeaAI : MonoBehaviour
     private void Awake()
     {
         AutoFill();
+        CacheInitialTransform();
         EnforceInvulnerability();
         ApplySharedSettings();
         LockBody();
@@ -95,7 +99,11 @@ public class DionaeaAI : MonoBehaviour
     {
         AutoFill();
         LockBody();
+        FocusingInPlaceResetRegistry3D.Register(this);
     }
+
+    private void OnDisable() => FocusingInPlaceResetRegistry3D.Unregister(this);
+    private void OnDestroy() => FocusingInPlaceResetRegistry3D.Unregister(this);
 
     private void OnValidate()
     {
@@ -288,6 +296,41 @@ public class DionaeaAI : MonoBehaviour
         if (lightReceiver != null) lightReceiver.Configure(this, requiredLightExposureTime);
     }
 
+    public void ResetForFocusingRing()
+    {
+        StopAllCoroutines();
+        AutoFill();
+
+        detectedPlayer = null;
+        isLit = false;
+        lightExposureTime = 0f;
+        darknessTime = 0f;
+        retractAnimationTime = 0f;
+        recoverAnimationTime = 0f;
+        nextAttackTime = 0f;
+        nextAllowedAttackTime = Time.time + postRecoverAttackLockTime;
+        attackResolveTime = -1f;
+        isAttacking = false;
+        isRetracted = false;
+        canAttack = true;
+
+        transform.localPosition = initialLocalPosition;
+        transform.localRotation = initialLocalRotation;
+        transform.localScale = initialLocalScale;
+        LockBody();
+        if (body != null)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
+
+        dionaeaAttack?.ResetRuntimeState();
+        lightReceiver?.ResetRuntimeState();
+        animatorBridge?.SetAttacking(false);
+        dionaeaAnimatorBridge?.ResetToIdle();
+        SetState(DionaeaState.Idle);
+    }
+
     [ContextMenu("Test Detect Player")]
     private void TestDetectPlayer() => Debug.Log($"[DionaeaAI] Detected={(CheckPlayerDetection() != null)}", this);
     [ContextMenu("Debug Detection Conditions")]
@@ -455,6 +498,13 @@ public class DionaeaAI : MonoBehaviour
         body.useGravity = false;
         body.isKinematic = true;
         body.constraints = RigidbodyConstraints.FreezeAll;
+    }
+
+    private void CacheInitialTransform()
+    {
+        initialLocalPosition = transform.localPosition;
+        initialLocalRotation = transform.localRotation;
+        initialLocalScale = transform.localScale;
     }
 
     private void EnforceInvulnerability()

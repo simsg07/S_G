@@ -51,6 +51,10 @@ public sealed class FocusingRingController3D : MonoBehaviour
 
     private readonly List<FocusingSpawner3D> cachedSpawners = new List<FocusingSpawner3D>(32);
     private readonly List<FocusingSpawner3D> resetSnapshot = new List<FocusingSpawner3D>(32);
+    private readonly List<IFocusingInPlaceResettable3D> cachedInPlaceResettables =
+        new List<IFocusingInPlaceResettable3D>(16);
+    private readonly List<IFocusingInPlaceResettable3D> inPlaceResetSnapshot =
+        new List<IFocusingInPlaceResettable3D>(16);
     private PlayerDamageReceiver damageReceiver;
     private CameraAbilitySystem3D cameraAbilitySystem;
     private float resetCooldownUntil;
@@ -98,6 +102,8 @@ public sealed class FocusingRingController3D : MonoBehaviour
         resetInProgress = false;
         ClearBufferedResetRequest();
         resetSnapshot.Clear();
+        inPlaceResetSnapshot.Clear();
+        cachedInPlaceResettables.Clear();
     }
 
     private void Update()
@@ -126,9 +132,10 @@ public sealed class FocusingRingController3D : MonoBehaviour
 
         CacheSceneSpawners();
         BuildResetSnapshot();
-        if (!CanActivate() || resetSnapshot.Count == 0)
+        if (!CanActivate() || (resetSnapshot.Count == 0 && inPlaceResetSnapshot.Count == 0))
         {
             resetSnapshot.Clear();
+            inPlaceResetSnapshot.Clear();
             return false;
         }
 
@@ -152,6 +159,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
     public void CacheSceneSpawners()
     {
         cachedSpawners.Clear();
+        cachedInPlaceResettables.Clear();
         for (int i = 0; i < explicitSpawners.Count; i++) RegisterSpawner(explicitSpawners[i]);
 
         if (includeRegisteredSpawners)
@@ -165,6 +173,8 @@ public sealed class FocusingRingController3D : MonoBehaviour
             }
         }
 
+        FocusingInPlaceResetRegistry3D.CopyRegisteredTo(cachedInPlaceResettables);
+
     }
 
     private bool CanActivate()
@@ -174,15 +184,19 @@ public sealed class FocusingRingController3D : MonoBehaviour
         if (Time.timeScale <= 0f || FocusingRingBlocker3D.IsBlocked) return false;
         if (SceneLoader.Instance != null && SceneLoader.Instance.IsLoadingScene) return false;
         if (SceneTransitionManager.Instance != null && SceneTransitionManager.Instance.IsLoading) return false;
-        return HasResettableSpawner();
+        return HasResettableTarget();
     }
 
-    private bool HasResettableSpawner()
+    private bool HasResettableTarget()
     {
         for (int i = 0; i < cachedSpawners.Count; i++)
         {
             FocusingSpawner3D spawner = cachedSpawners[i];
             if (spawner != null && spawner.IncludeInFullReset && !spawner.IsPermanentlyDisabled) return true;
+        }
+        for (int i = 0; i < cachedInPlaceResettables.Count; i++)
+        {
+            if (FocusingInPlaceResetRegistry3D.IsAlive(cachedInPlaceResettables[i])) return true;
         }
         return false;
     }
@@ -213,7 +227,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
         if (currentTime > bufferedResetRequestExpiresAt)
         {
             CacheSceneSpawners();
-            if (!HasResettableSpawner()) LogNoEligibleSpawners();
+            if (!HasResettableTarget()) LogNoEligibleSpawners();
             ClearBufferedResetRequest();
             return;
         }
@@ -225,7 +239,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
         }
 
         CacheSceneSpawners();
-        if (!HasResettableSpawner()) return;
+        if (!HasResettableTarget()) return;
         if (TryActivate()) ClearBufferedResetRequest();
     }
 
@@ -238,7 +252,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
     [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
     private void LogNoEligibleSpawners()
     {
-        Debug.LogWarning("[FocusingRing] Reset request received, but no eligible spawners were registered.", this);
+        Debug.LogWarning("[FocusingRing] Reset request received, but no eligible reset targets were registered.", this);
     }
 
     private IEnumerator ResetRoutine()
@@ -248,11 +262,23 @@ public sealed class FocusingRingController3D : MonoBehaviour
         {
             resetStarted.Invoke();
 
+            for (int i = 0; i < inPlaceResetSnapshot.Count; i++)
+            {
+                IFocusingInPlaceResettable3D resettable = inPlaceResetSnapshot[i];
+                if (!FocusingInPlaceResetRegistry3D.IsAlive(resettable)) continue;
+                try { resettable.ResetForFocusingRing(); }
+                catch (System.Exception exception)
+                {
+                    if (resettable is Object context) Debug.LogException(exception, context);
+                    else Debug.LogException(exception);
+                }
+            }
+
             for (int i = resetSnapshot.Count - 1; i >= 0; i--)
             {
                 FocusingSpawner3D spawner = resetSnapshot[i];
                 if (spawner == null) continue;
-                try { spawner.DespawnCurrent(); }
+                try { spawner.PrepareForFullReset(); }
                 catch (System.Exception exception) { Debug.LogException(exception, spawner); }
             }
 
@@ -272,7 +298,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
                 {
                     FocusingSpawner3D spawner = resetSnapshot[i];
                     if (spawner == null || spawner.SpawnerType != type || spawner.IsPermanentlyDisabled) continue;
-                    try { spawner.SpawnFresh(); }
+                    try { spawner.CompleteFullReset(); }
                     catch (System.Exception exception) { Debug.LogException(exception, spawner); }
                 }
             }
@@ -283,6 +309,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
         finally
         {
             resetSnapshot.Clear();
+            inPlaceResetSnapshot.Clear();
             resetRoutine = null;
             resetInProgress = false;
             if (completed)
@@ -302,6 +329,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
     private void BuildResetSnapshot()
     {
         resetSnapshot.Clear();
+        inPlaceResetSnapshot.Clear();
         for (int i = cachedSpawners.Count - 1; i >= 0; i--)
         {
             FocusingSpawner3D spawner = cachedSpawners[i];
@@ -313,6 +341,13 @@ public sealed class FocusingRingController3D : MonoBehaviour
             if (!spawner.IncludeInFullReset || spawner.IsPermanentlyDisabled) continue;
             if (!resetSnapshot.Contains(spawner)) resetSnapshot.Add(spawner);
         }
+
+        for (int i = 0; i < cachedInPlaceResettables.Count; i++)
+        {
+            IFocusingInPlaceResettable3D resettable = cachedInPlaceResettables[i];
+            if (!FocusingInPlaceResetRegistry3D.IsAlive(resettable)) continue;
+            if (!inPlaceResetSnapshot.Contains(resettable)) inPlaceResetSnapshot.Add(resettable);
+        }
     }
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -322,6 +357,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
         resetInProgress = false;
         ClearBufferedResetRequest();
         resetSnapshot.Clear();
+        inPlaceResetSnapshot.Clear();
         CacheSceneSpawners();
         RefreshEnabledState();
     }

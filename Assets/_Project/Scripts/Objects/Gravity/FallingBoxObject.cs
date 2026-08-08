@@ -3,7 +3,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
-public class FallingBoxObject : MonoBehaviour
+public class FallingBoxObject : MonoBehaviour, IGravityActivatable3D
 {
     [Header("State")]
     [SerializeField] private bool isDropped;
@@ -101,6 +101,16 @@ public class FallingBoxObject : MonoBehaviour
         }
 
         Log("Dropped.");
+    }
+
+    public bool TryActivateGravity(GameObject source)
+    {
+        MagneticCarryable3D carryable = GetComponent<MagneticCarryable3D>();
+        if (isDropped || isLanded || (carryable != null && carryable.IsReserved)) return false;
+        ConnectedObjectLink support = GetComponentInParent<ConnectedObjectLink>();
+        if (support != null) return support.ReleaseConnectedObject();
+        TriggerDrop();
+        return IsFalling;
     }
 
 
@@ -278,7 +288,7 @@ public class FallingBoxObject : MonoBehaviour
 
     private void ClearVelocity()
     {
-        if (rb == null)
+        if (rb == null || rb.isKinematic)
         {
             return;
         }

@@ -61,6 +61,15 @@ public sealed class DionaeaLightReceiver : MonoBehaviour
 
     public void ResetLightExposure() => currentLightTime = 0f;
 
+    public void ResetRuntimeState()
+    {
+        externalLightSignal = false;
+        isReceivingLight = false;
+        currentLightTime = 0f;
+        for (int i = 0; i < hits.Length; i++) hits[i] = null;
+        if (dionaeaAI != null) dionaeaAI.SetLit(false);
+    }
+
     [ContextMenu("Validate Light Receiver Setup")]
     public void ValidateLightReceiverSetup() => Debug.Log($"[DionaeaLightReceiver] AI={dionaeaAI != null}, Mask={lightLayerMask.value}, Tag={lightTag}", this);
 

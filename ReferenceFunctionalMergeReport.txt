@@ -1,0 +1,49 @@
+Reference functional merge
+2026-08-08T21:22:25.8749749+09:00
+MAIN_MENU | reference hierarchy and serialized button/transition references applied
+CONNECTION | Boss_Hint_Room/Exits/LeftExit -> hallwa_05:Default
+CONNECTION | Boss_Hint_Room/Exits/RightExit -> hallwa_06:Default
+SCENE_CONNECTIONS | Boss_Hint_Room | reference root applied
+SCENE_CONNECTIONS | Boss_Room | reference root missing; current preserved
+CONNECTION | Item_Room_01/Exits/LeftExit -> hallwa_02:RightEntrance
+SCENE_CONNECTIONS | Item_Room_01 | reference root applied
+CONNECTION | Item_Room_02/Exits/LeftExit -> Boss_Hint_Room:Default
+CONNECTION | Item_Room_02/Exits/RightExit -> middle_Room_2:RightEntrance
+CONNECTION | Item_Room_02/Exits/RightExit (1) -> middle_Room_2:Default
+SCENE_CONNECTIONS | Item_Room_02 | reference root applied
+CONNECTION | Start_Room/Exits/RightExit -> hallwa_01:LeftEntrance
+CONNECTION | Start_Room/Exits/LeftExit -> hallwa_03:LeftEntrance
+SCENE_CONNECTIONS | Start_Room | reference root applied
+PLAYER_UI | existing singleton updated with reference prefab overrides
+CONNECTION | hallwa_01/Exits/LeftExit -> Start_Room:RightEntrance
+CONNECTION | hallwa_01/Exits/LeftExit_2 -> Start_Room:RightEntrance
+CONNECTION | hallwa_01/Exits/RightExit -> middle_Room:RightEntrance1
+SCENE_CONNECTIONS | hallwa_01 | reference root applied
+CONNECTION | hallwa_02/Exits/LeftExit -> middle_Room:UpperRightEntrance
+CONNECTION | hallwa_02/Exits/RightExit -> Item_Room_01:LeftEntrance
+SCENE_CONNECTIONS | hallwa_02 | reference root applied
+CONNECTION | hallwa_03/Exits/LeftExit -> Start_Room:LeftEntrance
+CONNECTION | hallwa_03/Exits/RightExit -> middle_Room_2:LeftEntrance
+SCENE_CONNECTIONS | hallwa_03 | reference root applied
+CONNECTION | hallwa_04/Exits/LeftExit -> Item_Room_02:RightEntrance
+CONNECTION | hallwa_04/Exits/RightExit -> middle_Room_2:RightEntrance
+SCENE_CONNECTIONS | hallwa_04 | reference root applied
+CONNECTION | hallwa_05/Exits/LeftExit -> middle_Room:LowerRightEntrance
+CONNECTION | hallwa_05/Exits/RightExit -> Boss_Hint_Room:LeftEntrance
+SCENE_CONNECTIONS | hallwa_05 | reference root applied
+CONNECTION | hallwa_06/Exits/LeftExit -> Boss_Hint_Room:RightEntrance
+SCENE_CONNECTIONS | hallwa_06 | reference root applied
+CONNECTION | middle_Room/Exits/LeftExit -> hallwa_01:RightEntrance
+CONNECTION | middle_Room/Exits/RightExit -> hallwa_01:RightEntrance1
+CONNECTION | middle_Room/Exits/RightExit (1) -> :Default
+MIDDLE_BRANCHES | Upper/Lower hallwa_02 and hallwa_05 round trips preserved
+SCENE_CONNECTIONS | middle_Room | reference root applied
+CONNECTION | middle_Room_2/Exits/LeftExit -> hallwa_03:RightEntrance
+CONNECTION | middle_Room_2/Exits/LeftExit (1) -> hallwa_04:RightEntrance
+CONNECTION | middle_Room_2/Exits/RightExit -> :Default
+SCENE_CONNECTIONS | middle_Room_2 | reference root applied
+SORTING_LAYERS | BackGround, MidGround, PlayerGround, New Layer 4, Fore_Ground_3, Fore_Ground_2, Fore_Ground_1, UI restored; current physics layers preserved
+STATIC_CONNECTION_VALIDATION | all enabled exits resolve to a registered scene and an existing destination SpawnPoint
+PLAYER_UI_VALIDATION | exactly one scene instance, in Start_Room; persistent singleton binder enabled
+COMPILE_VALIDATION | Unity 6000.3.19f1 Tundra build success, no C# errors
+SAVE_INTEGRATION | title Continue availability now recognizes the current GameProgressSave3D PlayerPrefs key while retaining the reference legacy key

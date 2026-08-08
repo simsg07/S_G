@@ -7,6 +7,8 @@ public static class GameProgressSave3D
 
     private static SavePayload cachedPayload;
 
+    public static bool HasSaveData => PlayerPrefs.HasKey(PlayerPrefsKey);
+
     public static CameraAbilityFlags GetUnlockedAbilities()
     {
         SavePayload payload = LoadPayload();

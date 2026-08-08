@@ -51,6 +51,8 @@ public class MonsterDetection : MonoBehaviour
 
     private float nextLineOfSightLogTime;
 
+    public float PlayerDetectionRange => playerDetectRange;
+
     public bool IsTargetDetected(
         Transform observer,
         Transform target,

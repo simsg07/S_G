@@ -26,6 +26,7 @@ GameObject:
   - component: {fileID: 6210000000000001004}
   - component: {fileID: 6210000000000001201}
   - component: {fileID: 6233771058886700303}
+  - component: {fileID: 7164938275016384202}
   m_Layer: 0
   m_Name: EyeballFly
   m_TagString: Untagged
@@ -33,6 +34,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &7164938275016384202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8398327653414921045}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f4a9e2c13bd4f70a1c8d5e903b72a64, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::DirectPlacedMonsterSpawnOwner3D
+  monsterKind: 1
+  includeInFullReset: 1
 --- !u!4 &9120076286916509478
 Transform:
   m_ObjectHideFlags: 0

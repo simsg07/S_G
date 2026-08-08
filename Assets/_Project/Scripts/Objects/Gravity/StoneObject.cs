@@ -11,7 +11,7 @@ public enum StoneObjectState
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
-public class StoneObject : MonoBehaviour
+public class StoneObject : MonoBehaviour, IGravityActivatable3D
 {
     [Header("State")]
     [SerializeField] private StoneObjectState currentState = StoneObjectState.IDLE;
@@ -131,6 +131,15 @@ public class StoneObject : MonoBehaviour
         }
 
         Log("Dropped.");
+    }
+
+    public bool TryActivateGravity(GameObject source)
+    {
+        if (currentState != StoneObjectState.IDLE || isDropped || isBroken) return false;
+        ConnectedObjectLink support = GetComponentInParent<ConnectedObjectLink>();
+        if (support != null) return support.ReleaseConnectedObject();
+        TriggerDrop();
+        return currentState == StoneObjectState.FALLING;
     }
 
     [ContextMenu("ResetStone")]

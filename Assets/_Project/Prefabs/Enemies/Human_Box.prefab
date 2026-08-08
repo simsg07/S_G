@@ -26,6 +26,7 @@ GameObject:
   - component: {fileID: 110011}
   - component: {fileID: 110012}
   - component: {fileID: 110013}
+  - component: {fileID: 7164938275016384201}
   m_Layer: 0
   m_Name: Human_Box
   m_TagString: Untagged
@@ -33,6 +34,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &7164938275016384201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f4a9e2c13bd4f70a1c8d5e903b72a64, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::DirectPlacedMonsterSpawnOwner3D
+  monsterKind: 0
+  includeInFullReset: 1
 --- !u!4 &100101
 Transform:
   m_ObjectHideFlags: 0
@@ -313,15 +328,21 @@ MonoBehaviour:
   enableHowling: 1
   howlingDuration: 1.5
   howlingOncePerLife: 1
-  howlingRadius: 3
+  howlingRangeMode: 0
+  customHowlingRadius: 3
+  detection: {fileID: 110002}
   howlingInteractableMask:
     serializedVersion: 2
-    m_Bits: 4294967295
-  howlOrigin: {fileID: 100101}
+    m_Bits: 16384
+  howlingOrigin: {fileID: 100101}
   howlingStunsPlayer: 1
   howlingPlayerStunDuration: 1.5
-  debugMode: 1
-  showGizmo: 1
+  debugMode: 0
+  showHowlingRange: 1
+  showDetectionRange: 1
+  showGizmosWhenNotSelected: 0
+  howlingRangeColor: {r: 0, g: 1, b: 1, a: 1}
+  detectionRangeColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!114 &110008
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -24,7 +24,7 @@ public enum CircleSpikeVisualRotationMode
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody), typeof(Collider), typeof(CircleSpikeObject))]
-public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D, IShutterFreezeState3D
+public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D, IShutterFreezeState3D, IGravityActivatable3D
 {
     [Header("Drop")]
     [SerializeField, Min(0f)] private float gravityScale = 1f;
@@ -230,6 +230,11 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
         if (projectileCollider != null) projectileCollider.enabled = true;
         circleSpike?.SetDamageEnabled(true);
         return true;
+    }
+
+    public bool TryActivateGravity(GameObject source)
+    {
+        return ReleaseAndDrop();
     }
 
     public void StopProjectile()

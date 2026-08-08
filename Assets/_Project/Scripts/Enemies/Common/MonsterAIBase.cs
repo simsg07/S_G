@@ -1365,7 +1365,13 @@ public abstract class MonsterAIBase : MonoBehaviour
         {
             Vector3 scale = targetVisualRoot.localScale;
             float baseScaleX = facingVisualBaseScaleX > 0.0001f ? facingVisualBaseScaleX : Mathf.Abs(scale.x);
-            scale.x = baseScaleX * (usePositiveScale ? 1f : -1f);
+            float desiredScaleX = baseScaleX * (usePositiveScale ? 1f : -1f);
+            if (Mathf.Approximately(scale.x, desiredScaleX))
+            {
+                return;
+            }
+
+            scale.x = desiredScaleX;
             targetVisualRoot.localScale = scale;
 
             if (debugMode)
@@ -1378,15 +1384,17 @@ public abstract class MonsterAIBase : MonoBehaviour
 
         SpriteRenderer[] spriteRenderers = GetComponentsInChildren<SpriteRenderer>(true);
         bool flipX = !usePositiveScale;
+        bool facingChanged = false;
         for (int i = 0; i < spriteRenderers.Length; i++)
         {
-            if (spriteRenderers[i] != null)
+            if (spriteRenderers[i] != null && spriteRenderers[i].flipX != flipX)
             {
                 spriteRenderers[i].flipX = flipX;
+                facingChanged = true;
             }
         }
 
-        if (debugMode)
+        if (debugMode && facingChanged)
         {
             LogDebug($"Facing targetDirection.x={xDelta:0.###}, desiredFaceRight={desiredFaceRight}, visualFacesRightByDefault={visualFacesRightByDefault}, invertFacing={invertFacing}, spriteFlipX={flipX}");
         }
