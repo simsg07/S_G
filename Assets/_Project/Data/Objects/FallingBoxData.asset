@@ -35,7 +35,7 @@ MonoBehaviour:
   lockZPosition: 1
   breakOnGroundHit: 0
   remainAsPlatformOnGround: 1
-  instantKillPlayerOnFallingHit: 1
+  instantKillPlayerOnFallingHit: 0
   useGravityDropSensor: 1
   gravityDetectionCenterOffset: {x: 0, y: -5.5, z: 0}
   gravityDetectionBoxSize: {x: 1, y: 10, z: 1}

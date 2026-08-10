@@ -368,22 +368,32 @@ public class WorldPresence : MonoBehaviour
                 continue;
             }
 
-            target.linearVelocity = Vector3.zero;
-            target.angularVelocity = Vector3.zero;
-
             if (present)
             {
                 target.isKinematic = rigidbodyStates[i].OriginalIsKinematic;
                 target.useGravity = rigidbodyStates[i].OriginalUseGravity;
+                StopDynamicMotion(target);
                 continue;
             }
 
+            StopDynamicMotion(target);
             target.isKinematic = true;
             target.useGravity = false;
             stoppedCount++;
         }
 
         return stoppedCount;
+    }
+
+    private static void StopDynamicMotion(Rigidbody target)
+    {
+        if (target == null || target.isKinematic)
+        {
+            return;
+        }
+
+        target.linearVelocity = Vector3.zero;
+        target.angularVelocity = Vector3.zero;
     }
 
     private int ApplyAnimatorStates(bool present)

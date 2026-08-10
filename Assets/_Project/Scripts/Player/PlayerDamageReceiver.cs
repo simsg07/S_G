@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 using System;
+using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
 public class PlayerDamageReceiver : MonoBehaviour, IDamageable
@@ -54,6 +55,7 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 
     public int CurrentHp => currentHp;
     public bool CanTakeDamage => !isDead && (infiniteHealth || currentHp > 0);
+    public bool IsDead => isDead || (!infiniteHealth && currentHp <= 0);
 
     private void Awake()
     {
@@ -74,6 +76,7 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 
     private void Update()
     {
+        if (GameplayInputLock3D.IsLocked) return;
         Keyboard keyboard = Keyboard.current;
         if (keyboard != null && keyboard[manualRespawnKey].wasPressedThisFrame)
         {
@@ -124,15 +127,29 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 
     public void Respawn()
     {
+        CameraAbilitySystem3D.ForceExitAllCameraModes();
         StopBlinkCoroutines(true);
         SetRenderersEnabled(true);
 
-        Transform targetRespawnPoint = ResolveRespawnPoint();
-        if (targetRespawnPoint != null)
+        bool checkpointLoadStarted = false;
+        bool hasCheckpointPose = TryResolveCheckpointRespawnPose(
+            ref checkpointLoadStarted,
+            out Vector3 checkpointPosition,
+            out Quaternion checkpointRotation);
+        Transform targetRespawnPoint = null;
+        if (!hasCheckpointPose && !checkpointLoadStarted)
+        {
+            targetRespawnPoint = ResolveRespawnPoint();
+        }
+        if (hasCheckpointPose)
+        {
+            transform.SetPositionAndRotation(checkpointPosition, checkpointRotation);
+        }
+        else if (targetRespawnPoint != null)
         {
             transform.position = targetRespawnPoint.position;
         }
-        else
+        else if (!checkpointLoadStarted)
         {
             Debug.LogWarning("[PlayerDamageReceiver] Respawn Point is not assigned.", this);
         }
@@ -152,6 +169,55 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         {
             Debug.Log($"[PlayerDamageReceiver] Respawned. HP={currentHp}/{maxHp}", this);
         }
+    }
+
+    private bool TryResolveCheckpointRespawnPose(
+        ref bool checkpointLoadStarted,
+        out Vector3 position,
+        out Quaternion rotation)
+    {
+        checkpointLoadStarted = false;
+        position = default;
+        rotation = Quaternion.identity;
+        if (!GameProgressSave3D.TryGetLastCheckpoint(out string checkpointScene, out string checkpointId))
+        {
+            return false;
+        }
+
+        string activeScene = SceneManager.GetActiveScene().name;
+        if (!string.Equals(activeScene, checkpointScene, StringComparison.Ordinal))
+        {
+            checkpointLoadStarted = SceneLoader.TryLoadCheckpointRespawn(checkpointScene, checkpointId);
+            if (!checkpointLoadStarted)
+            {
+                Debug.LogWarning($"[PlayerDamageReceiver] Could not load saved checkpoint '{checkpointScene}/{checkpointId}'. Using current scene Default spawn.", this);
+            }
+            return false;
+        }
+
+        if (GameProgressSave3D.TryGetLastCheckpointPose(
+                out string poseScene,
+                out string poseCheckpointId,
+                out position,
+                out rotation,
+                out ResearchWorldId savedWorld)
+            && string.Equals(poseScene, checkpointScene, StringComparison.Ordinal)
+            && string.Equals(poseCheckpointId, checkpointId, StringComparison.Ordinal))
+        {
+            WorldSystem3D.EnsureInstance().SetWorld(savedWorld);
+            return true;
+        }
+
+        Checkpoint3D checkpoint = SceneLoader.FindCheckpoint(checkpointId);
+        if (checkpoint == null)
+        {
+            Debug.LogWarning($"[PlayerDamageReceiver] Saved checkpoint '{checkpointId}' is missing in scene '{activeScene}'. Using Default PlayerSpawnPoint.", this);
+            return false;
+        }
+
+        position = checkpoint.SpawnPosition.position;
+        rotation = checkpoint.SpawnPosition.rotation;
+        return true;
     }
 
     [ContextMenu("Test Kill And Respawn")]

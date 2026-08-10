@@ -1,0 +1,129 @@
+Campst placement merge
+2026-08-08T20:45:10.8379483+09:00
+
+SCENE Boss_Hint_Room <- Boss_Hint_Room
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(-80,-2.5,0) R(0,0,0) S(1,1,1) | incoming=P(-7.57,19.39,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/RightEntrance | old=P(17,-2.5,0) R(0,0,0) S(1,1,1) | incoming=P(26.46,24.48,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/Exits/LeftExit | old=P(-81.5,-2.5,0) R(0,0,0) S(1,1,1) | incoming=P(-10.54,17.99,0) R(0,0,0) S(1,2,1)
+TRANSFORM | [SceneConnections]/Exits/RightExit | old=P(18.5,-2.5,0) R(0,0,0) S(1,1,1) | incoming=P(29.03,26.52,0) R(0,0,90) S(1,3,1)
+SUMMARY | changed=4 exact=23 unmatched=0
+
+SCENE Boss_Room <- Boss_Room
+SUMMARY | changed=0 exact=10 unmatched=0
+
+SCENE Item_Room_01 <- Item_Room_01
+TRANSFORM | [SceneConnections] | old=P(0,0,0) R(0,0,0) S(1,1,1) | incoming=P(-3.84,-35.36,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(-25.7,22.9,0) R(0,0,0) S(1,1,1) | incoming=P(-23.61,27.77,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/Exits/LeftExit | old=P(-25.3,28,0) R(0,0,0) S(8.0875,1,1) | incoming=P(-27.34,29.81,0) R(0,0,270) S(5,1,1)
+SUMMARY | changed=3 exact=15 unmatched=0
+
+SCENE Item_Room_02 <- Item_Room_02
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(-50.1,-15,0) R(0,0,0) S(1,1,1) | incoming=P(44.18,-4.08,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/RightEntrance | old=P(41.8,-54.6,0) R(0,0,0) S(1,1,1) | incoming=P(70.01,-14.71,0) R(0,0,0) S(1,1,1)
+UNMATCHED_INCOMING | [SceneConnections]/SpawnPoints/RightEntrance (1) | prefab=72369e40a11e4278bc1388848e54d899
+TRANSFORM | [SceneConnections]/Exits/LeftExit | old=P(-53.3,-16.406,0) R(0,0,0) S(1,3.40659,1) | incoming=P(46.02,-1.48,0) R(0,0,90) S(1,1.5,1)
+TRANSFORM | [SceneConnections]/Exits/RightExit | old=P(49.94,-54.38,0) R(0,0,0) S(1,2.2562,1) | incoming=P(71.96,-11.71,0) R(0,0,90) S(1,2,1)
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit (1) | prefab=53db2a2f46ea4b448c49693b04a7894f
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit (1)/Visual | prefab=53db2a2f46ea4b448c49693b04a7894f
+SUMMARY | changed=4 exact=37 unmatched=3
+
+SCENE Start_Room <- Start_Room
+TRANSFORM | Main Camera | old=P(-11.59644,-5.10203,-10) R(0,0,0) S(1,1,1) | incoming=P(-11.9,-8.7,-10) R(0,0,0) S(1,1,1)
+CAMERA | Main Camera | old=ortho:True,size:11,fov:60 | incoming=ortho:True,size:5,fov:60
+TRANSFORM | [SceneConnections] | old=P(0,11.22,0) R(0,0,0) S(1,1,1) | incoming=P(-23.05,9.37,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/RightEntrance | old=P(-22.6,-18.6,0) R(0,0,0) S(1,1,1) | incoming=P(26.36,-21.83,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(-14,-20.77,0) R(0,0,0) S(1,1,1) | incoming=P(0.79,-17.01,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/Exits/RightExit | old=P(7.68,-13.52,0) R(0,0,0) S(1,2.08206,1) | incoming=P(29.4,-11.14,0) R(0,0,0) S(1,2.08206,1)
+TRANSFORM | [SceneConnections]/Exits/LeftExit | old=P(-22.3,-7.7,0) R(0,0,0) S(1,1,1) | incoming=P(0.12,-6.2,0) R(0,0,0) S(1,1.5,1)
+CURRENT_ONLY | Stone | preserved=true | prefab=3d3ae7933f6d49a793f58c11043469db
+CURRENT_ONLY | Stone/Visual | preserved=true | prefab=3d3ae7933f6d49a793f58c11043469db
+CURRENT_ONLY | Human_Box | preserved=true | prefab=c451e9ebdc154685b68b8b38c5a8f70d
+CURRENT_ONLY | Human_Box/Visual | preserved=true | prefab=c451e9ebdc154685b68b8b38c5a8f70d
+CURRENT_ONLY | Human_Box/AttackHitbox | preserved=true | prefab=c451e9ebdc154685b68b8b38c5a8f70d
+CURRENT_ONLY | Human_Box/DeadPlatformCollider | preserved=true | prefab=c451e9ebdc154685b68b8b38c5a8f70d
+SUMMARY | changed=7 exact=68 unmatched=0
+
+SCENE hallwa_01 <- hallwa_01
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(-28.29,-4.97,0) R(0,0,0) S(1,1,1) | incoming=P(-28.34,-4.54,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/RightEntrance | old=P(34.33,18.03,0) R(0,0,0) S(1,1,1) | incoming=P(25.36,-15.5,0) R(0,0,0) S(1,1,1)
+UNMATCHED_INCOMING | [SceneConnections]/SpawnPoints/RightEntrance (1) | prefab=72369e40a11e4278bc1388848e54d899
+TRANSFORM | [SceneConnections]/Exits/LeftExit | old=P(-30.46,-5.99,0) R(0,0,0) S(1.3437,3.55117,1) | incoming=P(-30.74,-6.02,0) R(0,0,0) S(1.3437,2.52658,1)
+UNMATCHED_INCOMING | [SceneConnections]/Exits/LeftExit_2 | prefab=53db2a2f46ea4b448c49693b04a7894f
+UNMATCHED_INCOMING | [SceneConnections]/Exits/LeftExit_2/Visual | prefab=53db2a2f46ea4b448c49693b04a7894f
+TRANSFORM | [SceneConnections]/Exits/RightExit | old=P(36.16,18.01,0) R(0,0,0) S(1,2.6625,1) | incoming=P(14.13,20.52,0) R(0,0,89.722) S(1,3.6,1)
+UNMATCHED_INCOMING | GravityObjectSpawner | prefab=bf295b9807ec4d6f88ea10ee5fb843ac
+UNMATCHED_INCOMING | GravityObjectSpawner/SpawnPoint | prefab=bf295b9807ec4d6f88ea10ee5fb843ac
+SUMMARY | changed=4 exact=30 unmatched=5
+
+SCENE hallwa_02 <- hallwa_02
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(-55.96,-12.87,0) R(0,0,0) S(1,1,1) | incoming=P(-55.96,-12.39,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/RightEntrance | old=P(-9.5,-31.37,0) R(0,0,0) S(1,1,1) | incoming=P(-29.31,-19.54,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/Exits/RightExit | old=P(-9.5,-34.74,0) R(0,0,0) S(5.1688,1,1) | incoming=P(-25.22,-17.3,0) R(0,0,90) S(5.1688,1,1)
+SUMMARY | changed=3 exact=18 unmatched=0
+
+SCENE hallwa_03 <- hallwa_03
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(56,21.7,0) R(0,0,0) S(1,1,1) | incoming=P(17.66,-15.02,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/RightEntrance | old=P(-28.6,-7.55,0) R(0,0,0) S(1,1,1) | incoming=P(5,-7.01,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/Exits/LeftExit | old=P(57.8,20.725,0) R(0,0,0) S(1,2.175,1) | incoming=P(19.46,-15.995,0) R(0,0,0) S(1,2.175,1)
+TRANSFORM | [SceneConnections]/Exits/RightExit | old=P(-24.69,-16.8,0) R(0,0,0) S(7.7,1,1) | incoming=P(6.97,-5.48,0) R(0,0,90) S(1,2,1)
+SUMMARY | changed=4 exact=12 unmatched=0
+
+SCENE hallwa_04 <- hallwa_04
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(-72,-30.5,0) R(0,0,0) S(1,1,1) | incoming=P(-28.57,-55.18,0) R(0,0,0) S(1,1,1)
+UNMATCHED_INCOMING | [SceneConnections]/SpawnPoints/RightEntrance | prefab=72369e40a11e4278bc1388848e54d899
+TRANSFORM | [SceneConnections]/Exits/LeftExit | old=P(-76,-29.8,0) R(0,0,0) S(1,2.3875,1) | incoming=P(-30.2,-56.99,0) R(0,0,90) S(1,2.5,1)
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit | prefab=53db2a2f46ea4b448c49693b04a7894f
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit/Visual | prefab=53db2a2f46ea4b448c49693b04a7894f
+SUMMARY | changed=2 exact=27 unmatched=3
+
+SCENE hallwa_05 <- hallwa_05
+SUMMARY | changed=0 exact=25 unmatched=0
+
+SCENE hallwa_06 <- hallwa_06
+SUMMARY | changed=0 exact=18 unmatched=0
+
+SCENE middle_Room <- middle_Room_1
+UNMATCHED_INCOMING | Visual_Map_Grid/Generated_3D_Collision/Visual_Tilemap_008 | prefab=scene-object
+UNMATCHED_INCOMING | Visual_Map_Grid/Generated_3D_Collision/Visual_Tilemap_009 | prefab=scene-object
+UNMATCHED_INCOMING | Visual_Map_Grid/Generated_3D_Collision/Visual_Tilemap_010 | prefab=scene-object
+TRANSFORM | [SceneConnections] | old=P(0,0,0) R(0,0,0) S(1,1,1) | incoming=P(5.57,-3,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(-32.5,-13.37,0) R(0,0,0) S(1,1,1) | incoming=P(10.64,8.46,0) R(0,0,0) S(1,1,1)
+UNMATCHED_INCOMING | [SceneConnections]/SpawnPoints/RightEntrance | prefab=72369e40a11e4278bc1388848e54d899
+UNMATCHED_INCOMING | [SceneConnections]/SpawnPoints/RightEntrance (1) | prefab=72369e40a11e4278bc1388848e54d899
+TRANSFORM | [SceneConnections]/Exits/LeftExit | old=P(-36.4,-12.4,0) R(0,0,0) S(1,1,1) | incoming=P(13.41,10.55,0) R(0,0,90) S(1,3,1)
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit | prefab=53db2a2f46ea4b448c49693b04a7894f
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit/Visual | prefab=53db2a2f46ea4b448c49693b04a7894f
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit (1) | prefab=53db2a2f46ea4b448c49693b04a7894f
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit (1)/Visual | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | Main Camera | preserved=true | prefab=scene-object
+CURRENT_ONLY | [SceneConnections]/SpawnPoints/UpperRightEntrance | preserved=true | prefab=72369e40a11e4278bc1388848e54d899
+CURRENT_ONLY | [SceneConnections]/SpawnPoints/CenterRightEntrance | preserved=true | prefab=72369e40a11e4278bc1388848e54d899
+CURRENT_ONLY | [SceneConnections]/SpawnPoints/LowerRightEntrance | preserved=true | prefab=72369e40a11e4278bc1388848e54d899
+CURRENT_ONLY | [SceneConnections]/Exits/UpperRightExit | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/UpperRightExit/Visual | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/CenterRightExit | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/CenterRightExit/Visual | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/LowerRightExit | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/LowerRightExit/Visual | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+SUMMARY | changed=3 exact=15 unmatched=9
+
+SCENE middle_Room_2 <- middle_Room_2
+TRANSFORM | [SceneConnections] | old=P(0,0,0) R(0,0,0) S(1,1,1) | incoming=P(5.57,-3,0) R(0,0,0) S(1,1,1)
+TRANSFORM | [SceneConnections]/SpawnPoints/LeftEntrance | old=P(-32.5,-13.37,0) R(0,0,0) S(1,1,1) | incoming=P(-12.05,-8.33,0) R(0,0,0) S(1,1,1)
+UNMATCHED_INCOMING | [SceneConnections]/SpawnPoints/RightEntrance | prefab=72369e40a11e4278bc1388848e54d899
+TRANSFORM | [SceneConnections]/Exits/LeftExit | old=P(-36.4,-12.4,0) R(0,0,0) S(1,1,1) | incoming=P(-6.58,-10.47,0) R(0,0,90) S(1,2,1)
+UNMATCHED_INCOMING | [SceneConnections]/Exits/LeftExit (1) | prefab=53db2a2f46ea4b448c49693b04a7894f
+UNMATCHED_INCOMING | [SceneConnections]/Exits/LeftExit (1)/Visual | prefab=53db2a2f46ea4b448c49693b04a7894f
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit | prefab=53db2a2f46ea4b448c49693b04a7894f
+UNMATCHED_INCOMING | [SceneConnections]/Exits/RightExit/Visual | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | Main Camera | preserved=true | prefab=scene-object
+CURRENT_ONLY | [SceneConnections]/SpawnPoints/UpperRightEntrance | preserved=true | prefab=72369e40a11e4278bc1388848e54d899
+CURRENT_ONLY | [SceneConnections]/SpawnPoints/CenterRightEntrance | preserved=true | prefab=72369e40a11e4278bc1388848e54d899
+CURRENT_ONLY | [SceneConnections]/SpawnPoints/LowerRightEntrance | preserved=true | prefab=72369e40a11e4278bc1388848e54d899
+CURRENT_ONLY | [SceneConnections]/Exits/UpperRightExit | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/UpperRightExit/Visual | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/CenterRightExit | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/CenterRightExit/Visual | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/LowerRightExit | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+CURRENT_ONLY | [SceneConnections]/Exits/LowerRightExit/Visual | preserved=true | prefab=53db2a2f46ea4b448c49693b04a7894f
+SUMMARY | changed=3 exact=15 unmatched=5

@@ -20,18 +20,35 @@ public sealed class DionaeaAnimatorBridge : MonoBehaviour
 
     private bool warnedMissingAnimator;
     private bool warnedMissingController;
+    private int attackTriggerHash;
+    private int attackingBoolHash;
+    private int retractedBoolHash;
+    private int recoveringBoolHash;
+    private int idleStateHash;
 
     public Animator Animator { get => animator; set => animator = value; }
 
-    private void Reset() => AutoFill();
-    private void Awake() => AutoFill();
-    private void OnValidate() => AutoFill();
+    private void Reset() { AutoFill(); CacheHashes(); }
+    private void Awake() { AutoFill(); CacheHashes(); }
+    private void OnValidate() { AutoFill(); CacheHashes(); }
 
-    public void SetAttacking(bool value) => SafeSetBool(attackingBoolName, value);
-    public void SetRetracted(bool value) => SafeSetBool(retractedBoolName, value);
-    public void SetRecovering(bool value) => SafeSetBool(recoveringBoolName, value);
-    public void PlayAttack() => SafeSetTrigger(attackTriggerName);
-    public void ResetAttackTrigger() => SafeResetTrigger(attackTriggerName);
+    public void SetAttacking(bool value) => SafeSetBool(attackingBoolHash, attackingBoolName, value);
+    public void SetRetracted(bool value) => SafeSetBool(retractedBoolHash, retractedBoolName, value);
+    public void SetRecovering(bool value) => SafeSetBool(recoveringBoolHash, recoveringBoolName, value);
+    public void PlayAttack() => SafeSetTrigger(attackTriggerHash, attackTriggerName);
+    public void ResetAttackTrigger() => SafeResetTrigger(attackTriggerHash);
+
+    public void ResetToIdle()
+    {
+        CacheHashes();
+        SafeResetTrigger(attackTriggerHash);
+        SafeSetBool(attackingBoolHash, attackingBoolName, false);
+        SafeSetBool(retractedBoolHash, retractedBoolName, false);
+        SafeSetBool(recoveringBoolHash, recoveringBoolName, false);
+        if (!CanUseAnimator() || !animator.HasState(0, idleStateHash)) return;
+        animator.Play(idleStateHash, 0, 0f);
+        animator.Update(0f);
+    }
 
     [ContextMenu("Test Attack Animation")]
     private void TestAttackAnimation() => PlayAttack();
@@ -108,10 +125,9 @@ public sealed class DionaeaAnimatorBridge : MonoBehaviour
         }
     }
 
-    private void SafeSetBool(string parameterName, bool value)
+    private void SafeSetBool(int hash, string parameterName, bool value)
     {
         if (!CanUseAnimator() || string.IsNullOrWhiteSpace(parameterName)) return;
-        int hash = Animator.StringToHash(parameterName);
         if (AnimatorParameterUtility3D.HasParameter(animator, hash, AnimatorControllerParameterType.Bool))
         {
             animator.SetBool(hash, value);
@@ -122,10 +138,9 @@ public sealed class DionaeaAnimatorBridge : MonoBehaviour
         }
     }
 
-    private void SafeSetTrigger(string parameterName)
+    private void SafeSetTrigger(int hash, string parameterName)
     {
         if (!CanUseAnimator() || string.IsNullOrWhiteSpace(parameterName)) return;
-        int hash = Animator.StringToHash(parameterName);
         if (AnimatorParameterUtility3D.HasParameter(animator, hash, AnimatorControllerParameterType.Trigger))
         {
             animator.SetTrigger(hash);
@@ -136,10 +151,9 @@ public sealed class DionaeaAnimatorBridge : MonoBehaviour
         }
     }
 
-    private void SafeResetTrigger(string parameterName)
+    private void SafeResetTrigger(int hash)
     {
-        if (!CanUseAnimator() || string.IsNullOrWhiteSpace(parameterName)) return;
-        int hash = Animator.StringToHash(parameterName);
+        if (!CanUseAnimator()) return;
         if (AnimatorParameterUtility3D.HasParameter(animator, hash, AnimatorControllerParameterType.Trigger))
             animator.ResetTrigger(hash);
     }
@@ -173,5 +187,14 @@ public sealed class DionaeaAnimatorBridge : MonoBehaviour
     {
         if (animator == null) animator = GetComponentInChildren<Animator>(true);
         if (animator != null) animator.applyRootMotion = false;
+    }
+
+    private void CacheHashes()
+    {
+        attackTriggerHash = Animator.StringToHash(attackTriggerName);
+        attackingBoolHash = Animator.StringToHash(attackingBoolName);
+        retractedBoolHash = Animator.StringToHash(retractedBoolName);
+        recoveringBoolHash = Animator.StringToHash(recoveringBoolName);
+        idleStateHash = Animator.StringToHash("Base Layer.Idle");
     }
 }

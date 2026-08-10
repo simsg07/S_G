@@ -16,6 +16,7 @@ TagManager:
   - Door
   - Platform
   - Player
+  - ElectronicNoise
   layers:
   - Default
   - TransparentFX
@@ -31,7 +32,7 @@ TagManager:
   - TileObstacle
   - Platform
   - Player
-  - 
+  - GravityObject
   - 
   - 
   - 
@@ -52,6 +53,30 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: BackGround
+    uniqueID: 494924507
+    locked: 0
+  - name: MidGround
+    uniqueID: 2459690089
+    locked: 0
+  - name: PlayerGround
+    uniqueID: 1071629143
+    locked: 0
+  - name: New Layer 4
+    uniqueID: 2373411727
+    locked: 0
+  - name: Fore_Ground_3
+    uniqueID: 3990213551
+    locked: 0
+  - name: Fore_Ground_2
+    uniqueID: 3754191799
+    locked: 0
+  - name: Fore_Ground_1
+    uniqueID: 8114431
+    locked: 0
+  - name: UI
+    uniqueID: 4234700919
     locked: 0
   m_RenderingLayers:
   - Default

@@ -78,6 +78,9 @@ MonoBehaviour:
   playerTag: Player
   fallbackInteractKey: 20
   playerInRange: 0
+  allowPlayerActivation: 1
+  allowStoneActivation: 1
+  allowCircleSpikeActivation: 1
   animator: {fileID: 0}
   activateTriggerName: Activate
   debugMode: 1

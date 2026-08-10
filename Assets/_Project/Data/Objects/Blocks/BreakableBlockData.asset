@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb7a215de13248d6b4b26f38e2df20c7, type: 3}
   m_Name: BreakableBlockData
   m_EditorClassIdentifier: 
-  objectId: G_BLOCK_BREAKABLE
-  displayName: Breakable Block
+  objectId: I_O_WEAK_WALL
+  displayName: Weak Wall
   objectKind: 5
   canBeTargeted: 1
   maxHitCount: 1
   triggerOnce: 1
-  acceptGenericHit: 1
+  acceptGenericHit: 0
   acceptEyeballFlyAttack: 0
   acceptBoomberContact: 1
   acceptBoomberExplosion: 1

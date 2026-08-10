@@ -26,6 +26,7 @@ GameObject:
   - component: {fileID: 6210000000000001004}
   - component: {fileID: 6210000000000001201}
   - component: {fileID: 6233771058886700303}
+  - component: {fileID: 7164938275016384202}
   m_Layer: 0
   m_Name: EyeballFly
   m_TagString: Untagged
@@ -33,6 +34,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &7164938275016384202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8398327653414921045}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f4a9e2c13bd4f70a1c8d5e903b72a64, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::DirectPlacedMonsterSpawnOwner3D
+  monsterKind: 1
+  includeInFullReset: 1
 --- !u!4 &9120076286916509478
 Transform:
   m_ObjectHideFlags: 0
@@ -161,11 +176,12 @@ MonoBehaviour:
   playerTarget: {fileID: 0}
   lightTarget: {fileID: 0}
   playerTag: Player
-  lightTag: Light
-  playerDetectRange: 3
+  lightTag: light
+  lightCandidateRefreshInterval: 0.25
+  playerDetectRange: 1.5
   lightDetectRange: 4
   targetKeepRange: 2.5
-  attackRange: 0.5
+  attackRange: 2
   requireLineOfSight: 1
   obstacleLayerMask:
     serializedVersion: 2
@@ -216,22 +232,33 @@ MonoBehaviour:
   invertFacing: 0
   useVisualScaleFacing: 1
   showGizmos: 1
-  debugMode: 1
-  hoverAmplitude: 0.12
-  hoverFrequency: 2
-  attackDamage: 1
-  attackInterval: 1
-  attackDuration: 0.5
-  attackPlayer: 1
-  attackLight: 1
-  attackObjects: 1
-  canAttackHitReceivers: 1
-  objectAttackRange: 0.5
-  objectAttackLayerMask:
+  debugMode: 0
+  hoverAmount: 0.12
+  hoverSpeed: 2
+  damage: 1
+  attackReadyTime: 0.5
+  dashTriggerRange: 2
+  dashSpeed: 6
+  dashDistance: 2
+  damageableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  debugAttackHit: 1
+  worldBlockingLayers:
+    serializedVersion: 2
+    m_Bits: 7936
+  attackPlayer: 1
+  attackPuzzleObjects: 1
+  damageOtherMonsters: 0
+  recoveryTime: 0.6
+  homeArrivalDistance: 0.15
+  debugAttackHit: 0
   currentState: 0
+  currentDebugTarget: {fileID: 0}
+  detectedLightCandidateCount: 0
+  selectedLightName: None
+  lastLightRejectionReason: None
+  attackTriggerCount: 0
+  currentDashDamagedTargetCount: 0
   animationController: {fileID: 1354738533251832619}
   animator: {fileID: 6097026161853669191}
 --- !u!114 &6210000000000001101
@@ -251,7 +278,7 @@ MonoBehaviour:
   visualRoot: {fileID: 9120076286916509478}
   monsterRigidbody: {fileID: 6210000000000001003}
   mainCollider: {fileID: 6210000000000001004}
-  debugMode: 1
+  debugMode: 0
 --- !u!114 &6210000000000001102
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -267,8 +294,8 @@ MonoBehaviour:
   enableDetection: 1
   canDetectPlayer: 1
   canDetectLight: 1
-  prioritizePlayer: 1
-  playerDetectRange: 3
+  prioritizePlayer: 0
+  playerDetectRange: 1.5
   lightDetectRange: 4
   chaseRange: 2.5
   requireLineOfSight: 1
@@ -281,7 +308,7 @@ MonoBehaviour:
     m_Bits: 0
   lineOfSightStartOffset: {x: 0, y: 0, z: 0}
   targetCheckOffset: {x: 0, y: 0, z: 0}
-  debugMode: 1
+  debugMode: 0
   showGizmos: 1
   debugLineOfSight: 1
   logInterval: 0.5
@@ -318,7 +345,7 @@ MonoBehaviour:
   preventExternalPush: 0
   groundLinearDamping: 0
   stopHorizontalVelocityWhenIdle: 0
-  debugMode: 1
+  debugMode: 0
   showGizmos: 1
 --- !u!114 &6210000000000001104
 MonoBehaviour:
@@ -337,7 +364,7 @@ MonoBehaviour:
   visualFacesRightByDefault: 1
   invertFacing: 0
   faceOnlyWhenDetected: 1
-  debugMode: 1
+  debugMode: 0
 --- !u!114 &6210000000000001105
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -351,13 +378,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableAttack: 1
-  attackRange: 0.5
+  attackRange: 2
   attackDamage: 1
   attackInterval: 1
   attackWindup: 0
   attackCooldown: 1
   allowLightAttackVisual: 1
-  debugMode: 1
+  debugMode: 0
   showGizmos: 1
 --- !u!114 &6210000000000001106
 MonoBehaviour:
@@ -382,7 +409,7 @@ MonoBehaviour:
   useHowlingTrigger: 0
   useIsAttackFalse: 0
   useAttackFalseTrigger: 0
-  debugMode: 1
+  debugMode: 0
 --- !u!114 &6210000000000001107
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -395,7 +422,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44154fcf6f6e43d98c4cd87f424b47f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  debugMode: 1
+  debugMode: 0
   logInterval: 0.5
   showGizmos: 1
 --- !u!114 &6210000000000001108
@@ -412,7 +439,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enableBrain: 1
   ai: {fileID: 6210000000000001001}
-  debugMode: 1
+  debugMode: 0
 --- !u!114 &6210000000000001002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -498,7 +525,7 @@ MonoBehaviour:
   health: {fileID: 0}
   animatorBridge: {fileID: 6210000000000001106}
   brain: {fileID: 6210000000000001001}
-  debugMode: 1
+  debugMode: 0
 --- !u!114 &6233771058886700303
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -540,7 +567,7 @@ MonoBehaviour:
   - {fileID: 6210000000000001003}
   controlledAnimators:
   - {fileID: 6097026161853669191}
-  debugMode: 1
+  debugMode: 0
   showGizmos: 1
   legacyAffectRootActive: 0
   legacyVisualRoot: {fileID: 0}

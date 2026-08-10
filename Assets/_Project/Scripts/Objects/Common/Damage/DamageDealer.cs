@@ -25,7 +25,7 @@ public class DamageDealer : MonoBehaviour
     [SerializeField] private bool onlyWhenEnabled = true;
 
     [Header("Debug")]
-    [Tooltip("Print damage attempts and warnings in the Console.")]
+    [Tooltip("Print successful damage state changes in the Console.")]
     [SerializeField] private bool debugMode = true;
 
     private readonly HashSet<int> damagedTargets = new HashSet<int>();
@@ -79,42 +79,43 @@ public class DamageDealer : MonoBehaviour
         debugMode = enabled;
     }
 
-    private void TryDamage(Collider other, Vector3 hitPoint)
+    private bool TryDamage(Collider other, Vector3 hitPoint)
     {
         if (onlyWhenEnabled && !isActiveAndEnabled)
         {
-            return;
+            return false;
         }
 
         if (damage <= 0 || !IsLayerIncluded(other.gameObject.layer, targetLayerMask))
         {
-            return;
+            return false;
         }
 
         IDamageable damageable = FindDamageable(other.transform);
         if (damageable == null)
         {
-            LogWarning($"No IDamageable found on {other.name}.");
-            return;
+            // Environment colliders are valid physical contacts, but are not damage targets.
+            return false;
         }
 
         if (!damageable.CanTakeDamage)
         {
             Log($"Target cannot take damage: {other.name}");
-            return;
+            return false;
         }
 
         Transform targetRoot = other.transform.root != null ? other.transform.root : other.transform;
         int targetId = targetRoot.GetInstanceID();
         if (damageOncePerTarget && !damagedTargets.Add(targetId))
         {
-            return;
+            return false;
         }
 
         Vector3 direction = (other.bounds.center - transform.position).normalized;
         DamageInfo damageInfo = new DamageInfo(damage, gameObject, gameObject, hitPoint, direction, damageType, hitSourceType);
         damageable.TakeDamage(damageInfo);
         Log($"Damaged {targetRoot.name}. Damage={damage}, Type={damageType}, Source={damageInfo.hitSourceType}");
+        return true;
     }
 
     private static IDamageable FindDamageable(Transform target)
@@ -147,11 +148,4 @@ public class DamageDealer : MonoBehaviour
         }
     }
 
-    private void LogWarning(string message)
-    {
-        if (debugMode)
-        {
-            Debug.LogWarning($"[DamageDealer] {message}", this);
-        }
-    }
 }

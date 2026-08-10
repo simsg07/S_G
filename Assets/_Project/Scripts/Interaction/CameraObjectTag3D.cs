@@ -25,38 +25,62 @@ public class CameraObjectTag3D : MonoBehaviour
 
     private MeshRenderer outlineRenderer;
     private MeshFilter outlineFilter;
-    private Material outlineMaterial;
-    private Mesh outlineMesh;
+    private Renderer[] cachedRenderers = System.Array.Empty<Renderer>();
+    private Collider[] cachedColliders = System.Array.Empty<Collider>();
+    private Rigidbody cachedRigidbody;
+    private IMarkable3D cachedMarkable;
+    private MaterialPropertyBlock propertyBlock;
+    private bool highlightActive;
 
-    public bool CanCameraInteract => canCameraInteract && !HasAnyTagInParents(this, CameraTagUtility3D.CameraNoInteractTag);
+    public bool CanCameraInteract => canCameraInteract && !HasTagInParents(this, CameraTagUtility3D.CameraNoInteractTag);
     public bool CanBeFrozen => CanCameraInteract && ResolveCanBeFrozen();
 
     private void Awake()
     {
+        RefreshCache();
         EnsureOutline();
         ApplyVisual();
+        enabled = false;
     }
 
     private void Update()
     {
+        if (!highlightActive)
+        {
+            enabled = false;
+            return;
+        }
         ApplyVisual();
     }
 
     private void OnValidate()
     {
+        RefreshCache();
         EnsureOutline();
         ApplyVisual();
+        enabled = false;
     }
 
-    private void OnDestroy()
+    private void OnTransformChildrenChanged()
     {
-        DestroyGenerated(outlineMaterial);
-        DestroyGenerated(outlineMesh);
+        RefreshCache();
+        ApplyVisual();
     }
 
     public void MarkAsAutoCameraTarget()
     {
         showStatusOutline = true;
+    }
+
+    public void SetHighlightActive(bool active)
+    {
+        highlightActive = active;
+        ApplyVisual();
+        enabled = active && outlinePulseSpeed > 0f && outlineRenderer != null && outlineRenderer.enabled;
+        if (!active && outlineRenderer != null)
+        {
+            outlineRenderer.SetPropertyBlock(null);
+        }
     }
 
     public static CameraObjectTag3D FindFor(Component component)
@@ -77,7 +101,7 @@ public class CameraObjectTag3D : MonoBehaviour
             return objectTag.CanCameraInteract;
         }
 
-        return !HasAnyTagInParents(component, CameraTagUtility3D.CameraNoInteractTag);
+        return !HasTagInParents(component, CameraTagUtility3D.CameraNoInteractTag);
     }
 
     public static bool AllowsCameraFreeze(Component component)
@@ -99,7 +123,7 @@ public class CameraObjectTag3D : MonoBehaviour
             return objectTag.CanBeFrozen;
         }
 
-        if (HasAnyTagInParents(component, CameraTagUtility3D.CameraNoFreezeTag))
+        if (HasTagInParents(component, CameraTagUtility3D.CameraNoFreezeTag))
         {
             return false;
         }
@@ -109,12 +133,12 @@ public class CameraObjectTag3D : MonoBehaviour
 
     private bool ResolveCanBeFrozen()
     {
-        if (HasAnyTagInParents(this, CameraTagUtility3D.CameraNoFreezeTag))
+        if (HasTagInParents(this, CameraTagUtility3D.CameraNoFreezeTag))
         {
             return false;
         }
 
-        if (HasAnyTagInParents(this, CameraTagUtility3D.CameraFreezableTag))
+        if (HasTagInParents(this, CameraTagUtility3D.CameraFreezableTag))
         {
             return true;
         }
@@ -132,21 +156,7 @@ public class CameraObjectTag3D : MonoBehaviour
 
     private bool HasFreezableCapability()
     {
-        if (GetComponentInParent<Rigidbody>() != null)
-        {
-            return true;
-        }
-
-        MonoBehaviour[] behaviours = GetComponentsInParent<MonoBehaviour>();
-        for (int i = 0; i < behaviours.Length; i++)
-        {
-            if (behaviours[i] is IShutterFreezable3D)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return cachedRigidbody != null || cachedMarkable != null;
     }
 
     private void EnsureOutline()
@@ -165,22 +175,8 @@ public class CameraObjectTag3D : MonoBehaviour
         outlineFilter = outlineObject.GetComponent<MeshFilter>();
         outlineRenderer = outlineObject.GetComponent<MeshRenderer>();
 
-        outlineMesh = CreateLineCubeMesh();
-        outlineMesh.hideFlags = HideFlags.HideAndDontSave;
-        outlineFilter.sharedMesh = outlineMesh;
-
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-        if (shader == null)
-        {
-            shader = Shader.Find("Unlit/Color");
-        }
-
-        outlineMaterial = new Material(shader)
-        {
-            name = "Generated Camera Freeze Outline Material",
-            hideFlags = HideFlags.HideAndDontSave
-        };
-        outlineRenderer.sharedMaterial = outlineMaterial;
+        outlineFilter.sharedMesh = CameraHighlightSharedResources3D.LineCubeMesh;
+        outlineRenderer.sharedMaterial = CameraHighlightSharedResources3D.OutlineMaterial;
         outlineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         outlineRenderer.receiveShadows = false;
     }
@@ -190,7 +186,7 @@ public class CameraObjectTag3D : MonoBehaviour
         EnsureOutline();
 
         bool canFreeze = CanBeFrozen;
-        bool visible = showStatusOutline && (canFreeze || showBlockedOutline);
+        bool visible = highlightActive && showStatusOutline && (canFreeze || showBlockedOutline);
         outlineRenderer.enabled = visible;
         if (!visible)
         {
@@ -218,10 +214,9 @@ public class CameraObjectTag3D : MonoBehaviour
         bool hasBounds = false;
         Bounds bounds = new Bounds(transform.position, Vector3.one);
 
-        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
-        for (int i = 0; i < renderers.Length; i++)
+        for (int i = 0; i < cachedRenderers.Length; i++)
         {
-            Renderer renderer = renderers[i];
+            Renderer renderer = cachedRenderers[i];
             if (renderer == null || renderer == outlineRenderer || renderer.transform.IsChildOf(outlineRenderer.transform))
             {
                 continue;
@@ -238,10 +233,9 @@ public class CameraObjectTag3D : MonoBehaviour
             }
         }
 
-        Collider[] colliders = GetComponentsInChildren<Collider>(true);
-        for (int i = 0; i < colliders.Length; i++)
+        for (int i = 0; i < cachedColliders.Length; i++)
         {
-            Collider collider = colliders[i];
+            Collider collider = cachedColliders[i];
             if (collider == null)
             {
                 continue;
@@ -263,74 +257,43 @@ public class CameraObjectTag3D : MonoBehaviour
 
     private void SetOutlineColor(Color color)
     {
-        if (outlineMaterial == null)
-        {
-            return;
-        }
-
-        if (outlineMaterial.HasProperty(BaseColorId))
-        {
-            outlineMaterial.SetColor(BaseColorId, color);
-        }
-
-        if (outlineMaterial.HasProperty(ColorId))
-        {
-            outlineMaterial.SetColor(ColorId, color);
-        }
-
-        outlineMaterial.color = color;
+        if (outlineRenderer == null) return;
+        if (propertyBlock == null) propertyBlock = new MaterialPropertyBlock();
+        propertyBlock.Clear();
+        propertyBlock.SetColor(BaseColorId, color);
+        propertyBlock.SetColor(ColorId, color);
+        outlineRenderer.SetPropertyBlock(propertyBlock);
     }
 
-    private static bool HasAnyTagInParents(Component component, params string[] tagNames)
+    public void RefreshCache()
+    {
+        cachedRenderers = GetComponentsInChildren<Renderer>(true);
+        cachedColliders = GetComponentsInChildren<Collider>(true);
+        cachedRigidbody = GetComponentInParent<Rigidbody>();
+        cachedMarkable = null;
+        MonoBehaviour[] behaviours = GetComponentsInParent<MonoBehaviour>();
+        for (int i = 0; i < behaviours.Length; i++)
+        {
+            if (behaviours[i] is IMarkable3D markable) { cachedMarkable = markable; break; }
+        }
+    }
+
+    private static bool HasTagInParents(Component component, string tagName)
     {
         Transform current = component != null ? component.transform : null;
         while (current != null)
         {
-            if (CameraTagUtility3D.HasAnyTag(current.gameObject, tagNames))
+            try
             {
-                return true;
+                if (current.CompareTag(tagName)) return true;
             }
-
+            catch (UnityException)
+            {
+                return false;
+            }
             current = current.parent;
         }
-
         return false;
     }
 
-    private static Mesh CreateLineCubeMesh()
-    {
-        Mesh mesh = new Mesh { name = "Generated Camera Freeze Outline Cube" };
-        mesh.vertices = new[]
-        {
-            new Vector3(-0.5f, -0.5f, -0.5f), new Vector3(0.5f, -0.5f, -0.5f),
-            new Vector3(0.5f, 0.5f, -0.5f), new Vector3(-0.5f, 0.5f, -0.5f),
-            new Vector3(-0.5f, -0.5f, 0.5f), new Vector3(0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, 0.5f, 0.5f), new Vector3(-0.5f, 0.5f, 0.5f)
-        };
-        mesh.SetIndices(new[]
-        {
-            0, 1, 1, 2, 2, 3, 3, 0,
-            4, 5, 5, 6, 6, 7, 7, 4,
-            0, 4, 1, 5, 2, 6, 3, 7
-        }, MeshTopology.Lines, 0);
-        mesh.RecalculateBounds();
-        return mesh;
-    }
-
-    private static void DestroyGenerated(Object target)
-    {
-        if (target == null)
-        {
-            return;
-        }
-
-        if (Application.isPlaying)
-        {
-            Destroy(target);
-        }
-        else
-        {
-            DestroyImmediate(target);
-        }
-    }
 }

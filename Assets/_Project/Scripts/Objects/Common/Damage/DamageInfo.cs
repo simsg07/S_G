@@ -20,7 +20,8 @@ public enum HitSourceType
     BoomberContact,
     BoomberExplosion,
     MonsterAttack,
-    Environment
+    Environment,
+    SpikeTrap
 }
 
 [System.Serializable]

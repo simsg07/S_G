@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class MonsterDummyActor3D : MonoBehaviour, IAttackable3D, IShutterFreezable3D, IShutterFreezeState3D, IFlashReactive3D, IRelayTransferable3D
+public class MonsterDummyActor3D : MonoBehaviour, IAttackable3D, IFlashReactive3D, IRelayTransferable3D
 {
     [SerializeField] private string monsterId = "dummy_monster"; // 데이터베이스에서 더미 몬스터를 구분하는 ID입니다.
     [SerializeField] private string displayName = "Dummy Monster"; // 에디터와 테스트 오브젝트 이름에 표시할 몬스터 이름입니다.
@@ -27,7 +27,7 @@ public class MonsterDummyActor3D : MonoBehaviour, IAttackable3D, IShutterFreezab
     private bool frozen;
     private bool flashed;
 
-    public bool IsShutterFrozen => frozen && Time.time < freezeEndTime;
+    public bool IsMarked => frozen && Time.time < freezeEndTime;
 
     private void Awake()
     {
@@ -88,19 +88,6 @@ public class MonsterDummyActor3D : MonoBehaviour, IAttackable3D, IShutterFreezab
             gameObject.SetActive(false);
         }
 
-        return true;
-    }
-
-    public bool ApplyShutterFreeze(float duration, CameraAbilitySystem3D source)
-    {
-        if (!canBeFrozen || duration <= 0f)
-        {
-            return false;
-        }
-
-        frozen = true;
-        freezeEndTime = Time.time + duration;
-        RefreshColor();
         return true;
     }
 

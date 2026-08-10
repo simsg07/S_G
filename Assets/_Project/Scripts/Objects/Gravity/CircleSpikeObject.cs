@@ -61,11 +61,10 @@ public sealed class CircleSpikeObject : MonoBehaviour, ITriggerableObject
         }
     }
 
-    private void SetDamageEnabled(bool value)
+    public void SetDamageEnabled(bool value)
     {
-        if (damageDealer != null)
-        {
-            damageDealer.enabled = value;
-        }
+        // CircleSpikeProjectile3D owns the non-lethal Player/Monster contact path.
+        // The legacy dealer remains disabled so it cannot KillAndRespawn the Player.
+        if (damageDealer != null) damageDealer.enabled = false;
     }
 }

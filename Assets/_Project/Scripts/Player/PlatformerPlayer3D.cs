@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 [ExecuteAlways]
 public class PlatformerPlayer3D : MonoBehaviour
 {
+    public static PlatformerPlayer3D Current { get; private set; }
     [Header("Movement - Designer Settings")]
     [SerializeField] private float moveSpeed = 6f; // 플레이어 좌우 이동 속도입니다.
     [Header("Jump")]
@@ -53,6 +54,7 @@ public class PlatformerPlayer3D : MonoBehaviour
     public float FacingDirection => facingDirection;
     public float HorizontalInput => horizontalInput;
     public float VerticalLookInput => verticalLookInput;
+    public bool ControlsLocked => controlLocked || GameplayInputLock3D.IsLocked;
 
     public void ResetJumpStateAfterTeleport()
     {
@@ -92,10 +94,17 @@ public class PlatformerPlayer3D : MonoBehaviour
 
     private void Awake()
     {
+        Current = this;
         ApplyDatabaseTuning();
         ConfigureComponents();
         EnsureCameraAbilitySystem();
+        EnsureFocusingRingSystem();
         EnsurePlayerInteractionSystem();
+    }
+
+    private void OnDestroy()
+    {
+        if (Current == this) Current = null;
     }
 
     private void OnEnable()
@@ -113,7 +122,7 @@ public class PlatformerPlayer3D : MonoBehaviour
         }
 
         RestoreIgnoredPlatforms();
-        if (controlLocked)
+        if (ControlsLocked)
         {
             ClearBufferedInput();
             return;
@@ -137,7 +146,7 @@ public class PlatformerPlayer3D : MonoBehaviour
         UpdatePassThroughPlatformCollisions();
         UpdateGroundedState();
 
-        if (controlLocked)
+        if (ControlsLocked)
         {
             ClearBufferedInput();
             StopPlayerVelocity();
@@ -193,6 +202,12 @@ public class PlatformerPlayer3D : MonoBehaviour
         }
 
         cameraAbilities = gameObject.AddComponent<CameraAbilitySystem3D>();
+    }
+
+    private void EnsureFocusingRingSystem()
+    {
+        if (!Application.isPlaying || GetComponent<FocusingRingController3D>() != null) return;
+        gameObject.AddComponent<FocusingRingController3D>();
     }
 
     private void EnsurePlayerInteractionSystem()

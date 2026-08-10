@@ -6,6 +6,7 @@ public static class CameraTagUtility3D
     public const string RelayTargetTag = "RelayTarget";
     public const string LightTag = "light";
     public const string CameraFreezableTag = "CameraFreezable";
+    public const string ElectronicNoiseTag = "ElectronicNoise";
     public const string CameraNoFreezeTag = "CameraNoFreeze";
     public const string CameraInteractTag = "CameraInteract";
     public const string CameraNoInteractTag = "CameraNoInteract";

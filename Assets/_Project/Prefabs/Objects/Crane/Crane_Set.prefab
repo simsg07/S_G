@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 100001}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Crane_Set
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -48,7 +48,7 @@ GameObject:
   - component: {fileID: 110001}
   - component: {fileID: 100002}
   - component: {fileID: 54028527466398549}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Crane_Rail
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133,7 +133,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 111001}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rail_Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -164,7 +164,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 120001}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Point_A
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -196,7 +196,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 130001}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Point_B
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -232,7 +232,7 @@ GameObject:
   - component: {fileID: 200003}
   - component: {fileID: 200004}
   - component: {fileID: 4214156900898721736}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Crane
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -406,7 +406,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 210001}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -437,7 +437,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 220001}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: WireVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -469,7 +469,7 @@ GameObject:
   m_Component:
   - component: {fileID: 230001}
   - component: {fileID: 230002}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CarryPlatform
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -523,7 +523,7 @@ GameObject:
   m_Component:
   - component: {fileID: 240001}
   - component: {fileID: 240002}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CraneCarryZone3D
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -565,6 +565,14 @@ MonoBehaviour:
   matchPlayerPlatformVelocity: 1
   playerPlatformVelocityMultiplier: 1
   triggerInteraction: 2
+  autoAttach: 1
+  releaseAtDestination: 0
+  preserveWorldPositionOnAttach: 1
+  carryAnchor: {fileID: 0}
+  carryOffset: {x: 0, y: 0, z: 0}
+  maximumCarryMass: 0
+  allowPlayerCarry: 1
+  maximumCarriedTargets: 32
   carryBoxCenterOffset: {x: 0, y: 1, z: 0}
   carryBoxSize: {x: 2.6, y: 2, z: 1}
   carriedTargets: []
@@ -581,7 +589,7 @@ GameObject:
   - component: {fileID: 300001}
   - component: {fileID: 300002}
   - component: {fileID: 300003}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Lever_Left
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -640,19 +648,49 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CraneLeverSwitch
   targetCrane: {fileID: 200004}
+  targetVerticalCrane: {fileID: 0}
   autoFindSingleCraneIfMissing: 1
-  canUseWhileCraneMoving: 0
+  activationDelay: 3
+  useUnscaledActivationDelay: 0
+  autoLoop: 0
+  canRetriggerWhileMoving: 0
+  canCancelDuringDelay: 0
+  interactionTrigger: {fileID: 300002}
   requirePlayerInRange: 1
   useFallbackInput: 1
   playerLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8192
   playerTag: Player
-  fallbackInteractKey: 20
+  interactionKey: 20
   playerInRange: 0
+  allowPlayerActivation: 1
+  allowStoneActivation: 1
+  allowCircleSpikeActivation: 1
   animator: {fileID: 0}
   activateTriggerName: Activate
+  leverRenderer: {fileID: 1302349971484717095}
+  leverSpriteRenderer: {fileID: 0}
+  leverOffSprite: {fileID: 0}
+  leverOnSprite: {fileID: 0}
+  onLeverActivated:
+    m_PersistentCalls:
+      m_Calls: []
+  onActivationDelayStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  onActivationDelayRemaining:
+    m_PersistentCalls:
+      m_Calls: []
+  onMovementStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  onDestinationReached:
+    m_PersistentCalls:
+      m_Calls: []
+  state: 0
   debugMode: 1
+  persistentState: {fileID: 0}
 --- !u!1 &310000
 GameObject:
   m_ObjectHideFlags: 0
@@ -662,7 +700,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 310001}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -694,7 +732,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8544628814158495310}
   - component: {fileID: 8878626663270795108}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rail_Middle_00
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -786,7 +824,7 @@ GameObject:
   - component: {fileID: 8220130512032533833}
   - component: {fileID: 4646196633222043427}
   - component: {fileID: 5406021640432494310}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Platform_Debug_Block
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -876,7 +914,7 @@ GameObject:
   - component: {fileID: 8756239682085467892}
   - component: {fileID: 4476828168047199771}
   - component: {fileID: 4501615827158968083}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Point_A_Debug_Block
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -965,7 +1003,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2281990194570632971}
   - component: {fileID: 5974518141940027614}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rail_Middle_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1057,7 +1095,7 @@ GameObject:
   - component: {fileID: 3414948660064263000}
   - component: {fileID: 8242618203106631647}
   - component: {fileID: 1302349971484717095}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Lever_Debug_Block
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1145,7 +1183,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 966493030182015449}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: TrolleyCablePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1177,7 +1215,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8966181983242995685}
   - component: {fileID: 660904840745633475}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rail_Middle_03
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1268,7 +1306,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9120982329512567122}
   - component: {fileID: 3005773254233290258}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rail_RightEnd
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1358,7 +1396,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3697551276402983009}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CablePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1390,7 +1428,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7599828033742678674}
   - component: {fileID: 7988859664374625928}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: UpperConnectorVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1480,7 +1518,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5250912039306677000}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RailVisualRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1519,7 +1557,7 @@ GameObject:
   m_Component:
   - component: {fileID: 641955778504960337}
   - component: {fileID: 458027108972175082}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HookVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1611,7 +1649,7 @@ GameObject:
   - component: {fileID: 7561476528649692090}
   - component: {fileID: 4834180954949372520}
   - component: {fileID: 5861647341975239441}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Cabin_Debug_Block
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1700,7 +1738,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2085192895749009853}
   - component: {fileID: 8853830927725595972}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: TrolleyVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1790,7 +1828,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4653258934179158770}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CablePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1821,7 +1859,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3592002074076731608}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CablePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1853,7 +1891,7 @@ GameObject:
   m_Component:
   - component: {fileID: 452189995373088896}
   - component: {fileID: 2281903109390897868}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rail_LeftEnd
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1945,7 +1983,7 @@ GameObject:
   - component: {fileID: 8494460837371116592}
   - component: {fileID: 6723559120402161866}
   - component: {fileID: 4860839975839224086}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Point_B_Debug_Block
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2033,7 +2071,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2628967707162184590}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CabinCablePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2065,7 +2103,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9220211021710658194}
   - component: {fileID: 3652568685229917957}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rail_Middle_02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2157,7 +2195,7 @@ GameObject:
   - component: {fileID: 5043858748372898863}
   - component: {fileID: 2037308501052209463}
   - component: {fileID: 2435973544758528818}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Lever_Right
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2216,19 +2254,49 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CraneLeverSwitch
   targetCrane: {fileID: 200004}
+  targetVerticalCrane: {fileID: 0}
   autoFindSingleCraneIfMissing: 1
-  canUseWhileCraneMoving: 0
+  activationDelay: 3
+  useUnscaledActivationDelay: 0
+  autoLoop: 0
+  canRetriggerWhileMoving: 0
+  canCancelDuringDelay: 0
+  interactionTrigger: {fileID: 2037308501052209463}
   requirePlayerInRange: 1
   useFallbackInput: 1
   playerLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8192
   playerTag: Player
-  fallbackInteractKey: 20
+  interactionKey: 20
   playerInRange: 0
+  allowPlayerActivation: 1
+  allowStoneActivation: 1
+  allowCircleSpikeActivation: 1
   animator: {fileID: 0}
   activateTriggerName: Activate
+  leverRenderer: {fileID: 3175573406944247313}
+  leverSpriteRenderer: {fileID: 0}
+  leverOffSprite: {fileID: 0}
+  leverOnSprite: {fileID: 0}
+  onLeverActivated:
+    m_PersistentCalls:
+      m_Calls: []
+  onActivationDelayStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  onActivationDelayRemaining:
+    m_PersistentCalls:
+      m_Calls: []
+  onMovementStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  onDestinationReached:
+    m_PersistentCalls:
+      m_Calls: []
+  state: 0
   debugMode: 1
+  persistentState: {fileID: 0}
 --- !u!1 &6185798729066998835
 GameObject:
   m_ObjectHideFlags: 0
@@ -2239,7 +2307,7 @@ GameObject:
   m_Component:
   - component: {fileID: 396539241941495952}
   - component: {fileID: 8672467584118413341}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeOrCableVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2329,7 +2397,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 534236146886442421}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CableVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2360,7 +2428,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3563228564755747892}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HangingWireVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2391,7 +2459,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7764050209248504217}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2424,7 +2492,7 @@ GameObject:
   - component: {fileID: 7346865799547637965}
   - component: {fileID: 3741381296354495337}
   - component: {fileID: 3262543275788360207}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rail_Debug_Block
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2514,7 +2582,7 @@ GameObject:
   - component: {fileID: 1953830656183162272}
   - component: {fileID: 2364153166565044833}
   - component: {fileID: 567799185250669264}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CarryZone_Debug_Block
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2604,7 +2672,7 @@ GameObject:
   - component: {fileID: 1328747666555530573}
   - component: {fileID: 7434200835242078420}
   - component: {fileID: 1307186878168942854}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Crane_CableVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2777,7 +2845,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1117366864319741929}
   - component: {fileID: 2168551397839099661}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CabinVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2868,7 +2936,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8180524446565204873}
   - component: {fileID: 4570415286475531996}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rail_Middle_04
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2959,7 +3027,7 @@ GameObject:
   m_Component:
   - component: {fileID: 621320544786131565}
   - component: {fileID: 5430829524011961061}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CableVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3111,7 +3179,7 @@ GameObject:
   - component: {fileID: 3885272284484923403}
   - component: {fileID: 1333714419590443772}
   - component: {fileID: 3175573406944247313}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Lever_Debug_Block
   m_TagString: Untagged
   m_Icon: {fileID: 0}

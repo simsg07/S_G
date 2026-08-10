@@ -19,9 +19,11 @@ GameObject:
   - component: {fileID: 210011}
   - component: {fileID: 210009}
   - component: {fileID: 210010}
-  m_Layer: 0
+  - component: {fileID: 5223079655390982188}
+  - component: {fileID: 5223079655390982189}
+  m_Layer: 14
   m_Name: Stone
-  m_TagString: Untagged
+  m_TagString: ElectronicNoise
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -84,13 +86,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb29c456752142b08f8e5be39d3d8750, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StoneObject
+  currentState: 0
   isDropped: 0
   isBroken: 0
   groundLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 7936
   breakOnGroundHit: 1
   destroyDelay: 0.5
+  canActivateSwitch: 1
+  breakAfterSwitchContact: 1
   gravityObject: {fileID: 210005}
   damageDealer: {fileID: 210007}
   gravityObjectDamageDealer: {fileID: 210012}
@@ -100,7 +105,8 @@ MonoBehaviour:
   mainCollider: {fileID: 210010}
   renderers:
   - {fileID: 210104}
-  debugMode: 1
+  debugMode: 0
+  logSwitchActivation: 0
 --- !u!114 &210005
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -282,6 +288,59 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.8, y: 0.8, z: 0.3}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5223079655390982188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 210001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a15cb78fd6a4dd8a59686716b9e5961, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MagneticCarryable3D
+  canBeMovedByMagnet: 1
+  magneticAnchorOverride: {fileID: 0}
+  massOverride: 0
+  preserveRotation: 1
+  lockRotationWhileHeld: 1
+  allowWorldA: 1
+  allowWorldB: 1
+  canBeReleased: 1
+  restoreOriginalParent: 1
+  restoreRigidbodyState: 1
+  restoreGravityState: 1
+  restoreConstraints: 1
+  magnetHoldOffset: {x: 0, y: 0, z: 0}
+--- !u!114 &5223079655390982189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 210001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94569c5ebf9d431bb0bd118af737a52f, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::CameraMarkState3D
+  markedColor: {r: 0.35, g: 0.95, b: 1, a: 0.95}
+  markerWidth: 0.95
+  markerHeight: 0.08
+  markerDepth: 0.08
+  markerYOffset: 0.28
+  pulseSpeed: 8
+  targetBody: {fileID: 210009}
+  pinTransformWhileMarked: 1
+  restoreMarkedTransformOnRelease: 1
+  runtimeMarked: 0
+  runtimeRemainingTime: 0
+  runtimeStoredLinearVelocity: {x: 0, y: 0, z: 0}
+  runtimeStoredAngularVelocity: {x: 0, y: 0, z: 0}
+  runtimeStoredKinematic: 0
+  runtimeStoredUseGravity: 0
+  runtimeStoredConstraints: 0
 --- !u!1 &210101
 GameObject:
   m_ObjectHideFlags: 0

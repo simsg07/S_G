@@ -109,8 +109,8 @@ public static class DionaeaValidationUtility
         GravityObjectDamageDealer circleSpikeDamage = circleSpikePrefab != null ? circleSpikePrefab.GetComponent<GravityObjectDamageDealer>() : null;
         Require(circleSpikeDamage != null, "CircleSpike GravityObjectDamageDealer is missing.");
         SerializedObject circleSpikeDamageSettings = new SerializedObject(circleSpikeDamage);
-        Require(circleSpikeDamageSettings.FindProperty("instantKillPlayer").boolValue,
-            "CircleSpike must remain an instant KillAndRespawn object.");
+        Require(!circleSpikeDamageSettings.FindProperty("instantKillPlayer").boolValue,
+            "CircleSpike must use its non-lethal Player/Monster damage path.");
         SerializedObject prefabAI = new SerializedObject(prefab.GetComponent<DionaeaAI>());
         Require(!prefabAI.FindProperty("canDie").boolValue && prefabAI.FindProperty("isIndestructible").boolValue,
             "Dionaea must serialize canDie=false and isIndestructible=true.");

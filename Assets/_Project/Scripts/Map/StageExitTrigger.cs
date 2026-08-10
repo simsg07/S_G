@@ -53,6 +53,7 @@ public class StageExitTrigger : MonoBehaviour
     private static float transitionBlockedUntil;
 
     public string NextSceneName => nextSceneName;
+    public string ExitId => exitId;
     public string TargetSpawnPointId => targetSpawnPointId;
     public SceneTransitionType TransitionType => transitionType;
     public bool RequireInteraction => useInteractionKey;

@@ -19,7 +19,7 @@ MonoBehaviour:
   contactDamage: 1
   canDetectPlayer: 1
   canDetectLight: 1
-  prioritizePlayer: 1
+  prioritizePlayer: 0
   playerDetectRange: 1.5
   lightDetectRange: 4
   chaseRange: 2.5
@@ -35,7 +35,7 @@ MonoBehaviour:
   useGravity: 0
   attackType: 1
   attackDamage: 1
-  attackRange: 1
+  attackRange: 2
   attackCooldown: 1
   attackDuration: 0.5
   attackTargetLayerMask:
@@ -57,4 +57,4 @@ MonoBehaviour:
   attackBoolName: IsAttacking
   deadBoolName: IsDead
   attackTriggerName: Attack
-  debugMode: 1
+  debugMode: 0

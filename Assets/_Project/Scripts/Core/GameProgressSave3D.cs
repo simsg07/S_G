@@ -6,6 +6,10 @@ public static class GameProgressSave3D
     private const string PlayerPrefsKey = "S_G_CameraMetroidvaniaProgress";
 
     private static SavePayload cachedPayload;
+    private static SavePayload transientPayload;
+    private static int transientSessionDepth;
+
+    public static bool HasSaveData => PlayerPrefs.HasKey(PlayerPrefsKey);
 
     public static CameraAbilityFlags GetUnlockedAbilities()
     {
@@ -41,6 +45,168 @@ public static class GameProgressSave3D
     public static bool HiddenEndingUnlocked()
     {
         return LoadPayload().hiddenEndingUnlocked;
+    }
+
+    public static bool IsCheckpointActivated(string checkpointId)
+    {
+        return Contains(LoadPayload().activatedCheckpointIds, checkpointId);
+    }
+
+    public static bool IsPuzzlePermanentlyCompleted(string puzzleId)
+    {
+        return Contains(LoadPayload().completedPuzzleIds, puzzleId);
+    }
+
+    public static void RecordPuzzlePermanentlyCompleted(string puzzleId)
+    {
+        if (string.IsNullOrWhiteSpace(puzzleId)) return;
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.completedPuzzleIds, puzzleId);
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 4);
+        WritePayload(payload);
+    }
+
+    public static bool TryGetLastCheckpoint(out string sceneName, out string checkpointId)
+    {
+        SavePayload payload = LoadPayload();
+        sceneName = payload.lastCheckpointScene;
+        checkpointId = payload.lastCheckpointId;
+        return !string.IsNullOrWhiteSpace(sceneName) && !string.IsNullOrWhiteSpace(checkpointId);
+    }
+
+    public static bool TryGetLastCheckpointPose(
+        out string sceneName,
+        out string checkpointId,
+        out Vector3 position,
+        out Quaternion rotation,
+        out ResearchWorldId world)
+    {
+        SavePayload payload = LoadPayload();
+        sceneName = payload.lastCheckpointScene;
+        checkpointId = payload.lastCheckpointId;
+        position = payload.lastCheckpointPosition;
+        rotation = payload.lastCheckpointRotation;
+        world = payload.lastCheckpointWorld;
+        return payload.hasLastCheckpointPose
+            && !string.IsNullOrWhiteSpace(sceneName)
+            && !string.IsNullOrWhiteSpace(checkpointId);
+    }
+
+    public static void RecordCheckpointActivated(string sceneName, string checkpointId)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(checkpointId))
+        {
+            Debug.LogWarning("[GameProgressSave3D] Checkpoint scene and ID are required. Save skipped.");
+            return;
+        }
+
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.activatedCheckpointIds, checkpointId);
+        payload.lastCheckpointScene = sceneName;
+        payload.lastCheckpointId = checkpointId;
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 2);
+        WritePayload(payload);
+    }
+
+    public static void RecordCheckpointActivated(
+        string sceneName,
+        string checkpointId,
+        Vector3 position,
+        Quaternion rotation,
+        ResearchWorldId world)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(checkpointId))
+        {
+            Debug.LogWarning("[GameProgressSave3D] Checkpoint scene and ID are required. Save skipped.");
+            return;
+        }
+
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.activatedCheckpointIds, checkpointId);
+        payload.lastCheckpointScene = sceneName;
+        payload.lastCheckpointId = checkpointId;
+        payload.lastCheckpointPosition = position;
+        payload.lastCheckpointRotation = rotation;
+        payload.lastCheckpointWorld = world;
+        payload.hasLastCheckpointPose = true;
+        payload.currentWorld = world;
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 5);
+        WritePayload(payload);
+    }
+
+    public static bool TryGetPersistentObjectState(string sceneName, string persistentId, out PersistentSceneObjectState state)
+    {
+        state = PersistentSceneObjectState.Exists;
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(persistentId)) return false;
+        List<PersistentObjectRecord> records = LoadPayload().persistentObjectStates;
+        for (int i = 0; i < records.Count; i++)
+        {
+            if (records[i] != null
+                && string.Equals(records[i].sceneName, sceneName, System.StringComparison.Ordinal)
+                && string.Equals(records[i].persistentId, persistentId, System.StringComparison.Ordinal))
+            {
+                state = records[i].savedState;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void RecordPersistentObjectState(string sceneName, string persistentId, PersistentSceneObjectState state)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(persistentId)) return;
+        SavePayload payload = LoadPayload();
+        PersistentObjectRecord record = payload.persistentObjectStates.Find(item =>
+            item != null
+            && string.Equals(item.sceneName, sceneName, System.StringComparison.Ordinal)
+            && string.Equals(item.persistentId, persistentId, System.StringComparison.Ordinal));
+        if (record != null && record.savedState == state && record.sceneName == sceneName) return;
+        if (record == null)
+        {
+            record = new PersistentObjectRecord();
+            payload.persistentObjectStates.Add(record);
+        }
+        record.sceneName = sceneName;
+        record.persistentId = persistentId;
+        record.savedState = state;
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 3);
+        WritePayload(payload);
+    }
+
+    public static void SaveNow()
+    {
+        if (transientSessionDepth > 0) return;
+        if (cachedPayload != null) PlayerPrefs.Save();
+    }
+
+    /// <summary>
+    /// Isolates progress mutations in memory until the matching transient session ends.
+    /// Intended for development/test scenes that must never overwrite live progress.
+    /// </summary>
+    public static void BeginTransientSession()
+    {
+        if (transientSessionDepth == 0)
+        {
+            SavePayload source = LoadPayload();
+            transientPayload = JsonUtility.FromJson<SavePayload>(JsonUtility.ToJson(source)) ?? new SavePayload();
+            transientPayload.EnsureLists();
+        }
+
+        transientSessionDepth++;
+    }
+
+    public static void EndTransientSession()
+    {
+        if (transientSessionDepth <= 0)
+        {
+            return;
+        }
+
+        transientSessionDepth--;
+        if (transientSessionDepth == 0)
+        {
+            transientPayload = null;
+        }
     }
 
     public static void RecordAbilityUnlocked(CameraAbilityId ability)
@@ -102,6 +268,12 @@ public static class GameProgressSave3D
 
     public static void ResetProgress()
     {
+        if (transientSessionDepth > 0)
+        {
+            transientPayload = new SavePayload();
+            return;
+        }
+
         cachedPayload = new SavePayload();
         PlayerPrefs.DeleteKey(PlayerPrefsKey);
         PlayerPrefs.Save();
@@ -109,6 +281,13 @@ public static class GameProgressSave3D
 
     private static SavePayload LoadPayload()
     {
+        if (transientSessionDepth > 0)
+        {
+            transientPayload ??= new SavePayload();
+            transientPayload.EnsureLists();
+            return transientPayload;
+        }
+
         if (cachedPayload != null)
         {
             return cachedPayload;
@@ -134,6 +313,12 @@ public static class GameProgressSave3D
     private static void WritePayload(SavePayload payload)
     {
         payload.EnsureLists();
+        if (transientSessionDepth > 0)
+        {
+            transientPayload = payload;
+            return;
+        }
+
         cachedPayload = payload;
         PlayerPrefs.SetString(PlayerPrefsKey, JsonUtility.ToJson(payload));
         PlayerPrefs.Save();
@@ -155,10 +340,20 @@ public static class GameProgressSave3D
     [System.Serializable]
     private class SavePayload
     {
+        public int saveVersion = 2;
         public List<string> unlockedAbilities = new List<string>();
         public List<string> collectedItems = new List<string>();
         public List<string> activatedDevices = new List<string>();
         public List<string> exploredAreas = new List<string>();
+        public List<string> activatedCheckpointIds = new List<string>();
+        public List<string> completedPuzzleIds = new List<string>();
+        public string lastCheckpointScene = string.Empty;
+        public string lastCheckpointId = string.Empty;
+        public bool hasLastCheckpointPose;
+        public Vector3 lastCheckpointPosition;
+        public Quaternion lastCheckpointRotation = Quaternion.identity;
+        public ResearchWorldId lastCheckpointWorld = ResearchWorldId.WorldA;
+        public List<PersistentObjectRecord> persistentObjectStates = new List<PersistentObjectRecord>();
         public ResearchWorldId currentWorld = ResearchWorldId.WorldA;
         public bool hiddenEndingUnlocked;
 
@@ -183,6 +378,31 @@ public static class GameProgressSave3D
             {
                 exploredAreas = new List<string>();
             }
+
+            if (activatedCheckpointIds == null)
+            {
+                activatedCheckpointIds = new List<string>();
+            }
+
+            if (completedPuzzleIds == null)
+            {
+                completedPuzzleIds = new List<string>();
+            }
+
+            if (persistentObjectStates == null)
+            {
+                persistentObjectStates = new List<PersistentObjectRecord>();
+            }
+
+            saveVersion = Mathf.Max(saveVersion, 1);
         }
+    }
+
+    [System.Serializable]
+    private class PersistentObjectRecord
+    {
+        public string sceneName = string.Empty;
+        public string persistentId = string.Empty;
+        public PersistentSceneObjectState savedState = PersistentSceneObjectState.Exists;
     }
 }

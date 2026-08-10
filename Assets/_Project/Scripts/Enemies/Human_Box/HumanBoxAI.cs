@@ -1,7 +1,9 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
-public class HumanBoxAI : MonsterAIBase, IDamageable
+[RequireComponent(typeof(MonsterHealth))]
+public sealed class HumanBoxAI : MonsterAIBase
 {
     private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
     private static readonly int IsAttackingHash = Animator.StringToHash("IsAttacking");
@@ -13,292 +15,350 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
     private static readonly int AttackFalseHash = Animator.StringToHash("AttackFalse");
     private static readonly int StateHash = Animator.StringToHash("State");
 
-    [Header("Stats")]
-    [SerializeField] private int maxHp = 4;
-    [SerializeField] private int currentHp = 4;
-
     [Header("Detection")]
-    [SerializeField] private float detectRange = 3f;
-    [SerializeField] private float chaseRange = 5f;
+    [SerializeField, Min(0f)] private float detectRange = 3f;
+    [SerializeField, Min(0f)] private float chaseRange = 5f;
 
     [Header("Movement")]
-    [SerializeField] private float testMoveSpeed = 1f;
+    [SerializeField, Min(0f)] private float testMoveSpeed = 1f;
     [SerializeField] private bool useTestMoveSpeed = true;
-    [SerializeField] private float stopDistance = 0.1f;
+    [SerializeField, Min(0f)] private float stopDistance = 0.1f;
     [SerializeField] private bool lockZPosition = true;
 
     [Header("Howling")]
     [SerializeField] private bool enableHowl = true;
-    [SerializeField] private float howlStunDuration = 1.5f;
-    [SerializeField] private float howlDuration = 1f;
+    [SerializeField, Min(0f)] private float howlDuration = 1.5f;
     [SerializeField] private bool howlOnlyOncePerDetection = true;
 
     [Header("Attack")]
-    [SerializeField] private float attackWindup = 0.5f;
-    [SerializeField] private int attackDamage = 1;
-    [SerializeField] private float attackCooldown = 1f;
-    [SerializeField] private float attackFalseStunDuration = 1f;
+    [FormerlySerializedAs("attackWindup")]
+    [SerializeField, Min(0f)] private float attackReadyTime = 0.8f;
+    [SerializeField, Min(0f)] private float attackHitWindow = 0.2f;
+    [SerializeField, Min(0)] private int attackDamage = 1;
+    [SerializeField, Min(0f)] private float attackCooldown = 1f;
 
-    [Header("Death")]
-    [SerializeField] private bool disableColliderOnDeath = true;
-    [SerializeField] private bool destroyOnDeath;
-    [SerializeField] private float destroyDelay = 2f;
+    [Header("Stun")]
+    [SerializeField, Min(0f)] private float attackFalseStunDuration = 1f;
 
-    [Header("Visual / Animator")]
+    [Header("References")]
     [SerializeField] private Animator animator;
+    [SerializeField] private MonsterHealth health;
+    [SerializeField] private HumanBoxHowling howling;
+    [SerializeField] private HumanBoxDeadPlatform3D deadPlatform;
+    [SerializeField] private Transform attackHitboxTransform;
     [SerializeField] private bool facePlayerWhenDetected = true;
 
     [Header("Debug")]
-    [SerializeField] private float logInterval = 0.5f;
     [SerializeField] private bool showDetectionDebug = true;
     [SerializeField] private bool logDetectionEvents;
+    [SerializeField] private HumanBoxState currentState = HumanBoxState.IDLE;
 
-    [SerializeField] private HumanBoxState currentState = HumanBoxState.Idle;
-    private Collider[] colliders;
-    private HumanBoxHowling humanBoxHowling;
     private float stateEndTime;
     private float nextAttackTime;
-    private float lastSeenTime = -999f;
-    private float nextLogTime;
-    private float nextDetectFailureLogTime;
-    private bool warnedPlayerTargetMissing;
-    private bool hasHowledThisDetection;
-    private bool howlStunApplied;
-    private float howlImpactTime;
-    private bool attackDamageApplied;
-    private bool lastLineOfSight;
-    private Vector3 lastRayOrigin;
-    private Vector3 lastRayEnd;
+    private bool hasUsedHowling;
+    private bool attackHitPlayer;
+    private float lockedAttackDirection = 1f;
     private MonsterPatrolController patrolController;
-    private bool wasEngagedWithPlayer;
 
     private float ActiveMoveSpeed => useTestMoveSpeed ? testMoveSpeed : moveSpeed;
-    public bool CanTakeDamage => currentState != HumanBoxState.Dead && currentHp > 0;
+    public HumanBoxState CurrentState => currentState;
+    public float PlayerDetectionRange => monsterDetection != null ? monsterDetection.PlayerDetectionRange : detectRange;
 
     public void ConfigureDataDrivenStats(int configuredMaxHp, float configuredHowlDuration,
-        float configuredHowlStunDuration, bool enableHowl)
+        float legacyHowlStunDuration, bool configuredEnableHowl)
     {
-        maxHp = Mathf.Max(1, configuredMaxHp);
-        currentHp = maxHp;
-        this.enableHowl = enableHowl;
-        howlDuration = enableHowl ? Mathf.Max(0f, configuredHowlDuration) : 0f;
-        howlStunDuration = enableHowl ? Mathf.Max(0f, configuredHowlStunDuration) : 0f;
-
-        CacheReferences();
-        if (humanBoxHowling != null)
+        enableHowl = configuredEnableHowl;
+        howlDuration = configuredEnableHowl ? Mathf.Max(0f, configuredHowlDuration) : 0f;
+        if (health != null)
         {
-            humanBoxHowling.howlDuration = howlDuration;
-            humanBoxHowling.howlStunDuration = howlStunDuration;
+            health.maxHp = Mathf.Max(1, configuredMaxHp);
+            health.ResetHealth();
+        }
+        if (howling != null)
+        {
+            howling.enableHowling = configuredEnableHowl;
+            howling.howlingDuration = howlDuration;
         }
     }
 
     protected override void Awake()
     {
-        ApplyHumanBoxMovementDefaults();
+        ApplyGroundDefaults();
         base.Awake();
-        SyncBaseSettings();
         CacheReferences();
-        EnsurePlayerTarget();
-        currentHp = Mathf.Clamp(currentHp, 0, maxHp);
+        SyncComponentSettings();
+        currentState = HumanBoxState.IDLE;
+        hasUsedHowling = false;
+        deadPlatform?.RestoreAlive();
         ApplyAnimatorState();
+    }
+
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+        CacheReferences();
+        if (health != null) health.Died += HandleDied;
+    }
+
+    private void OnDisable()
+    {
+        if (health != null) health.Died -= HandleDied;
+        deadPlatform?.SetAttackHitbox(false);
     }
 
     protected override void OnValidate()
     {
-        ApplyHumanBoxMovementDefaults();
+        ApplyGroundDefaults();
         base.OnValidate();
-        SyncBaseSettings();
-        maxHp = Mathf.Max(1, maxHp);
-        currentHp = Mathf.Clamp(currentHp, 0, maxHp);
+        if (monsterDetection == null) monsterDetection = GetComponent<MonsterDetection>();
         detectRange = Mathf.Max(0f, detectRange);
-        chaseRange = Mathf.Max(0f, chaseRange);
-        attackRange = Mathf.Max(0f, attackRange);
-        moveSpeed = Mathf.Max(0f, moveSpeed);
+        chaseRange = Mathf.Max(detectRange, chaseRange);
         testMoveSpeed = Mathf.Max(0f, testMoveSpeed);
         stopDistance = Mathf.Max(0f, stopDistance);
-        lostSightDelay = Mathf.Max(0f, lostSightDelay);
-        howlStunDuration = Mathf.Max(0f, howlStunDuration);
         howlDuration = Mathf.Max(0f, howlDuration);
-        attackWindup = Mathf.Max(0f, attackWindup);
+        attackReadyTime = Mathf.Max(0f, attackReadyTime);
+        attackHitWindow = Mathf.Max(0.01f, attackHitWindow);
         attackDamage = Mathf.Max(0, attackDamage);
         attackCooldown = Mathf.Max(0f, attackCooldown);
         attackFalseStunDuration = Mathf.Max(0f, attackFalseStunDuration);
-        destroyDelay = Mathf.Max(0f, destroyDelay);
-        logInterval = Mathf.Max(0.05f, logInterval);
     }
 
     protected override void Update()
     {
-        if (currentState == HumanBoxState.Dead)
-        {
-            return;
-        }
-
-        SyncBaseSettings();
-        EnsurePlayerTarget();
+        if (currentState == HumanBoxState.DEAD_PLATFORM) return;
+        SyncComponentSettings();
         base.Update();
-        if (lockZPosition)
-        {
-            ClampToFixedZ();
-        }
-
-        if (currentState != HumanBoxState.Idle && !CanContinuePlayerEngagement())
-        {
-            LogDetectFailure($"Player in range but not visible. Line of sight blocked by {LastSightBlockedColliderName}");
-            ChangeState(HumanBoxState.Idle);
-            LogDebug("State remains Idle");
-            return;
-        }
-
-        UpdateLineOfSightMemory();
+        if (lockZPosition) ClampToFixedZ();
 
         switch (currentState)
         {
-            case HumanBoxState.Idle:
-                UpdateIdle();
-                break;
-            case HumanBoxState.Howling:
-                UpdateHowling();
-                break;
-            case HumanBoxState.Walk:
-                UpdateWalk();
-                break;
-            case HumanBoxState.Attack:
-                UpdateAttack();
-                break;
-            case HumanBoxState.AttackFalse:
-                UpdateAttackFalse();
-                break;
+            case HumanBoxState.IDLE: UpdateIdle(); break;
+            case HumanBoxState.HOWLING: UpdateHowling(); break;
+            case HumanBoxState.WALK: UpdateWalk(); break;
+            case HumanBoxState.ATTACK_READY: UpdateAttackReady(); break;
+            case HumanBoxState.ATTACK: UpdateAttack(); break;
+            case HumanBoxState.STUN: UpdateStun(); break;
         }
-
-        LogDebugState();
     }
 
     protected override void FixedUpdate()
     {
+        if (currentState == HumanBoxState.DEAD_PLATFORM) return;
         UpdateGroundCheck();
-
-        if (currentState == HumanBoxState.Idle && patrolController != null && patrolController.EnablePatrol)
+        if (currentState == HumanBoxState.WALK)
         {
-            patrolController.NotifyPosition(GetCurrentPosition());
-            if (patrolController.CanMove && patrolController.TryGetCurrentPoint(out Vector3 patrolPoint))
-            {
-                MoveTowardPosition(ProjectToFixedZ(patrolPoint), patrolController.PatrolSpeed, Time.fixedDeltaTime);
-                if (patrolController.FaceMovementDirection)
-                {
-                    FaceTargetIfNeeded(patrolPoint, true);
-                }
-                SetMoving(!setMoveAnimatorOnlyWhenMoving || IsMoving);
-            }
-            else
-            {
-                SetMoving(false);
-            }
-            MaintainGroundExternalPushControl();
-            return;
+            MoveTowardPlayer(Time.fixedDeltaTime);
+            SetMoving(IsMoving);
         }
-
-        if (currentState != HumanBoxState.Walk)
+        else
         {
-            MaintainGroundExternalPushControl();
-            return;
+            StopHorizontalMovement();
+            SetMoving(false);
         }
-
-        MoveTowardPlayer(Time.fixedDeltaTime);
-        SetMoving(!setMoveAnimatorOnlyWhenMoving || IsMoving);
         MaintainGroundExternalPushControl();
     }
 
-    public void TakeDamage(int damage)
+    private void UpdateIdle()
     {
-        if (currentState == HumanBoxState.Dead || damage <= 0)
-        {
-            return;
-        }
-
-        currentHp = Mathf.Max(0, currentHp - damage);
-        LogDebug($"TakeDamage={damage}, HP={currentHp}/{maxHp}");
-
-        if (currentHp <= 0)
-        {
-            ChangeState(HumanBoxState.Dead);
-        }
+        SetMoving(false);
+        if (!CanDetectPlayer(PlayerDetectionRange)) return;
+        patrolController?.PauseForCombat();
+        bool repeatHowling = howling != null && !howling.howlingOncePerLife;
+        if (enableHowl && (!hasUsedHowling || repeatHowling)) ChangeState(HumanBoxState.HOWLING);
+        else ChangeState(HumanBoxState.WALK);
     }
 
-    public void TakeDamage(DamageInfo damageInfo)
+    private void UpdateHowling()
     {
-        TakeDamage(damageInfo.damageAmount);
+        if (Time.time < stateEndTime) return;
+        ChangeState(CanDetectPlayer(chaseRange) ? HumanBoxState.WALK : HumanBoxState.IDLE);
+    }
+
+    private void UpdateWalk()
+    {
+        FacePlayer();
+        if (!CanDetectPlayer(chaseRange))
+        {
+            patrolController?.ResumeAfterCombat(GetCurrentPosition());
+            ChangeState(HumanBoxState.IDLE);
+            return;
+        }
+        if (Time.time >= nextAttackTime && IsInRange(playerTarget, attackRange))
+            ChangeState(HumanBoxState.ATTACK_READY);
+    }
+
+    private void UpdateAttackReady()
+    {
+        if (!CanDetectPlayer(chaseRange))
+        {
+            ChangeState(HumanBoxState.IDLE);
+            return;
+        }
+        if (Time.time >= stateEndTime) ChangeState(HumanBoxState.ATTACK);
+    }
+
+    private void UpdateAttack()
+    {
+        if (Time.time < stateEndTime) return;
+        deadPlatform?.SetAttackHitbox(false);
+        nextAttackTime = Time.time + attackCooldown;
+        ChangeState(attackHitPlayer ? HumanBoxState.WALK : HumanBoxState.STUN);
+    }
+
+    private void UpdateStun()
+    {
+        if (Time.time < stateEndTime) return;
+        ChangeState(CanDetectPlayer(chaseRange) ? HumanBoxState.WALK : HumanBoxState.IDLE);
+    }
+
+    public void TryRegisterAttackHit(Collider other)
+    {
+        if (currentState != HumanBoxState.ATTACK || attackHitPlayer || other == null) return;
+        Transform player = ResolvePlayerTransform(other.transform);
+        if (player == null) return;
+        IDamageable damageable = player.GetComponent<IDamageable>()
+            ?? player.GetComponentInParent<IDamageable>()
+            ?? player.GetComponentInChildren<IDamageable>();
+        if (damageable == null || !damageable.CanTakeDamage) return;
+        damageable.TakeDamage(attackDamage);
+        attackHitPlayer = true;
+    }
+
+    private void ChangeState(HumanBoxState next)
+    {
+        if (currentState == next) return;
+        currentState = next;
+        deadPlatform?.SetAttackHitbox(false);
+        SetMoving(false);
+        SetAttacking(false);
+        SetHowling(false);
+        SetAttackFalse(false);
+
+        switch (next)
+        {
+            case HumanBoxState.HOWLING:
+                hasUsedHowling = true;
+                stateEndTime = Time.time + howlDuration;
+                SetHowling(true);
+                Trigger(HowlingHash, "Howling");
+                howling?.BeginHowling(gameObject, playerTarget);
+                if (logDetectionEvents) Debug.Log("[Human_Box] Howling puzzle signal emitted.", this);
+                break;
+            case HumanBoxState.WALK:
+                SetMoving(true);
+                break;
+            case HumanBoxState.ATTACK_READY:
+                lockedAttackDirection = playerTarget != null && playerTarget.position.x < transform.position.x ? -1f : 1f;
+                stateEndTime = Time.time + attackReadyTime;
+                FaceLockedDirection();
+                break;
+            case HumanBoxState.ATTACK:
+                attackHitPlayer = false;
+                stateEndTime = Time.time + attackHitWindow;
+                PositionAttackHitbox();
+                SetAttacking(true);
+                Trigger(AttackHash, "Attack");
+                deadPlatform?.SetAttackHitbox(true);
+                break;
+            case HumanBoxState.STUN:
+                stateEndTime = Time.time + attackFalseStunDuration;
+                SetAttackFalse(true);
+                Trigger(AttackFalseHash, "AttackFalse");
+                break;
+            case HumanBoxState.DEAD_PLATFORM:
+                SetBool(IsDeadHash, true);
+                deadPlatform?.EnterDeadPlatform();
+                break;
+        }
+
+        int animatorState = next == HumanBoxState.ATTACK_READY ? (int)HumanBoxState.IDLE : (int)next;
+        SetInt(StateHash, animatorState);
+    }
+
+    private void HandleDied(MonsterHealth _)
+    {
+        playerTarget = null;
+        currentTarget = null;
+        currentTargetType = MonsterTargetType.None;
+        ChangeState(HumanBoxState.DEAD_PLATFORM);
+    }
+
+    private bool CanDetectPlayer(float range)
+    {
+        if (playerTarget == null || currentState == HumanBoxState.DEAD_PLATFORM || !IsPlayerAlive()) return false;
+        if (monsterDetection != null && (!monsterDetection.enableDetection || !monsterDetection.canDetectPlayer)) return false;
+        return IsInRange(playerTarget, range) && (!requireLineOfSight || IsPlayerVisible());
+    }
+
+    private bool IsPlayerAlive()
+    {
+        if (playerTarget == null || !playerTarget.gameObject.activeInHierarchy) return false;
+        IDamageable damageable = playerTarget.GetComponent<IDamageable>()
+            ?? playerTarget.GetComponentInParent<IDamageable>()
+            ?? playerTarget.GetComponentInChildren<IDamageable>();
+        return damageable == null || damageable.CanTakeDamage;
+    }
+
+    private Transform ResolvePlayerTransform(Transform candidate)
+    {
+        if (playerTarget == null || candidate == null) return null;
+        if (candidate == playerTarget || candidate.IsChildOf(playerTarget) || playerTarget.IsChildOf(candidate)) return playerTarget;
+        return null;
+    }
+
+    private void MoveTowardPlayer(float deltaTime)
+    {
+        if (playerTarget == null) return;
+        Vector3 delta = playerTarget.position - GetCurrentPosition();
+        delta.z = 0f;
+        if (Mathf.Abs(delta.x) <= stopDistance) return;
+        MoveTowardPosition(ProjectToFixedZ(playerTarget.position), ActiveMoveSpeed, deltaTime);
+    }
+
+    private void StopHorizontalMovement()
+    {
+        if (body == null || body.isKinematic) return;
+        Vector3 velocity = body.linearVelocity;
+        velocity.x = 0f;
+        body.linearVelocity = velocity;
+    }
+
+    private void FacePlayer()
+    {
+        if (facePlayerWhenDetected && playerTarget != null) FaceTargetIfNeeded(playerTarget.position);
+    }
+
+    private void FaceLockedDirection()
+    {
+        FaceTargetIfNeeded(transform.position + Vector3.right * lockedAttackDirection);
+    }
+
+    private void PositionAttackHitbox()
+    {
+        if (attackHitboxTransform == null) return;
+        Vector3 local = attackHitboxTransform.localPosition;
+        local.x = Mathf.Abs(local.x) * lockedAttackDirection;
+        attackHitboxTransform.localPosition = local;
     }
 
     private void CacheReferences()
     {
-        if (body != null)
-        {
-            body.constraints &= ~RigidbodyConstraints.FreezePositionX;
-            body.constraints &= ~RigidbodyConstraints.FreezePositionY;
-            body.constraints |= TwoPointFiveDUtility3D.SideViewRigidbodyConstraints;
-        }
-
-        if (colliders == null || colliders.Length == 0)
-        {
-            colliders = GetComponentsInChildren<Collider>();
-        }
-
-        if (animator == null)
-        {
-            animator = GetComponentInChildren<Animator>(true);
-        }
-
-        if (humanBoxHowling == null)
-        {
-            humanBoxHowling = GetComponent<HumanBoxHowling>();
-        }
-
-        if (patrolController == null)
-        {
-            patrolController = GetComponent<MonsterPatrolController>();
-        }
-
-        if (visualRoot == null)
-        {
-            if (animator != null)
-            {
-                visualRoot = animator.transform;
-            }
-            else
-            {
-                Renderer renderer = GetComponentInChildren<Renderer>(true);
-                visualRoot = renderer != null ? renderer.transform : transform;
-            }
-        }
-
-        if (facingVisualRoot == null)
-        {
-            facingVisualRoot = visualRoot;
-        }
+        if (health == null) health = GetComponent<MonsterHealth>();
+        if (howling == null) howling = GetComponent<HumanBoxHowling>();
+        if (deadPlatform == null) deadPlatform = GetComponent<HumanBoxDeadPlatform3D>();
+        if (animator == null) animator = GetComponentInChildren<Animator>(true);
+        if (patrolController == null) patrolController = GetComponent<MonsterPatrolController>();
+        if (attackHitboxTransform == null && deadPlatform != null && deadPlatform.AttackCollider != null)
+            attackHitboxTransform = deadPlatform.AttackCollider.transform;
     }
 
-    private void SyncBaseSettings()
+    private void SyncComponentSettings()
     {
-        ApplyHumanBoxMovementDefaults();
-        detectPlayer = monsterDetection == null ||
-            (monsterDetection.enableDetection && monsterDetection.canDetectPlayer);
-        detectLight = false;
-        canDetectLight = false;
-        if (monsterDetection == null)
-        {
-            playerDetectRange = detectRange;
-            targetKeepRange = chaseRange;
-        }
-        else
+        if (monsterDetection != null)
         {
             detectRange = monsterDetection.playerDetectRange;
             chaseRange = monsterDetection.chaseRange;
         }
-
-        returnHomeWhenTargetLost = false;
-        setMoveAnimatorOnlyWhenMoving = true;
-
         if (monsterMovement != null)
         {
             testMoveSpeed = monsterMovement.testMoveSpeed;
@@ -307,24 +367,22 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
             stopDistance = monsterMovement.stopDistance;
             lockZPosition = monsterMovement.lockZPosition;
         }
-
         if (monsterAttack != null)
         {
             attackRange = monsterAttack.attackRange;
             attackDamage = monsterAttack.attackDamage;
-            attackWindup = monsterAttack.attackWindup;
+            attackReadyTime = monsterAttack.attackWindup;
             attackCooldown = monsterAttack.attackCooldown;
         }
-
-        if (humanBoxHowling != null)
+        if (howling != null)
         {
-            howlDuration = humanBoxHowling.howlDuration;
-            howlStunDuration = humanBoxHowling.howlStunDuration;
-            howlOnlyOncePerDetection = humanBoxHowling.howlOnlyOncePerDetection;
+            enableHowl = howling.enableHowling;
+            howlDuration = howling.howlingDuration;
+            howlOnlyOncePerDetection = howling.howlingOncePerLife;
         }
     }
 
-    private void ApplyHumanBoxMovementDefaults()
+    private void ApplyGroundDefaults()
     {
         movementType = MonsterMovementType.Ground;
         useGravityForGround = true;
@@ -335,649 +393,56 @@ public class HumanBoxAI : MonsterAIBase, IDamageable
         canDetectLight = false;
     }
 
-    private void UpdateIdle()
-    {
-        SetMoving(false);
-        SetAttacking(false);
-        SetHowling(false);
-        SetAttackFalse(false);
-
-        if (!CanDetectPlayerForHowling())
-        {
-            hasHowledThisDetection = false;
-            if (wasEngagedWithPlayer)
-            {
-                wasEngagedWithPlayer = false;
-                patrolController?.ResumeAfterCombat(GetCurrentPosition());
-                LogDetectionEvent("플레이어를 잃어 순찰로 복귀");
-            }
-            return;
-        }
-
-        wasEngagedWithPlayer = true;
-        patrolController?.PauseForCombat();
-
-        if (enableHowl && (!howlOnlyOncePerDetection || !hasHowledThisDetection))
-        {
-            LogDetectionEvent("플레이어 감지");
-            ChangeState(HumanBoxState.Howling);
-            return;
-        }
-
-        ChangeState(HumanBoxState.Walk);
-    }
-
-    private void UpdateHowling()
-    {
-        FacePlayer();
-
-        if (!howlStunApplied && Time.time >= howlImpactTime)
-        {
-            ApplyHowlStunOnce();
-        }
-
-        if (Time.time >= stateEndTime)
-        {
-            ChangeState(IsPlayerInsideChaseRange() && CanSeePlayerNow() ? HumanBoxState.Walk : HumanBoxState.Idle);
-        }
-    }
-
-    private void UpdateWalk()
-    {
-        SetMoving(!setMoveAnimatorOnlyWhenMoving || IsMoving);
-        FacePlayer();
-
-        if (!IsPlayerInsideChaseRange() || !CanSeePlayerNow())
-        {
-            ChangeState(HumanBoxState.Idle);
-            return;
-        }
-
-        if (IsPlayerInsideAttackRange() && IsPlayerVisible() && Time.time >= nextAttackTime)
-        {
-            if (monsterAttack != null && !monsterAttack.enableAttack)
-            {
-                LogDebug("Attack disabled by MonsterAttack.");
-                return;
-            }
-
-            ChangeState(HumanBoxState.Attack);
-        }
-    }
-
-    private void UpdateAttack()
-    {
-        FacePlayer();
-
-        if (!attackDamageApplied && Time.time >= stateEndTime)
-        {
-            attackDamageApplied = true;
-
-            if (IsPlayerInsideAttackRange() && IsPlayerVisible())
-            {
-                ApplyDamageToPlayer();
-                nextAttackTime = Time.time + attackCooldown;
-                LogDebug("Attack success.");
-            }
-            else
-            {
-                LogDebug("Attack failed. Enter AttackFalse.");
-                ChangeState(HumanBoxState.AttackFalse);
-                return;
-            }
-        }
-
-        if (attackDamageApplied && Time.time >= nextAttackTime)
-        {
-            if (IsPlayerInsideAttackRange() && IsPlayerVisible())
-            {
-                ChangeState(HumanBoxState.Attack);
-            }
-            else if (IsPlayerInsideChaseRange() && CanSeePlayerNow())
-            {
-                ChangeState(HumanBoxState.Walk);
-            }
-            else
-            {
-                ChangeState(HumanBoxState.Idle);
-            }
-        }
-    }
-
-    private void UpdateAttackFalse()
-    {
-        if (Time.time < stateEndTime)
-        {
-            return;
-        }
-
-        ChangeState(IsPlayerInsideChaseRange() && CanSeePlayerNow() ? HumanBoxState.Walk : HumanBoxState.Idle);
-    }
-
-    private void ChangeState(HumanBoxState nextState)
-    {
-        if (currentState == nextState)
-        {
-            return;
-        }
-
-        HumanBoxState previousState = currentState;
-        currentState = nextState;
-        LogDebug($"State changed: {previousState} -> {currentState}");
-
-        switch (currentState)
-        {
-            case HumanBoxState.Idle:
-                SetMoving(false);
-                SetAttacking(false);
-                SetHowling(false);
-                SetAttackFalse(false);
-                break;
-            case HumanBoxState.Howling:
-                hasHowledThisDetection = true;
-                stateEndTime = Time.time + howlDuration;
-                howlImpactTime = Time.time + howlDuration * 0.4f;
-                howlStunApplied = false;
-                SetMoving(false);
-                SetAttacking(false);
-                SetHowling(true);
-                Trigger(HowlingHash, "Howling");
-                LogDebug("Howling started");
-                LogDetectionEvent("Howling 시작");
-                break;
-            case HumanBoxState.Walk:
-                SetMoving(true);
-                SetAttacking(false);
-                SetHowling(false);
-                SetAttackFalse(false);
-                break;
-            case HumanBoxState.Attack:
-                stateEndTime = Time.time + attackWindup;
-                attackDamageApplied = false;
-                SetMoving(false);
-                SetAttacking(true);
-                Trigger(AttackHash, "Attack");
-                LogDebug("Attack windup started.");
-                break;
-            case HumanBoxState.AttackFalse:
-                stateEndTime = Time.time + attackFalseStunDuration;
-                SetMoving(false);
-                SetAttacking(false);
-                SetAttackFalse(true);
-                Trigger(AttackFalseHash, "AttackFalse");
-                LogDebug("AttackFalse entered.");
-                break;
-            case HumanBoxState.Dead:
-                SetMoving(false);
-                SetAttacking(false);
-                SetHowling(false);
-                SetAttackFalse(false);
-                SetBool(IsDeadHash, "IsDead", true);
-                DisableCollidersIfNeeded();
-                if (destroyOnDeath)
-                {
-                    Destroy(gameObject, destroyDelay);
-                }
-                LogDebug("Dead entered.");
-                break;
-        }
-
-        SetInt(StateHash, "State", (int)currentState);
-    }
-
-    private void MoveTowardPlayer(float deltaTime)
-    {
-        if (playerTarget == null)
-        {
-            return;
-        }
-
-        Vector3 targetPosition = playerTarget.position;
-        Vector3 currentPosition = GetCurrentPosition();
-        Vector3 delta = targetPosition - currentPosition;
-        delta.z = 0f;
-
-        if (delta.magnitude <= stopDistance)
-        {
-            return;
-        }
-
-        MoveTowardPosition(ProjectToFixedZ(targetPosition), ActiveMoveSpeed, deltaTime);
-    }
-
-    private void FacePlayer()
-    {
-        if (!facePlayerWhenDetected || playerTarget == null || visualRoot == null)
-        {
-            return;
-        }
-
-        if (!HasFinalPlayerDetection(chaseRange, true))
-        {
-            LogDetectFailure("FaceTarget skipped because player is not detected");
-            return;
-        }
-
-        FaceTargetIfNeeded(playerTarget.position);
-    }
-
-    private void UpdateLineOfSightMemory()
-    {
-        lastLineOfSight = CanSeePlayerNow();
-        if (lastLineOfSight)
-        {
-            lastSeenTime = Time.time;
-        }
-    }
-
-    private bool CanSeePlayerRecently()
-    {
-        return CanSeePlayerNow() || Time.time - lastSeenTime <= lostSightDelay;
-    }
-
-    private bool CanSeePlayerNow()
-    {
-        return HasFinalPlayerDetection(chaseRange, false);
-    }
-
-    private bool CanContinuePlayerEngagement()
-    {
-        return HasFinalPlayerDetection(chaseRange, true);
-    }
-
-    private bool IsPlayerInsideDetectRange()
-    {
-        return IsPlayerInsideRange(detectRange);
-    }
-
-    private bool IsPlayerInsideChaseRange()
-    {
-        return IsPlayerInsideRange(chaseRange);
-    }
-
-    private bool IsPlayerInsideAttackRange()
-    {
-        return IsPlayerInsideRange(attackRange);
-    }
-
-    private bool IsPlayerInsideRange(float range)
-    {
-        return IsInRange(playerTarget, range);
-    }
-
-    private float GetPlayerDistance()
-    {
-        if (playerTarget == null)
-        {
-            return -1f;
-        }
-
-        return GetPlanarDistance(playerTarget);
-    }
-
-    private bool CanDetectPlayerForHowling()
-    {
-        if (!HasFinalPlayerDetection(detectRange, true))
-        {
-            if (playerTarget != null && IsPlayerInsideDetectRange() && requireLineOfSight && !IsPlayerVisible())
-            {
-                LogDetectFailure($"Detection failed: line of sight blocked by {LastSightBlockedColliderName}. Player in range but not visible. State remains Idle");
-            }
-            else
-            {
-                LogDetectFailure("Detection failed: common MonsterDetection result is false. State remains Idle");
-            }
-
-            return false;
-        }
-
-        LogDebug("Player detected");
-        return true;
-    }
-
-    private bool HasFinalPlayerDetection(float range, bool requireSelectedTarget)
-    {
-        if (currentState == HumanBoxState.Dead || !detectPlayer || playerTarget == null)
-        {
-            return false;
-        }
-
-        if (monsterDetection != null &&
-            (!monsterDetection.enableDetection || !monsterDetection.canDetectPlayer))
-        {
-            return false;
-        }
-
-        if (!IsPlayerInsideRange(range))
-        {
-            return false;
-        }
-
-        lastRayOrigin = transform.position + lineOfSightStartOffset;
-        lastRayEnd = playerTarget.position + targetCheckOffset;
-        if (requireLineOfSight && !IsPlayerVisible())
-        {
-            LogDetectFailure($"Detection failed: line of sight blocked by {LastSightBlockedColliderName}");
-            return false;
-        }
-
-        // Range + LOS are the authoritative Human_Box detection conditions.
-        // Base target selection is updated in the same frame, but requiring that cached
-        // selection here made valid detections fail after scene loads/reference refreshes.
-        return true;
-    }
-
-    private void LogDetectFailure(string reason)
-    {
-        if (!debugMode || Time.time < nextDetectFailureLogTime)
-        {
-            return;
-        }
-
-        nextDetectFailureLogTime = Time.time + logInterval;
-        LogDebug($"Detect failed: {reason}");
-    }
-
-    private void LogDetectionEvent(string message)
-    {
-        if (logDetectionEvents) Debug.Log($"[Human_Box] {message}", this);
-    }
-
-    private void EnsurePlayerTarget()
-    {
-        if (playerTarget != null)
-        {
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(playerTag))
-        {
-            try
-            {
-                GameObject taggedPlayer = GameObject.FindGameObjectWithTag(playerTag);
-                if (taggedPlayer != null)
-                {
-                    playerTarget = taggedPlayer.transform;
-                    warnedPlayerTargetMissing = false;
-                    LogDebug($"Player target found by tag: {playerTarget.name}");
-                    return;
-                }
-            }
-            catch (UnityException)
-            {
-                LogDebug($"Player tag '{playerTag}' does not exist. Falling back to name/component search.");
-            }
-        }
-
-        GameObject namedPlayer = GameObject.Find("Player");
-        if (namedPlayer != null)
-        {
-            playerTarget = namedPlayer.transform;
-            warnedPlayerTargetMissing = false;
-            LogDebug($"Player target found by name: {playerTarget.name}");
-            return;
-        }
-
-        PlatformerPlayer3D platformerPlayer = FindFirstObjectByType<PlatformerPlayer3D>();
-        if (platformerPlayer != null)
-        {
-            playerTarget = platformerPlayer.transform;
-            warnedPlayerTargetMissing = false;
-            LogDebug($"Player target found by PlatformerPlayer3D: {playerTarget.name}");
-            return;
-        }
-
-        Transform[] transforms = FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        for (int i = 0; i < transforms.Length; i++)
-        {
-            Transform candidate = transforms[i];
-            if (candidate != null && candidate.name.Contains("Player"))
-            {
-                playerTarget = candidate;
-                warnedPlayerTargetMissing = false;
-                LogDebug($"Player target found by partial name: {playerTarget.name}");
-                return;
-            }
-        }
-
-        if (debugMode && !warnedPlayerTargetMissing)
-        {
-            warnedPlayerTargetMissing = true;
-            Debug.LogWarning("[HumanBoxAI] Player target was not found.", this);
-        }
-    }
-
-    private void TryStunPlayer()
-    {
-        if (humanBoxHowling != null)
-        {
-            if (!humanBoxHowling.TryStunPlayersInRange())
-            {
-                LogDebug("No IStunnable Player found inside howl range.");
-            }
-            return;
-        }
-
-        IStunnable stunnable = FindPlayerComponent<IStunnable>();
-        if (stunnable == null)
-        {
-            Debug.LogWarning("[HumanBoxAI] No IStunnable found on Player", this);
-            return;
-        }
-
-        LogDebug("IStunnable found");
-        stunnable.Stun(howlStunDuration);
-        LogDebug($"Player stun requested: {howlStunDuration:0.##}");
-        LogDebug($"Player stunned for {howlStunDuration:0.##} seconds");
-    }
-
-    private void ApplyHowlStunOnce()
-    {
-        if (howlStunApplied)
-        {
-            return;
-        }
-
-        howlStunApplied = true;
-        TryStunPlayer();
-        LogDebug("Howling impact reached. Player stun requested once.");
-    }
-
-    private void ApplyDamageToPlayer()
-    {
-        TryDamageTarget(playerTarget, attackDamage);
-    }
-
-    private T FindPlayerComponent<T>() where T : class
-    {
-        if (playerTarget == null)
-        {
-            return null;
-        }
-
-        T component = playerTarget.GetComponent<T>();
-        if (component != null)
-        {
-            return component;
-        }
-
-        component = playerTarget.GetComponentInParent<T>();
-        if (component != null)
-        {
-            return component;
-        }
-
-        return playerTarget.GetComponentInChildren<T>();
-    }
-
-    private void DisableCollidersIfNeeded()
-    {
-        if (!disableColliderOnDeath || colliders == null)
-        {
-            return;
-        }
-
-        foreach (Collider targetCollider in colliders)
-        {
-            if (targetCollider != null)
-            {
-                targetCollider.enabled = false;
-            }
-        }
-    }
-
-    private void SetMoving(bool value)
-    {
-        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
-        {
-            monsterAnimatorBridge.SetMoving(value);
-            return;
-        }
-
-        SetBool(IsMovingHash, "IsMoving", value);
-    }
-
-    private void SetAttacking(bool value)
-    {
-        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
-        {
-            monsterAnimatorBridge.SetAttacking(value);
-            return;
-        }
-
-        SetBool(IsAttackingHash, "IsAttacking", value);
-    }
-
-    private void SetHowling(bool value)
-    {
-        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
-        {
-            monsterAnimatorBridge.SetHowling(value);
-            return;
-        }
-
-        SetBool(IsHowlingHash, "IsHowling", value);
-    }
-
-    private void SetAttackFalse(bool value)
-    {
-        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
-        {
-            monsterAnimatorBridge.SetAttackFalse(value);
-            return;
-        }
-
-        SetBool(IsAttackFalseHash, "IsAttackFalse", value);
-    }
-
-    private void SetBool(int hash, string parameterName, bool value)
-    {
-        SetAnimatorBoolIfExists(animator, hash, value);
-    }
-
-    private void SetInt(int hash, string parameterName, int value)
-    {
-        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge && parameterName == "State")
-        {
-            monsterAnimatorBridge.SetState(value);
-            return;
-        }
-
-        SetAnimatorIntIfExists(animator, hash, value);
-    }
-
-    private void Trigger(int hash, string parameterName)
-    {
-        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
-        {
-            if (parameterName == "Attack")
-            {
-                monsterAnimatorBridge.TriggerAttack();
-                return;
-            }
-
-            if (parameterName == "Howling")
-            {
-                monsterAnimatorBridge.TriggerHowling();
-                return;
-            }
-
-            if (parameterName == "AttackFalse")
-            {
-                monsterAnimatorBridge.TriggerAttackFalse();
-                return;
-            }
-        }
-
-        TriggerAnimatorIfExists(animator, hash);
-    }
-
     private void ApplyAnimatorState()
     {
         SetMoving(false);
         SetAttacking(false);
         SetHowling(false);
         SetAttackFalse(false);
-        SetBool(IsDeadHash, "IsDead", false);
-        SetInt(StateHash, "State", (int)currentState);
+        SetBool(IsDeadHash, false);
+        SetInt(StateHash, (int)HumanBoxState.IDLE);
     }
 
-    private void LogDebugState()
+    private void SetMoving(bool value)
     {
-        if (!debugMode || Time.time < nextLogTime)
-        {
-            return;
-        }
-
-        nextLogTime = Time.time + logInterval;
-        string playerName = playerTarget != null ? playerTarget.name : "None";
-        float distance = GetPlayerDistance();
-        bool inDetectRange = IsPlayerInsideDetectRange();
-        bool inChaseRange = IsPlayerInsideChaseRange();
-        bool inAttackRange = IsPlayerInsideAttackRange();
-        bool lineOfSight = !requireLineOfSight || lastLineOfSight;
-        string constraints = body != null ? body.constraints.ToString() : "None";
-        bool useGravity = body != null && body.useGravity;
-        Debug.Log(
-            $"[HumanBoxAI] Player={playerName}, distance={distance:0.00}, detectRange={detectRange:0.##}, " +
-            $"chaseRange={chaseRange:0.##}, attackRange={attackRange:0.##}, inDetectRange={inDetectRange}, " +
-            $"inChaseRange={inChaseRange}, inAttackRange={inAttackRange}, requireLineOfSight={requireLineOfSight}, " +
-            $"lineOfSight={lineOfSight}, state={currentState}, speed={ActiveMoveSpeed:0.##}, useTestMoveSpeed={useTestMoveSpeed}, " +
-            $"testMoveSpeed={testMoveSpeed:0.##}, movementType={movementType}, isGrounded={isGrounded}, useGravity={useGravity}, " +
-            $"constraints={constraints}, moveDir={lastMoveDirection}, blockedBy={LastBlockedColliderName}, HP={currentHp}/{maxHp}",
-            this);
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge) monsterAnimatorBridge.SetMoving(value);
+        else SetAnimatorBoolIfExists(animator, IsMovingHash, value);
     }
-
-    protected override void LogDebug(string message)
+    private void SetAttacking(bool value)
     {
-        if (debugMode)
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge) monsterAnimatorBridge.SetAttacking(value);
+        else SetAnimatorBoolIfExists(animator, IsAttackingHash, value);
+    }
+    private void SetHowling(bool value)
+    {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge) monsterAnimatorBridge.SetHowling(value);
+        else SetAnimatorBoolIfExists(animator, IsHowlingHash, value);
+    }
+    private void SetAttackFalse(bool value)
+    {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge) monsterAnimatorBridge.SetAttackFalse(value);
+        else SetAnimatorBoolIfExists(animator, IsAttackFalseHash, value);
+    }
+    private void SetBool(int hash, bool value) => SetAnimatorBoolIfExists(animator, hash, value);
+    private void SetInt(int hash, int value)
+    {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge) monsterAnimatorBridge.SetState(value);
+        else SetAnimatorIntIfExists(animator, hash, value);
+    }
+    private void Trigger(int hash, string name)
+    {
+        if (monsterAnimatorBridge != null && monsterAnimatorBridge.enableAnimatorBridge)
         {
-            Debug.Log($"[HumanBoxAI] {message}", this);
+            if (name == "Attack") monsterAnimatorBridge.TriggerAttack();
+            else if (name == "Howling") monsterAnimatorBridge.TriggerHowling();
+            else monsterAnimatorBridge.TriggerAttackFalse();
         }
+        else TriggerAnimatorIfExists(animator, hash);
     }
 
     protected override void OnDrawGizmos()
     {
-        if (!showGizmos || !showDetectionDebug)
-        {
-            return;
-        }
-
-        Vector3 center = transform.position;
-
-        Gizmos.color = new Color(1f, 0.8f, 0.1f, 0.7f);
-        Gizmos.DrawWireSphere(center, detectRange);
-
-        Gizmos.color = new Color(0.2f, 0.55f, 1f, 0.55f);
-        Gizmos.DrawWireSphere(center, chaseRange);
-
-        Gizmos.color = new Color(1f, 0.15f, 0.15f, 0.45f);
-        Gizmos.DrawWireSphere(center, attackRange);
-
-        if (playerTarget != null)
-        {
-            Gizmos.color = lastLineOfSight ? Color.green : Color.red;
-            Gizmos.DrawLine(Application.isPlaying ? lastRayOrigin : center, Application.isPlaying ? lastRayEnd : playerTarget.position);
-        }
+        if (!showGizmos || !showDetectionDebug) return;
+        Gizmos.color = Color.red; Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }
