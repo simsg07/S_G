@@ -640,46 +640,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CraneLeverSwitch
   targetCrane: {fileID: 200004}
-  targetVerticalCrane: {fileID: 0}
   autoFindSingleCraneIfMissing: 1
-  activationDelay: 3
-  useUnscaledActivationDelay: 0
-  autoLoop: 0
-  canRetriggerWhileMoving: 0
-  canCancelDuringDelay: 0
-  interactionTrigger: {fileID: 300002}
+  canUseWhileCraneMoving: 0
   requirePlayerInRange: 1
   useFallbackInput: 1
   playerLayerMask:
     serializedVersion: 2
-    m_Bits: 8192
+    m_Bits: 0
   playerTag: Player
-  interactionKey: 20
+  fallbackInteractKey: 20
   playerInRange: 0
   animator: {fileID: 0}
   activateTriggerName: Activate
-  leverRenderer: {fileID: 1302349971484717095}
-  leverSpriteRenderer: {fileID: 0}
-  leverOffSprite: {fileID: 0}
-  leverOnSprite: {fileID: 0}
-  onLeverActivated:
-    m_PersistentCalls:
-      m_Calls: []
-  onActivationDelayStarted:
-    m_PersistentCalls:
-      m_Calls: []
-  onActivationDelayRemaining:
-    m_PersistentCalls:
-      m_Calls: []
-  onMovementStarted:
-    m_PersistentCalls:
-      m_Calls: []
-  onDestinationReached:
-    m_PersistentCalls:
-      m_Calls: []
-  state: 0
   debugMode: 1
-  persistentState: {fileID: 0}
 --- !u!1 &310000
 GameObject:
   m_ObjectHideFlags: 0
@@ -2243,46 +2216,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CraneLeverSwitch
   targetCrane: {fileID: 200004}
-  targetVerticalCrane: {fileID: 0}
   autoFindSingleCraneIfMissing: 1
-  activationDelay: 3
-  useUnscaledActivationDelay: 0
-  autoLoop: 0
-  canRetriggerWhileMoving: 0
-  canCancelDuringDelay: 0
-  interactionTrigger: {fileID: 2037308501052209463}
+  canUseWhileCraneMoving: 0
   requirePlayerInRange: 1
   useFallbackInput: 1
   playerLayerMask:
     serializedVersion: 2
-    m_Bits: 8192
+    m_Bits: 0
   playerTag: Player
-  interactionKey: 20
+  fallbackInteractKey: 20
   playerInRange: 0
   animator: {fileID: 0}
   activateTriggerName: Activate
-  leverRenderer: {fileID: 3175573406944247313}
-  leverSpriteRenderer: {fileID: 0}
-  leverOffSprite: {fileID: 0}
-  leverOnSprite: {fileID: 0}
-  onLeverActivated:
-    m_PersistentCalls:
-      m_Calls: []
-  onActivationDelayStarted:
-    m_PersistentCalls:
-      m_Calls: []
-  onActivationDelayRemaining:
-    m_PersistentCalls:
-      m_Calls: []
-  onMovementStarted:
-    m_PersistentCalls:
-      m_Calls: []
-  onDestinationReached:
-    m_PersistentCalls:
-      m_Calls: []
-  state: 0
   debugMode: 1
-  persistentState: {fileID: 0}
 --- !u!1 &6185798729066998835
 GameObject:
   m_ObjectHideFlags: 0

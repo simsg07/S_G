@@ -22,7 +22,7 @@ MonoBehaviour:
   - Platform
   switchTargetLayers:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 4294967295
   switchBoundsMargin: 0.2
   switchDepth: 20
   queryPlaneZ: 0

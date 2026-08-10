@@ -288,16 +288,6 @@ public static class TilePaletteSetupUtility
             tilemapObject.AddComponent<TilemapRenderer>();
         }
 
-        if (tilemapObject.GetComponent<TilemapCollisionAuthoring>() == null)
-        {
-            TilemapCollisionAuthoring collision = tilemapObject.AddComponent<TilemapCollisionAuthoring>();
-            collision.UseReachableDefaultsForNewTilemap();
-            string lowerName = tilemapName.ToLowerInvariant();
-            collision.SetInitialRole(lowerName.Contains("ground") || lowerName.Contains("wall")
-                ? TilemapCollisionRole.Solid
-                : TilemapCollisionRole.Decoration);
-        }
-
         return tilemap;
     }
 }

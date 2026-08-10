@@ -16,8 +16,8 @@ public class CameraMarkState3D : MonoBehaviour
 
     private MeshRenderer markerRenderer;
     private MeshFilter markerFilter;
-    private Renderer[] cachedRenderers = System.Array.Empty<Renderer>();
-    private MaterialPropertyBlock propertyBlock;
+    private Material markerMaterial;
+    private Mesh markerMesh;
     private float markEndTime;
     private float cooldownEndTime;
 
@@ -26,10 +26,8 @@ public class CameraMarkState3D : MonoBehaviour
 
     private void Awake()
     {
-        RefreshCache();
         EnsureMarker();
         ApplyVisual();
-        enabled = IsMarked || IsCoolingDown;
     }
 
     private void Update()
@@ -37,9 +35,15 @@ public class CameraMarkState3D : MonoBehaviour
         ApplyVisual();
     }
 
+    private void OnDestroy()
+    {
+        DestroyGenerated(markerMaterial);
+        DestroyGenerated(markerMesh);
+    }
+
     private void OnDisable()
     {
-        if (markerRenderer != null) markerRenderer.enabled = false;
+        ClearMark();
     }
 
     public void SetMarkWindow(float markEnd, float cooldownEnd)
@@ -48,7 +52,6 @@ public class CameraMarkState3D : MonoBehaviour
         cooldownEndTime = Mathf.Max(cooldownEnd, markEnd);
         EnsureMarker();
         ApplyVisual();
-        enabled = IsMarked || IsCoolingDown;
     }
 
     public void ClearMark()
@@ -56,7 +59,6 @@ public class CameraMarkState3D : MonoBehaviour
         markEndTime = 0f;
         cooldownEndTime = 0f;
         ApplyVisual();
-        enabled = false;
     }
 
     private void EnsureMarker()
@@ -71,8 +73,22 @@ public class CameraMarkState3D : MonoBehaviour
         markerFilter = marker.GetComponent<MeshFilter>();
         markerRenderer = marker.GetComponent<MeshRenderer>();
 
-        markerFilter.sharedMesh = CameraHighlightSharedResources3D.SolidCubeMesh;
-        markerRenderer.sharedMaterial = CameraHighlightSharedResources3D.MarkerMaterial;
+        markerMesh = CreateCubeMesh();
+        markerMesh.hideFlags = HideFlags.HideAndDontSave;
+        markerFilter.sharedMesh = markerMesh;
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null)
+        {
+            shader = Shader.Find("Unlit/Color");
+        }
+
+        markerMaterial = new Material(shader)
+        {
+            name = "Generated Camera Mark Material",
+            hideFlags = HideFlags.HideAndDontSave
+        };
+        markerRenderer.sharedMaterial = markerMaterial;
         markerRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         markerRenderer.receiveShadows = false;
     }
@@ -85,7 +101,6 @@ public class CameraMarkState3D : MonoBehaviour
         markerRenderer.enabled = active;
         if (!active)
         {
-            enabled = false;
             return;
         }
 
@@ -113,21 +128,33 @@ public class CameraMarkState3D : MonoBehaviour
 
     private void SetMarkerColor(Color color)
     {
-        if (propertyBlock == null) propertyBlock = new MaterialPropertyBlock();
-        propertyBlock.Clear();
-        propertyBlock.SetColor(BaseColorId, color);
-        propertyBlock.SetColor(ColorId, color);
-        markerRenderer.SetPropertyBlock(propertyBlock);
+        if (markerMaterial == null)
+        {
+            return;
+        }
+
+        if (markerMaterial.HasProperty(BaseColorId))
+        {
+            markerMaterial.SetColor(BaseColorId, color);
+        }
+
+        if (markerMaterial.HasProperty(ColorId))
+        {
+            markerMaterial.SetColor(ColorId, color);
+        }
+
+        markerMaterial.color = color;
     }
 
     private Bounds CalculateBounds()
     {
+        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
         bool hasBounds = false;
         Bounds bounds = new Bounds(transform.position, Vector3.one);
 
-        for (int i = 0; i < cachedRenderers.Length; i++)
+        for (int i = 0; i < renderers.Length; i++)
         {
-            Renderer renderer = cachedRenderers[i];
+            Renderer renderer = renderers[i];
             if (renderer == null || renderer == markerRenderer || !SafeMath3D.IsValidTransform(renderer.transform))
             {
                 continue;
@@ -156,14 +183,44 @@ public class CameraMarkState3D : MonoBehaviour
         return bounds;
     }
 
-    public void RefreshCache()
+    private static Mesh CreateCubeMesh()
     {
-        cachedRenderers = GetComponentsInChildren<Renderer>(true);
+        Mesh mesh = new Mesh { name = "Generated Camera Mark Cube" };
+        mesh.vertices = new[]
+        {
+            new Vector3(-0.5f, -0.5f, -0.5f), new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(0.5f, 0.5f, -0.5f), new Vector3(-0.5f, 0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, 0.5f), new Vector3(0.5f, -0.5f, 0.5f),
+            new Vector3(0.5f, 0.5f, 0.5f), new Vector3(-0.5f, 0.5f, 0.5f)
+        };
+        mesh.triangles = new[]
+        {
+            0, 2, 1, 0, 3, 2,
+            4, 5, 6, 4, 6, 7,
+            0, 1, 5, 0, 5, 4,
+            2, 3, 7, 2, 7, 6,
+            1, 2, 6, 1, 6, 5,
+            3, 0, 4, 3, 4, 7
+        };
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
     }
 
-    private void OnTransformChildrenChanged()
+    private static void DestroyGenerated(Object target)
     {
-        RefreshCache();
-    }
+        if (target == null)
+        {
+            return;
+        }
 
+        if (Application.isPlaying)
+        {
+            Destroy(target);
+        }
+        else
+        {
+            DestroyImmediate(target);
+        }
+    }
 }

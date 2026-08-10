@@ -16,14 +16,6 @@ public class CraneCarryZone3D : MonoBehaviour
     [Tooltip("1 = exactly match the platform. Increase only if another movement system still cancels part of the carry velocity.")]
     [Min(0f)] [SerializeField] private float playerPlatformVelocityMultiplier = 1f;
     [SerializeField] private QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction.Ignore;
-    [SerializeField] private bool autoAttach = true;
-    [SerializeField] private bool releaseAtDestination;
-    [SerializeField] private bool preserveWorldPositionOnAttach = true;
-    [SerializeField] private Transform carryAnchor;
-    [SerializeField] private Vector3 carryOffset;
-    [Min(0f)] [SerializeField] private float maximumCarryMass;
-    [SerializeField] private bool allowPlayerCarry = true;
-    [Min(1)] [SerializeField] private int maximumCarriedTargets = 32;
 
     [Header("Carry Area")]
     [FormerlySerializedAs("zoneCenterOffset")]
@@ -47,14 +39,11 @@ public class CraneCarryZone3D : MonoBehaviour
         carryBoxSize.y = Mathf.Max(0.01f, carryBoxSize.y);
         carryBoxSize.z = Mathf.Max(0.01f, carryBoxSize.z);
         playerPlatformVelocityMultiplier = Mathf.Max(0f, playerPlatformVelocityMultiplier);
-        maximumCarryMass = Mathf.Max(0f, maximumCarryMass);
-        maximumCarriedTargets = Mathf.Max(1, maximumCarriedTargets);
     }
 
     [ContextMenu("Refresh Carried Targets")]
     public void RefreshCarriedTargets()
     {
-        if (!autoAttach) return;
         carriedTargets.Clear();
         movedBodies.Clear();
         movedTransforms.Clear();
@@ -105,15 +94,10 @@ public class CraneCarryZone3D : MonoBehaviour
             }
 
             Rigidbody body = target.attachedRigidbody;
-            if (body == null && !carryTransformsWithoutRigidbody) continue;
-            if (body != null && !carryRigidbodies) continue;
             Transform carried = body != null ? body.transform : target.transform;
-            if (!allowPlayerCarry && HasPlayerTag(carried)) continue;
-            if (body != null && maximumCarryMass > 0f && body.mass > maximumCarryMass) continue;
             if (!carriedTargets.Contains(carried))
             {
                 carriedTargets.Add(carried);
-                if (carriedTargets.Count >= maximumCarriedTargets) break;
             }
         }
 
@@ -137,11 +121,8 @@ public class CraneCarryZone3D : MonoBehaviour
     private static bool IsCraneInfrastructure(Collider target)
     {
         return target.GetComponentInParent<CraneObject>() != null ||
-               target.GetComponentInParent<VerticalCraneController3D>() != null ||
-               target.GetComponentInParent<CraneXYController3D>() != null ||
                target.GetComponentInParent<CraneRailPath3D>() != null ||
                target.GetComponentInParent<CraneLeverSwitch>() != null ||
-               target.GetComponentInParent<CraneXYLeverSwitch3D>() != null ||
                target.GetComponentInParent<CraneCarryZone3D>() != null;
     }
 
@@ -169,7 +150,6 @@ public class CraneCarryZone3D : MonoBehaviour
                         Vector3 platformVelocity = worldDelta / step * playerPlatformVelocityMultiplier;
                         Vector3 velocity = body.linearVelocity;
                         velocity.x += platformVelocity.x;
-                        velocity.y += platformVelocity.y;
                         velocity.z += platformVelocity.z;
                         body.linearVelocity = velocity;
                     }
@@ -199,14 +179,6 @@ public class CraneCarryZone3D : MonoBehaviour
     }
 
     public void CarryBy(Vector3 worldDelta) => ApplyCarryDelta(worldDelta);
-
-    public void ReleaseAtDestinationIfConfigured()
-    {
-        if (!releaseAtDestination) return;
-        carriedTargets.Clear();
-        movedBodies.Clear();
-        movedTransforms.Clear();
-    }
 
     [ContextMenu("Validate Carry Zone Setup")]
     public void ValidateCarryZoneSetup()
