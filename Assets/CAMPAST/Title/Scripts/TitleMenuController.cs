@@ -26,14 +26,28 @@ namespace CAMPAST.Title
         [SerializeField] private Button exitButton;
         [SerializeField] private GameObject settingsPanel;
 
+        [Header("Object Test")]
+        [Tooltip("Show the Object Test entry in the title menu.")]
+        [SerializeField] private bool showTestSceneButton = true;
+        [Tooltip("When enabled, show the Object Test entry only in the Editor or a Development Build.")]
+        [SerializeField] private bool developmentBuildOnly;
+        [SerializeField] private string objectTestSceneName = "ObjectTestScene";
+        [SerializeField] private Button objectTestButton;
+
         [Header("Continue")]
         [SerializeField] private ContinueCheckMode continueCheckMode = ContinueCheckMode.PlayerPrefs;
         [SerializeField] private string continuePlayerPrefsKey = "CAMPAST_SAVE_EXISTS";
         [SerializeField] private string saveFileName = "campast_save.json";
 
+        private RectTransform testButtonLayoutRoot;
+        private float menuHeightWithTestButton;
+        private float menuHeightWithoutTestButton;
+
         private void Awake()
         {
             EnsureInputSystemEventModule();
+            CacheTestButtonLayout();
+            RefreshTestSceneButton();
             BindButtons();
             RefreshContinueButton();
 
@@ -70,6 +84,46 @@ namespace CAMPAST.Title
             }
 
             settingsPanel.SetActive(!settingsPanel.activeSelf);
+        }
+
+        public void OpenObjectTestScene()
+        {
+            if (!ShouldShowTestSceneButton())
+            {
+                return;
+            }
+
+            if (!SceneLoader.IsSceneRegisteredInBuildSettings(objectTestSceneName))
+            {
+                Debug.LogWarning($"[TitleMenuController] Object Test scene is not registered in Build Settings: {objectTestSceneName}", this);
+                return;
+            }
+
+            Time.timeScale = 1f;
+            Debug.Log($"[TitleMenuController] Object Test clicked. Loading scene: {objectTestSceneName}", this);
+            transitionManager?.TransitionToScene(objectTestSceneName);
+        }
+
+        public void SetTestSceneButtonVisible(bool visible)
+        {
+            showTestSceneButton = visible;
+            RefreshTestSceneButton();
+        }
+
+        public void RefreshTestSceneButton()
+        {
+            if (objectTestButton != null)
+            {
+                bool shouldShow = ShouldShowTestSceneButton();
+                objectTestButton.gameObject.SetActive(shouldShow);
+                if (testButtonLayoutRoot != null)
+                {
+                    Vector2 size = testButtonLayoutRoot.sizeDelta;
+                    size.y = shouldShow ? menuHeightWithTestButton : menuHeightWithoutTestButton;
+                    testButtonLayoutRoot.sizeDelta = size;
+                    LayoutRebuilder.MarkLayoutForRebuild(testButtonLayoutRoot);
+                }
+            }
         }
 
         public void ExitGame()
@@ -109,11 +163,46 @@ namespace CAMPAST.Title
                 settingsButton.onClick.AddListener(ToggleSettings);
             }
 
+            if (objectTestButton != null)
+            {
+                objectTestButton.onClick.RemoveListener(OpenObjectTestScene);
+                objectTestButton.onClick.AddListener(OpenObjectTestScene);
+            }
+
             if (exitButton != null)
             {
                 exitButton.onClick.RemoveListener(ExitGame);
                 exitButton.onClick.AddListener(ExitGame);
             }
+        }
+
+        private bool ShouldShowTestSceneButton()
+        {
+            return showTestSceneButton &&
+                   (!developmentBuildOnly || Application.isEditor || Debug.isDebugBuild);
+        }
+
+        private void CacheTestButtonLayout()
+        {
+            if (objectTestButton == null)
+            {
+                return;
+            }
+
+            testButtonLayoutRoot = objectTestButton.transform.parent as RectTransform;
+            if (testButtonLayoutRoot == null)
+            {
+                return;
+            }
+
+            menuHeightWithTestButton = testButtonLayoutRoot.sizeDelta.y;
+            LayoutElement layoutElement = objectTestButton.GetComponent<LayoutElement>();
+            float buttonHeight = layoutElement != null && layoutElement.preferredHeight >= 0f
+                ? layoutElement.preferredHeight
+                : ((RectTransform)objectTestButton.transform).rect.height;
+            VerticalLayoutGroup layoutGroup = testButtonLayoutRoot.GetComponent<VerticalLayoutGroup>();
+            float spacing = layoutGroup != null ? layoutGroup.spacing : 0f;
+            menuHeightWithoutTestButton = Mathf.Max(0f, menuHeightWithTestButton - buttonHeight - spacing);
         }
 
         private static void EnsureInputSystemEventModule()

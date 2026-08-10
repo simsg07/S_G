@@ -181,7 +181,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
     {
         if (!abilityAvailable || state != FocusingRingState.Ready) return false;
         if (damageReceiver != null && damageReceiver.IsDead) return false;
-        if (Time.timeScale <= 0f || FocusingRingBlocker3D.IsBlocked) return false;
+        if (Time.timeScale <= 0f || FocusingRingBlocker3D.IsBlocked || GameplayInputLock3D.IsLocked) return false;
         if (SceneLoader.Instance != null && SceneLoader.Instance.IsLoadingScene) return false;
         if (SceneTransitionManager.Instance != null && SceneTransitionManager.Instance.IsLoading) return false;
         return HasResettableTarget();
@@ -213,7 +213,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
     {
         if (!abilityAvailable || state != FocusingRingState.Ready || resetInProgress || resetRoutine != null) return false;
         if (damageReceiver != null && damageReceiver.IsDead) return false;
-        if (Time.timeScale <= 0f || FocusingRingBlocker3D.IsBlocked) return false;
+        if (Time.timeScale <= 0f || FocusingRingBlocker3D.IsBlocked || GameplayInputLock3D.IsLocked) return false;
         if (SceneLoader.Instance != null && SceneLoader.Instance.IsLoadingScene) return false;
         if (SceneTransitionManager.Instance != null && SceneTransitionManager.Instance.IsLoading) return false;
         return true;
@@ -314,9 +314,9 @@ public sealed class FocusingRingController3D : MonoBehaviour
             resetInProgress = false;
             if (completed)
             {
-                resetCooldownUntil = Time.unscaledTime + resetCooldownDuration;
-                resetCooldownRemaining = resetCooldownDuration;
-                state = resetCooldownDuration > 0f ? FocusingRingState.Cooldown : FocusingRingState.Ready;
+                resetCooldownUntil = 0f;
+                resetCooldownRemaining = 0f;
+                state = abilityAvailable ? FocusingRingState.Ready : FocusingRingState.Disabled;
             }
             else
             {

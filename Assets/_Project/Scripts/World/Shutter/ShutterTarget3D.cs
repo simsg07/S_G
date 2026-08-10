@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutterFreezeState3D
+public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
 {
     [Header("Shutter State")]
     [SerializeField, Tooltip("이 오브젝트가 셔터 입력을 받을 수 있습니다.")] private bool canBeShuttered = true;
@@ -10,8 +10,7 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
     [SerializeField] private bool isPausedByShutter;
     [SerializeField] private bool hasWorldShifted;
 
-    [Header("Cooldown")]
-    [SerializeField, Min(0f), Tooltip("이 대상이 다음 셔터 입력을 받을 때까지의 시간입니다.")] private float targetCooldown = 1f;
+    [Header("Mark Duration")]
     [SerializeField, Min(0f), Tooltip("0보다 크면 Mark가 자동 해제되는 시간입니다.")] private float markDuration;
     [SerializeField, Tooltip("Mark를 두 번째 셔터 입력까지 유지합니다.")] private bool markDurationInfinite = true;
 
@@ -40,11 +39,9 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
     private bool storedUseGravity;
     private bool storedIsKinematic;
     private float storedAnimatorSpeed = 1f;
-    private float lastShutterTime = -1000000f;
     private float markExpireTime;
     private BoomberBrain boomber;
 
-    public bool IsShutterFrozen => isPausedByShutter;
     public bool IsMarked => isMarked;
     public float VisualMarkEndTime => markDurationInfinite ? float.PositiveInfinity : Time.time + Mathf.Max(0f, markExpireTime - Time.unscaledTime);
 
@@ -71,7 +68,6 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
 
     private void OnValidate()
     {
-        targetCooldown = Mathf.Max(0f, targetCooldown);
         markDuration = Mathf.Max(0f, markDuration);
         CacheReferences();
     }
@@ -80,7 +76,7 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
     {
         if (!canBeShuttered || !isActiveAndEnabled || !SafeMath3D.IsValidTransform(transform)) return false;
         if (boomber != null && !boomber.CanBePausedByShutter()) return false;
-        return Time.unscaledTime >= lastShutterTime + targetCooldown;
+        return true;
     }
 
     [ContextMenu("Test Apply Shutter")]
@@ -88,13 +84,11 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
     {
         if (!CanReceiveShutter())
         {
-            Log("Shutter ignored: unavailable, invalid, or cooling down.");
+            Log("Camera Mark ignored: unavailable or invalid.");
             return;
         }
 
-        lastShutterTime = Time.unscaledTime;
-        if (!isMarked) ApplyFirstShutterUse();
-        else ApplySecondShutterUse();
+        ApplyFirstShutterUse();
     }
 
     [ContextMenu("Test First Use Mark Pause")]
@@ -196,10 +190,15 @@ public sealed class ShutterTarget3D : MonoBehaviour, IShutterFreezable3D, IShutt
         Log($"RB={rb != null}, Animator={animator != null}, WorldPresence={worldPresence != null}, WorldSwitchable={worldSwitchable != null}, Boomber={boomber != null}");
     }
 
-    public bool ApplyShutterFreeze(float duration, CameraAbilitySystem3D source)
+    public bool ApplyMark(float duration, CameraAbilitySystem3D source)
     {
-        if (!CanReceiveShutter()) return false;
-        ApplyShutter();
+        if (!canBeShuttered || duration <= 0f || !isActiveAndEnabled) return false;
+        if (!isMarked) PauseByShutter();
+        isMarked = true;
+        markDurationInfinite = false;
+        markDuration = duration;
+        markExpireTime = Time.unscaledTime + duration;
+        UpdateMarkVisual();
         return true;
     }
 

@@ -43,6 +43,14 @@ public class SceneLoader : MonoBehaviour
         return EnsureInstance().LoadStageInternal(sceneName, spawnPointId);
     }
 
+    /// <summary>
+    /// Loads a non-gameplay utility scene without writing progress or moving the Player to a spawn point.
+    /// </summary>
+    public static bool TryLoadUtilityScene(string sceneName)
+    {
+        return EnsureInstance().LoadUtilitySceneInternal(sceneName);
+    }
+
     public static bool TryLoadCheckpointRespawn(string sceneName, string checkpointId)
     {
         SceneLoader loader = EnsureInstance();
@@ -112,17 +120,48 @@ public class SceneLoader : MonoBehaviour
         GameProgressSave3D.SaveNow();
         pendingSpawnPointId = string.IsNullOrWhiteSpace(spawnPointId) ? "Default" : spawnPointId;
         lastTargetSpawnPointId = pendingSpawnPointId;
-        StartCoroutine(LoadStageRoutine(sceneName));
+        StartCoroutine(LoadSceneRoutine(sceneName, true));
         return true;
     }
 
-    private IEnumerator LoadStageRoutine(string sceneName)
+    private bool LoadUtilitySceneInternal(string sceneName)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            Debug.LogWarning("[SceneLoader] Utility scene name is empty. Load skipped.", this);
+            return false;
+        }
+
+        if (isLoading)
+        {
+            Debug.LogWarning("[SceneLoader] Scene is already loading. Ignored duplicate utility scene request.", this);
+            return false;
+        }
+
+        if (!IsSceneRegisteredInBuildSettings(sceneName))
+        {
+            Debug.LogWarning($"[SceneLoader] Utility scene is not registered in Build Settings: {sceneName}", this);
+            return false;
+        }
+
+        Time.timeScale = 1f;
+        pendingSpawnPointId = "Default";
+        pendingCheckpointId = string.Empty;
+        isCheckpointRespawn = false;
+        StartCoroutine(LoadSceneRoutine(sceneName, false));
+        return true;
+    }
+
+    private IEnumerator LoadSceneRoutine(string sceneName, bool movePlayerToDestination)
     {
         isLoading = true;
 
         if (debugMode)
         {
-            Debug.Log($"[SceneLoader] Loading scene '{sceneName}' -> spawn '{pendingSpawnPointId}'.", this);
+            string destination = movePlayerToDestination
+                ? $"spawn '{pendingSpawnPointId}'"
+                : "utility scene (no save/spawn move)";
+            Debug.Log($"[SceneLoader] Loading scene '{sceneName}' -> {destination}.", this);
         }
 
         AsyncOperation operation;
@@ -144,20 +183,28 @@ public class SceneLoader : MonoBehaviour
             yield break;
         }
 
+        if (!movePlayerToDestination)
+        {
+            SummerCampStageBootstrap3D.PrepareForUtilitySceneLoad();
+        }
+
         while (!operation.isDone)
         {
             yield return null;
         }
 
-        StageExitTrigger.BeginSpawnSafety(0.35f);
-        yield return null;
-        if (isCheckpointRespawn)
+        if (movePlayerToDestination)
         {
-            MovePlayerToCheckpointOrDefault(pendingCheckpointId);
-        }
-        else
-        {
-            MovePlayerToSpawnPoint(pendingSpawnPointId);
+            StageExitTrigger.BeginSpawnSafety(0.35f);
+            yield return null;
+            if (isCheckpointRespawn)
+            {
+                MovePlayerToCheckpointOrDefault(pendingCheckpointId);
+            }
+            else
+            {
+                MovePlayerToSpawnPoint(pendingSpawnPointId);
+            }
         }
         isCheckpointRespawn = false;
         pendingCheckpointId = string.Empty;
@@ -167,13 +214,32 @@ public class SceneLoader : MonoBehaviour
     public void MovePlayerToCheckpointOrDefault(string checkpointId)
     {
         GameObject player = FindPlayer();
-        Checkpoint3D checkpoint = FindCheckpoint(checkpointId);
         if (player == null)
         {
             Debug.LogWarning("[SceneLoader] Player was not found for checkpoint respawn.", this);
             return;
         }
 
+        if (GameProgressSave3D.TryGetLastCheckpointPose(
+                out string savedScene,
+                out string savedCheckpointId,
+                out Vector3 savedPosition,
+                out Quaternion savedRotation,
+                out ResearchWorldId savedWorld)
+            && string.Equals(savedScene, SceneManager.GetActiveScene().name, System.StringComparison.Ordinal)
+            && string.Equals(savedCheckpointId, checkpointId, System.StringComparison.Ordinal))
+        {
+            WorldSystem3D.EnsureInstance().SetWorld(savedWorld);
+            TeleportPlayer(player, savedPosition, savedRotation);
+            SnapCamerasToPlayer(player.transform);
+            if (debugMode)
+            {
+                Debug.Log($"[SceneLoader] Player moved to saved checkpoint pose '{checkpointId}'.", this);
+            }
+            return;
+        }
+
+        Checkpoint3D checkpoint = FindCheckpoint(checkpointId);
         if (checkpoint == null)
         {
             Debug.LogWarning($"[SceneLoader] Checkpoint '{checkpointId}' was not found. Falling back to Default PlayerSpawnPoint.", this);
@@ -181,7 +247,7 @@ public class SceneLoader : MonoBehaviour
             return;
         }
 
-        TeleportPlayer(player, checkpoint.SpawnPosition.position);
+        TeleportPlayer(player, checkpoint.SpawnPosition.position, checkpoint.SpawnPosition.rotation);
         SnapCamerasToPlayer(player.transform);
         if (debugMode)
         {
@@ -301,6 +367,11 @@ public class SceneLoader : MonoBehaviour
 
     private static void TeleportPlayer(GameObject player, Vector3 position)
     {
+        TeleportPlayer(player, position, player.transform.rotation);
+    }
+
+    private static void TeleportPlayer(GameObject player, Vector3 position, Quaternion rotation)
+    {
         if (player.TryGetComponent(out PlatformerPlayer3D movement))
         {
             movement.ResetJumpStateAfterTeleport();
@@ -318,10 +389,11 @@ public class SceneLoader : MonoBehaviour
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
             body.position = position;
+            body.rotation = rotation;
         }
         else
         {
-            player.transform.position = position;
+            player.transform.SetPositionAndRotation(position, rotation);
         }
 
         Physics.SyncTransforms();

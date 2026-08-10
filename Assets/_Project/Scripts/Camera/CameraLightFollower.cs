@@ -57,7 +57,7 @@ public class CameraLightFollower : MonoBehaviour
 
     private void Update()
     {
-        if (!Application.isPlaying || !lightActive)
+        if (!Application.isPlaying || !lightActive || GameplayInputLock3D.IsLocked)
         {
             return;
         }

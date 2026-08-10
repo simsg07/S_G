@@ -53,6 +53,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/middle_Room_2.unity
     guid: 153249b23ef9e154db41885af74d7756
+  - enabled: 1
+    path: Assets/_Project/Scenes/Test/ObjectTestScene.unity
+    guid: 7a8b9c0d1e2f4356a7b8c9d0e1f23456
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

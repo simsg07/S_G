@@ -6,9 +6,9 @@ internal sealed class CameraAbilityCooldowns3D
     public float FocusRemaining { get; private set; }
     public float RelayRemaining { get; private set; }
 
-    public bool CanUseShutter => !(ShutterRemaining > 0f);
-    public bool CanUseFocus => !(FocusRemaining > 0f);
-    public bool CanUseRelay => !(RelayRemaining > 0f);
+    public bool CanUseShutter => true;
+    public bool CanUseFocus => true;
+    public bool CanUseRelay => true;
 
     public void Tick(float unscaledDeltaTime)
     {
@@ -19,17 +19,17 @@ internal sealed class CameraAbilityCooldowns3D
 
     public void StartShutter(float duration)
     {
-        ShutterRemaining = Mathf.Max(0.01f, duration);
+        ShutterRemaining = 0f;
     }
 
     public void StartFocus(float duration)
     {
-        FocusRemaining = duration;
+        FocusRemaining = 0f;
     }
 
     public void StartRelay(float duration)
     {
-        RelayRemaining = duration;
+        RelayRemaining = 0f;
     }
 
     public void Clear()

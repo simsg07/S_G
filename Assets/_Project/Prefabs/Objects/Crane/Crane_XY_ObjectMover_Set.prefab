@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4779018620048630570}
   - component: {fileID: 360467197379497178}
   - component: {fileID: 4980832532013921270}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: MagnetControlTrigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -80,7 +80,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7135962898786769480}
   - component: {fileID: 6118358927843575831}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeSegment_007
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -171,7 +171,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4405115893752395065}
   - component: {fileID: 6427662665827737763}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeSegment_006
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -262,7 +262,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5201449710578129406}
   - component: {fileID: 9136418623009548301}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeSegment_005
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -352,7 +352,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4669012674254907063}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HorizontalLeftPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -384,7 +384,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2625349319066980205}
   - component: {fileID: 4858319308095887155}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: MagnetVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -474,7 +474,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3138679346620612051}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeBottomAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -505,7 +505,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8825496484901628749}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: CarryAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -520,12 +520,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2936499479115615589}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -1.5530001, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.6552222, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5601192356862698261}
+  m_Father: {fileID: 694680057555258895}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3028369755632832226
 GameObject:
@@ -537,7 +537,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8970091196850075322}
   - component: {fileID: 7129488963569673682}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeSegment_001
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -627,7 +627,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 972085421880978778}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HorizontalMovingRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -662,7 +662,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8776602576333018246}
   - component: {fileID: 1213256326254455656}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeSegment_003
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -752,7 +752,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8046623697964215746}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HorizontalRightPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -785,7 +785,7 @@ GameObject:
   - component: {fileID: 889560896686060695}
   - component: {fileID: 6341113732534556672}
   - component: {fileID: 1896991072202625221}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: MagnetDetectionArea
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -801,7 +801,7 @@ Transform:
   m_GameObject: {fileID: 4789543884562627635}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -1.473, z: 0}
+  m_LocalPosition: {x: 0, y: -1.53, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -850,7 +850,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5443983808611972956}
   - component: {fileID: 3343231626828664935}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeSegment_004
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -940,7 +940,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4920252615915170714}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: MagnetRopeConnectionAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -971,7 +971,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5105037677326627854}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: VerticalLeverRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1005,7 +1005,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5919016225797321889}
   - component: {fileID: 2469771832163301352}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeSegment_000
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1095,7 +1095,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9131081533776624552}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: FixedRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1128,7 +1128,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1699283802303536003}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeVisualRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1168,7 +1168,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2072517035167479036}
   - component: {fileID: 1412208612561290544}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeSegment_002
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1260,7 +1260,7 @@ GameObject:
   - component: {fileID: 843603158077472262}
   - component: {fileID: 1542332913264766388}
   - component: {fileID: 6482013693730315499}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Crane_XY_ObjectMover_Set
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1314,7 +1314,7 @@ MonoBehaviour:
   horizontalDeceleration: 4
   horizontalArrivalTolerance: 0.02
   startHorizontalSide: 0
-  horizontalActivationDelay: 3
+  horizontalActivationDelay: 0
   ropeSegmentCount: 8
   ropeSegmentLength: 2.18
   verticalMoveSpeed: 2
@@ -1322,7 +1322,7 @@ MonoBehaviour:
   verticalDeceleration: 4
   verticalArrivalTolerance: 0.02
   startVerticalSide: 0
-  verticalActivationDelay: 3
+  verticalActivationDelay: 0
   ropeBottomOverlap: 0.03
   ropeSegmentRenderers:
   - {fileID: 2469771832163301352}
@@ -1345,6 +1345,7 @@ MonoBehaviour:
   stopOnObstruction: 1
   obstructionCheckPadding: 0.05
   carryAreaCollider: {fileID: 6341113732534556672}
+  magnetHeadCarryZone: {fileID: 694680057555258898}
   onObstructed:
     m_PersistentCalls:
       m_Calls: []
@@ -1357,6 +1358,10 @@ MonoBehaviour:
   activeAxis: 0
   pendingCommand: 0
   activationRemainingTime: 0
+  lastStopReason: Idle
+  lastBlockingColliderName: 
+  lastBlockingParentName: 
+  lastBlockingLayer: -1
 --- !u!114 &6482013693730315499
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1369,7 +1374,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e61d68268fea4364b686d74ee1e8f227, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CraneMagnetController3D
-  magnetEnabledOnStart: 0
+  magnetEnabledOnStart: 1
   magnetToggleKey: 103
   requirePlayerInControlRange: 1
   magnetControlTrigger: {fileID: 4980832532013921270}
@@ -1382,8 +1387,8 @@ MonoBehaviour:
   magnetDetectionArea: {fileID: 1896991072202625221}
   magnetLayerMask:
     serializedVersion: 2
-    m_Bits: 1
-  magnetRange: 4
+    m_Bits: 513
+  detectionRadius: 4
   magnetWidth: 2
   requireLineOfSight: 1
   magnetObstacleMask:
@@ -1394,14 +1399,13 @@ MonoBehaviour:
   attractionSpeed: 3
   attractionAcceleration: 8
   maximumAttractionSpeed: 5
-  attachDistance: 0.15
+  holdRadius: 0.15
   holdOffset: {x: 0, y: 0, z: 0}
   positionFollowSpeed: 20
   rotationFollowSpeed: 360
   inheritCraneVelocityOnRelease: 0
   releaseVelocityMultiplier: 1
   releaseOffset: 0.05
-  carryAnchor: {fileID: 8825496484901628749}
   magnetVisualRenderer: {fileID: 4858319308095887155}
   magnetSprite: {fileID: 21300000, guid: 841e311318b727340a8a46ee9c34f9be, type: 3}
   magnetVisualOffset: {x: 0, y: 0, z: 0}
@@ -1437,6 +1441,27 @@ MonoBehaviour:
       m_Calls: []
   state: 0
   currentTarget: {fileID: 0}
+  detectedTarget: {fileID: 0}
+  detectedTargetStatus: No trigger candidate
+  debugAnchorPosition: {x: 0, y: 0, z: 0}
+  debugHoldPosition: {x: 0, y: 0, z: 0}
+  debugTargetPosition: {x: 0, y: 0, z: 0}
+  debugTargetBounds:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}
+  debugTargetDistance: 0
+  debugDetectionRadius: 0
+  debugHoldRadius: 0
+  debugStopReason: None
+  debugAttractionSpeed: 0
+  debugPhysicalCraneOverlap: 0
+  debugCraneState: 0
+  debugCraneMoving: 0
+  debugCraneDestination: {x: 0, y: 0, z: 0}
+  debugCraneRemainingDistance: 0
+  debugCraneStopReason: 
+  debugOriginalTargetConstraints: 0
+  debugAttractionTargetConstraints: 0
 --- !u!1 &6106153074677681267
 GameObject:
   m_ObjectHideFlags: 0
@@ -1446,7 +1471,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3326902916534577782}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: RopeTopAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1479,7 +1504,7 @@ GameObject:
   - component: {fileID: 7587437894116301720}
   - component: {fileID: 8745107810336673613}
   - component: {fileID: 8869073179371810033}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: LeverVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1593,7 +1618,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2943929465441141282}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: MagnetAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1624,7 +1649,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 694680057555258895}
-  m_Layer: 0
+  - component: {fileID: 694680057555258896}
+  - component: {fileID: 694680057555258897}
+  - component: {fileID: 694680057555258898}
+  m_Layer: 9
   m_Name: MagnetVisualRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1646,8 +1674,90 @@ Transform:
   m_Children:
   - {fileID: 2625349319066980205}
   - {fileID: 4920252615915170714}
+  - {fileID: 8825496484901628749}
   m_Father: {fileID: 5601192356862698261}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &694680057555258896
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7118921098384879677}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 1
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.05, y: 1.75, z: 0.8}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &694680057555258897
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7118921098384879677}
+  serializedVersion: 5
+  m_Mass: 100
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 1
+  m_Constraints: 0
+  m_CollisionDetection: 3
+--- !u!114 &694680057555258898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7118921098384879677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2c7f0c87e2b4f2b9e1b8013e8c90003, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CraneCarryZone3D
+  carryLayerMask:
+    serializedVersion: 2
+    m_Bits: 8192
+  carryRigidbodies: 1
+  carryTransformsWithoutRigidbody: 0
+  matchPlayerPlatformVelocity: 1
+  playerPlatformVelocityMultiplier: 1
+  triggerInteraction: 1
+  autoAttach: 1
+  releaseAtDestination: 0
+  preserveWorldPositionOnAttach: 1
+  carryAnchor: {fileID: 694680057555258895}
+  carryOffset: {x: 0, y: 0, z: 0}
+  maximumCarryMass: 0
+  allowPlayerCarry: 1
+  maximumCarriedTargets: 4
+  carryBoxCenterOffset: {x: 0, y: 1, z: 0}
+  carryBoxSize: {x: 1.9, y: 0.35, z: 0.8}
+  carriedTargets: []
+  showGizmo: 1
+  debugMode: 0
 --- !u!1 &7211900612650607778
 GameObject:
   m_ObjectHideFlags: 0
@@ -1659,7 +1769,7 @@ GameObject:
   - component: {fileID: 8103233068818831246}
   - component: {fileID: 6769318117690515166}
   - component: {fileID: 2563946129434746352}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: InteractionTrigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1725,6 +1835,9 @@ MonoBehaviour:
   leverVisual: {fileID: 8869073179371810033}
   playerInRange: 0
   lastEnterSequence: 0
+  allowPlayerActivation: 1
+  allowStoneActivation: 1
+  allowCircleSpikeActivation: 1
 --- !u!1 &7321748205563628242
 GameObject:
   m_ObjectHideFlags: 0
@@ -1734,7 +1847,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5601192356862698261}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: VerticalMovingRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1755,7 +1868,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3138679346620612051}
-  - {fileID: 8825496484901628749}
   - {fileID: 694680057555258895}
   - {fileID: 2943929465441141282}
   - {fileID: 889560896686060695}
@@ -1772,7 +1884,7 @@ GameObject:
   - component: {fileID: 1224948779702862758}
   - component: {fileID: 6532926470263143427}
   - component: {fileID: 7851081005319416664}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: LeverVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1888,7 +2000,7 @@ GameObject:
   - component: {fileID: 7378571242376569145}
   - component: {fileID: 1132173067361271104}
   - component: {fileID: 5324002783799608638}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: InteractionTrigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1954,6 +2066,9 @@ MonoBehaviour:
   leverVisual: {fileID: 7851081005319416664}
   playerInRange: 0
   lastEnterSequence: 0
+  allowPlayerActivation: 1
+  allowStoneActivation: 1
+  allowCircleSpikeActivation: 1
 --- !u!1 &8217022587376253454
 GameObject:
   m_ObjectHideFlags: 0
@@ -1963,7 +2078,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9143026105083003880}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HorizontalLeverRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}

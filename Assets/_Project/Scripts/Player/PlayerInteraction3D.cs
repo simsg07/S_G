@@ -31,6 +31,8 @@ public class PlayerInteraction3D : MonoBehaviour
             return;
         }
 
+        if (GameplayInputLock3D.IsLocked) return;
+
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null || interactKey == Key.None || !keyboard[interactKey].wasPressedThisFrame)
         {

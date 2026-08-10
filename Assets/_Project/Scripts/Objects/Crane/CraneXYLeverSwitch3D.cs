@@ -74,6 +74,8 @@ public sealed class CraneXYLeverSwitch3D : MonoBehaviour, IInteractable3D, ISwit
 
     private void OnTriggerEnter(Collider other)
     {
+        if (other == null) return;
+        TryActivateFromCircleSpikeContact(other);
         if (!IsPlayer(other.transform)) return;
         playerInRange = true;
         lastEnterSequence = ++enterSequence;
@@ -81,7 +83,31 @@ public sealed class CraneXYLeverSwitch3D : MonoBehaviour, IInteractable3D, ISwit
 
     private void OnTriggerExit(Collider other)
     {
-        if (IsPlayer(other.transform)) playerInRange = false;
+        if (other != null && IsPlayer(other.transform)) playerInRange = false;
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision != null) TryActivateFromCircleSpikeContact(collision.collider);
+    }
+
+    private void OnDisable()
+    {
+        playerInRange = false;
+    }
+
+    private void TryActivateFromCircleSpikeContact(Collider contact)
+    {
+        if (!allowCircleSpikeActivation || contact == null) return;
+
+        CircleSpikeProjectile3D circleSpike = contact.GetComponent<CircleSpikeProjectile3D>()
+            ?? contact.GetComponentInParent<CircleSpikeProjectile3D>();
+        if (circleSpike == null || !circleSpike.IsLaunched) return;
+
+        if (!circleSpike.CanTriggerSwitch) return;
+
+        if (TryActivate(SwitchActivationSource.CircleSpike, circleSpike.gameObject))
+            circleSpike.MarkSwitchTriggered();
     }
 
     private bool IsPlayer(Transform target)

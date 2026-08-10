@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6001857209903281440}
   - component: {fileID: 2774654342340631711}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: BodyCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -63,7 +63,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2104370527932155360}
   - component: {fileID: 1154810531388828218}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: LightReceiver
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130,7 +130,7 @@ GameObject:
   - component: {fileID: 3818162890548281183}
   - component: {fileID: 7171900826567591703}
   - component: {fileID: 5367270692207130616}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Dionaea
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -283,7 +283,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterAttack
   enableAttack: 1
-  attackRange: 2
+  attackRange: 1.2
   attackDamage: 2
   attackInterval: 1
   attackWindup: 0.2
@@ -440,7 +440,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7439541108058311431}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: DetectionOrigin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -471,7 +471,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6116846325674278331}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Head_AttackOrigin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -504,7 +504,7 @@ GameObject:
   - component: {fileID: 244757282416315344}
   - component: {fileID: 8498674805019897822}
   - component: {fileID: 2631766325429471276}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}

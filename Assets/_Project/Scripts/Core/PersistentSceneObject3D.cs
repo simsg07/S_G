@@ -25,6 +25,7 @@ public enum PersistentResetPolicy
     ResetWhenSaveIsCleared
 }
 
+[DefaultExecutionOrder(-200)]
 [DisallowMultipleComponent]
 public sealed class PersistentSceneObject3D : MonoBehaviour
 {
@@ -36,6 +37,8 @@ public sealed class PersistentSceneObject3D : MonoBehaviour
     [SerializeField] private bool saveDestroyedState = true;
     [SerializeField] private bool saveActiveState = true;
     [SerializeField] private bool saveCollectedState = true;
+    [Tooltip("Disable the root when a destroyed/collected state is restored. Turn this off when the owning object applies its own persistent presentation.")]
+    [SerializeField] private bool deactivateRootOnDestroyedRestore = true;
     [SerializeField] private PersistentResetPolicy resetPolicy = PersistentResetPolicy.KeepSavedState;
 
     [Header("Restore Events")]
@@ -49,6 +52,32 @@ public sealed class PersistentSceneObject3D : MonoBehaviour
     public string PersistentId => persistentId;
     public PersistentSceneObjectType PersistenceType => persistenceType;
     public PersistentSceneObjectState CurrentState => currentState;
+
+    public bool TryGetSavedState(out PersistentSceneObjectState savedState)
+    {
+        savedState = PersistentSceneObjectState.Exists;
+        return !string.IsNullOrWhiteSpace(persistentId)
+            && GameProgressSave3D.TryGetPersistentObjectState(gameObject.scene.name, persistentId, out savedState);
+    }
+
+#if UNITY_EDITOR
+    public bool EnsureEditorPersistentId(string prefix)
+    {
+        if (!string.IsNullOrWhiteSpace(persistentId)
+            || UnityEditor.PrefabUtility.IsPartOfPrefabAsset(this)
+            || !gameObject.scene.IsValid())
+        {
+            return false;
+        }
+
+        string safePrefix = string.IsNullOrWhiteSpace(prefix) ? "persistent" : prefix.Trim();
+        UnityEditor.Undo.RecordObject(this, "Assign Persistent Object ID");
+        persistentId = $"{safePrefix}_{System.Guid.NewGuid():N}";
+        UnityEditor.EditorUtility.SetDirty(this);
+        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        return true;
+    }
+#endif
 
     private void Awake()
     {
@@ -90,8 +119,7 @@ public sealed class PersistentSceneObject3D : MonoBehaviour
 
     private void RestoreSavedStateBeforeFirstFrame()
     {
-        if (string.IsNullOrWhiteSpace(persistentId)
-            || !GameProgressSave3D.TryGetPersistentObjectState(gameObject.scene.name, persistentId, out PersistentSceneObjectState savedState))
+        if (!TryGetSavedState(out PersistentSceneObjectState savedState))
         {
             currentState = PersistentSceneObjectState.Exists;
             return;
@@ -102,7 +130,10 @@ public sealed class PersistentSceneObject3D : MonoBehaviour
         {
             case PersistentSceneObjectState.Destroyed when saveDestroyedState:
             case PersistentSceneObjectState.Collected when saveCollectedState:
-                gameObject.SetActive(false);
+                if (deactivateRootOnDestroyedRestore)
+                {
+                    gameObject.SetActive(false);
+                }
                 break;
             case PersistentSceneObjectState.Activated when saveActiveState:
                 onRestoreActivated?.Invoke();
@@ -117,6 +148,16 @@ public sealed class PersistentSceneObject3D : MonoBehaviour
 
     private void OnValidate()
     {
+#if UNITY_EDITOR
+        // A prefab asset is only a reusable template; its stable ID must be assigned
+        // on each scene instance. Warn only for scene objects, where an empty or
+        // duplicate ID would actually prevent persistence.
+        if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(this))
+        {
+            return;
+        }
+#endif
+
         if (string.IsNullOrWhiteSpace(persistentId))
         {
             Debug.LogWarning("[PersistentSceneObject3D] Assign a stable scene-instance persistentId.", this);

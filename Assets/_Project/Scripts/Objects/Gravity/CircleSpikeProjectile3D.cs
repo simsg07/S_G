@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -24,7 +25,7 @@ public enum CircleSpikeVisualRotationMode
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody), typeof(Collider), typeof(CircleSpikeObject))]
-public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D, IShutterFreezeState3D, IGravityActivatable3D
+public sealed class CircleSpikeProjectile3D : MonoBehaviour, IGravityActivatable3D
 {
     [Header("Drop")]
     [SerializeField, Min(0f)] private float gravityScale = 1f;
@@ -41,10 +42,9 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
     [SerializeField, Min(0f)] private float moveAcceleration;
     [FormerlySerializedAs("maxRollSpeed")]
     [SerializeField, Min(0f)] private float maxMoveSpeed = 5f;
-    [SerializeField, Min(0f)] private float rollingLifetime = 8f;
+    [SerializeField, Min(0f)] private float rollingLifetime = 3.5f;
     [SerializeField] private bool stopOnWall = true;
     [SerializeField] private bool disableOnStop = true;
-    [SerializeField] private bool disableOnPlayerHit = true;
     [SerializeField] private bool trackPlayerWhileRolling;
     [SerializeField] private bool allowDirectionReversal;
     [SerializeField] private bool reacquirePlayerOnLanding = true;
@@ -86,15 +86,16 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
     private float elapsedLifetime;
     private Vector3 previousVisualPosition;
     private bool visualPositionInitialized;
-    private bool collisionPending;
-    private bool shutterPauseOverride;
-    private float shutterFreezeEndTime;
-    private bool physicsFrozenByShutter;
-    private Vector3 velocityBeforeShutter;
+    private IMarkState3D markState;
+    private Transform playerTarget;
+    private bool hasTriggeredSwitch;
+    private readonly Dictionary<int, int> damageRootByContactCollider = new Dictionary<int, int>();
+    private readonly Dictionary<int, int> damageContactCountsByRoot = new Dictionary<int, int>();
 
     public CircleSpikeMovementState State => state;
     public bool IsLaunched => state == CircleSpikeMovementState.Falling || state == CircleSpikeMovementState.GroundedRolling;
-    public bool IsShutterFrozen => shutterPauseOverride || Time.time < shutterFreezeEndTime;
+    public bool IsMarked => markState != null && markState.IsMarked;
+    public bool CanTriggerSwitch => IsLaunched && !hasTriggeredSwitch;
 
     private void Reset() => CacheReferences();
 
@@ -108,7 +109,6 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
     private void OnDisable()
     {
         RestoreOwnerCollisions();
-        physicsFrozenByShutter = false;
     }
 
     private void OnValidate()
@@ -132,16 +132,9 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
 
     private void FixedUpdate()
     {
-        UpdateShutterPhysicsState();
-        if (!IsLaunched || IsShutterFrozen || body == null) return;
+        if (!IsLaunched || IsMarked || body == null) return;
 
         float deltaTime = Time.fixedDeltaTime;
-        elapsedLifetime += deltaTime;
-        if (rollingLifetime > 0f && elapsedLifetime >= rollingLifetime)
-        {
-            StopProjectile();
-            return;
-        }
 
         if (!body.isKinematic && !Mathf.Approximately(gravityScale, 1f))
         {
@@ -150,6 +143,13 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
 
         if (state == CircleSpikeMovementState.GroundedRolling && !body.isKinematic)
         {
+            elapsedLifetime += deltaTime;
+            if (rollingLifetime > 0f && elapsedLifetime >= rollingLifetime)
+            {
+                StopProjectile();
+                return;
+            }
+
             if (!HasGroundBelow())
             {
                 state = CircleSpikeMovementState.Falling;
@@ -207,10 +207,9 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
         rollDirection = 0f;
         currentMoveSpeed = initialMoveSpeed;
         elapsedLifetime = 0f;
-        collisionPending = false;
-        shutterPauseOverride = false;
-        shutterFreezeEndTime = 0f;
-        physicsFrozenByShutter = false;
+        hasTriggeredSwitch = false;
+        playerTarget = null;
+        ClearDamageContacts();
         EnterAttachedState();
         if (projectileCollider != null) projectileCollider.enabled = true;
         if (projectileRenderer != null) projectileRenderer.enabled = true;
@@ -246,6 +245,11 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
         if (disableOnStop) gameObject.SetActive(false);
     }
 
+    public void MarkSwitchTriggered()
+    {
+        if (CanTriggerSwitch) hasTriggeredSwitch = true;
+    }
+
     public void ResetProjectile()
     {
         gameObject.SetActive(true);
@@ -266,11 +270,7 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
     private void OnCollisionEnter(Collision collision)
     {
         if (collision == null || collision.collider == null || !IsLaunched) return;
-        if (IsPlayer(collision.collider.transform))
-        {
-            HandlePlayerHit();
-            return;
-        }
+        TryDamageTarget(collision.collider, collision.contactCount > 0 ? collision.GetContact(0).point : transform.position);
         if (state == CircleSpikeMovementState.Falling && TryEnterGroundedRolling(collision)) return;
         if (state == CircleSpikeMovementState.GroundedRolling && stopOnWall && HasWallContact(collision))
         {
@@ -286,7 +286,17 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other != null && IsLaunched && IsPlayer(other.transform)) HandlePlayerHit();
+        if (other != null && IsLaunched) TryDamageTarget(other, other.ClosestPoint(transform.position));
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        if (collision != null && collision.collider != null) EndDamageContact(collision.collider);
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other != null) EndDamageContact(other);
     }
 
     private bool TryEnterGroundedRolling(Collision collision)
@@ -338,6 +348,7 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
     {
         state = CircleSpikeMovementState.GroundedRolling;
         gravityObject?.SetHorizontalMotionAllowed(true);
+        elapsedLifetime = 0f;
         currentMoveSpeed = initialMoveSpeed;
         previousVisualPosition = circleSpikeVisual != null ? circleSpikeVisual.position : transform.position;
         visualPositionInitialized = true;
@@ -390,19 +401,6 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
         return false;
     }
 
-    private void HandlePlayerHit()
-    {
-        if (collisionPending) return;
-        collisionPending = true;
-        if (disableOnPlayerHit) StartCoroutine(DisableAfterDamageCallback());
-    }
-
-    private IEnumerator DisableAfterDamageCallback()
-    {
-        yield return null;
-        StopProjectile();
-    }
-
     private void DetachFromRopeSet()
     {
         Transform setRoot = transform.parent;
@@ -440,46 +438,76 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
         ownerColliders = null;
     }
 
-    public bool ApplyShutterFreeze(float duration, CameraAbilitySystem3D source)
-    {
-        if (!IsLaunched) return false;
-        shutterFreezeEndTime = Mathf.Max(shutterFreezeEndTime, Time.time + Mathf.Max(0f, duration));
-        UpdateShutterPhysicsState();
-        return true;
-    }
-
-    public void SetShutterPaused(bool paused)
-    {
-        shutterPauseOverride = paused;
-        UpdateShutterPhysicsState();
-    }
-
-    private void UpdateShutterPhysicsState()
-    {
-        if (body == null || !IsLaunched) return;
-        if (IsShutterFrozen && !physicsFrozenByShutter)
-        {
-            velocityBeforeShutter = GetVelocity();
-            body.isKinematic = true;
-            physicsFrozenByShutter = true;
-        }
-        else if (!IsShutterFrozen && physicsFrozenByShutter)
-        {
-            body.isKinematic = false;
-            body.useGravity = true;
-            SetVelocity(velocityBeforeShutter);
-            physicsFrozenByShutter = false;
-        }
-    }
-
     private bool IsGroundLayer(int layer) => (groundLayerMask.value & (1 << layer)) != 0;
 
     private Transform ResolvePlayerTarget()
     {
+        if (playerTarget != null && playerTarget.gameObject.activeInHierarchy) return playerTarget;
         PlatformerPlayer3D player = FindFirstObjectByType<PlatformerPlayer3D>();
-        if (player != null && player.isActiveAndEnabled) return player.transform;
+        if (player != null && player.isActiveAndEnabled) return playerTarget = player.transform;
         GameObject taggedPlayer = GameObject.FindGameObjectWithTag("Player");
-        return taggedPlayer != null && taggedPlayer.activeInHierarchy ? taggedPlayer.transform : null;
+        return taggedPlayer != null && taggedPlayer.activeInHierarchy ? playerTarget = taggedPlayer.transform : null;
+    }
+
+    private void TryDamageTarget(Collider contact, Vector3 hitPoint)
+    {
+        if (contact == null || !IsLaunched) return;
+
+        int contactId = contact.GetInstanceID();
+        if (damageRootByContactCollider.ContainsKey(contactId)) return;
+
+        IDamageable damageable = FindDamageableTarget(contact.transform, out Transform damageRoot);
+        if (damageable == null || !damageable.CanTakeDamage || damageRoot == null) return;
+
+        int rootId = damageRoot.GetInstanceID();
+        damageRootByContactCollider.Add(contactId, rootId);
+        if (damageContactCountsByRoot.TryGetValue(rootId, out int contactCount))
+        {
+            damageContactCountsByRoot[rootId] = contactCount + 1;
+            return;
+        }
+
+        damageContactCountsByRoot.Add(rootId, 1);
+        damageable.TakeDamage(new DamageInfo(1, gameObject, gameObject, hitPoint,
+            (contact.bounds.center - transform.position).normalized, DamageType.Generic, HitSourceType.Environment));
+    }
+
+    private void EndDamageContact(Collider contact)
+    {
+        int contactId = contact.GetInstanceID();
+        if (!damageRootByContactCollider.TryGetValue(contactId, out int rootId)) return;
+
+        damageRootByContactCollider.Remove(contactId);
+        if (!damageContactCountsByRoot.TryGetValue(rootId, out int contactCount) || contactCount <= 1)
+            damageContactCountsByRoot.Remove(rootId);
+        else
+            damageContactCountsByRoot[rootId] = contactCount - 1;
+    }
+
+    private void ClearDamageContacts()
+    {
+        damageRootByContactCollider.Clear();
+        damageContactCountsByRoot.Clear();
+    }
+
+    private static IDamageable FindDamageableTarget(Transform target, out Transform damageRoot)
+    {
+        PlayerDamageReceiver player = target.GetComponentInParent<PlayerDamageReceiver>();
+        if (player != null)
+        {
+            damageRoot = player.transform;
+            return player;
+        }
+
+        MonsterHealth monster = target.GetComponentInParent<MonsterHealth>();
+        if (monster != null)
+        {
+            damageRoot = monster.transform;
+            return monster;
+        }
+
+        damageRoot = null;
+        return null;
     }
 
     private static bool IsPlayer(Transform candidate)
@@ -493,6 +521,10 @@ public sealed class CircleSpikeProjectile3D : MonoBehaviour, IShutterFreezable3D
 
     private void CacheReferences()
     {
+        if (markState == null)
+        {
+            markState = GetComponent<IMarkState3D>();
+        }
         if (body == null) body = GetComponent<Rigidbody>();
         if (projectileCollider == null) projectileCollider = GetComponent<Collider>();
         if (circleSpike == null) circleSpike = GetComponent<CircleSpikeObject>();

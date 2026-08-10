@@ -51,6 +51,7 @@ public class StoneObject : MonoBehaviour, IGravityActivatable3D
     private Coroutine pendingGroundBreakRoutine;
     private bool hasTriggeredSwitch;
     private bool isBreaking;
+    private IMarkState3D markState;
 
     public StoneObjectState CurrentState => currentState;
     public bool IsFalling => currentState == StoneObjectState.FALLING;
@@ -260,6 +261,7 @@ public class StoneObject : MonoBehaviour, IGravityActivatable3D
 
     private void OnCollisionEnter(Collision collision)
     {
+        if (markState != null && markState.IsMarked) return;
         if (!isDropped || isBroken || collision == null || collision.collider == null)
         {
             return;
@@ -288,6 +290,7 @@ public class StoneObject : MonoBehaviour, IGravityActivatable3D
 
     private void OnTriggerEnter(Collider other)
     {
+        if (markState != null && markState.IsMarked) return;
         if (!isDropped || isBroken || other == null)
         {
             return;
@@ -329,6 +332,7 @@ public class StoneObject : MonoBehaviour, IGravityActivatable3D
     {
         yield return new WaitForFixedUpdate();
         pendingGroundBreakRoutine = null;
+        if (markState != null && markState.IsMarked) yield break;
         if (IsFalling && !hasTriggeredSwitch) BreakStone();
     }
 
@@ -344,6 +348,10 @@ public class StoneObject : MonoBehaviour, IGravityActivatable3D
 
     private void CacheReferences()
     {
+        if (markState == null)
+        {
+            markState = GetComponent<IMarkState3D>();
+        }
         if (gravityObject == null)
         {
             gravityObject = GetComponent<GravityObject3D>();

@@ -102,6 +102,7 @@ public class CraneLeverSwitch : MonoBehaviour, IInteractable3D, ISwitchActivatio
     {
         delayRemaining = 0f;
         movementObserved = false;
+        playerInRange = false;
         state = CraneLeverOperationState.Idle;
         ApplyLeverVisual(false);
     }
@@ -236,12 +237,33 @@ public class CraneLeverSwitch : MonoBehaviour, IInteractable3D, ISwitchActivatio
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other != null && IsPlayer(other.transform)) playerInRange = true;
+        if (other == null) return;
+        if (IsPlayer(other.transform)) playerInRange = true;
+        TryActivateFromCircleSpikeContact(other);
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other != null && IsPlayer(other.transform)) playerInRange = false;
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision != null) TryActivateFromCircleSpikeContact(collision.collider);
+    }
+
+    private void TryActivateFromCircleSpikeContact(Collider contact)
+    {
+        if (!allowCircleSpikeActivation || contact == null) return;
+
+        CircleSpikeProjectile3D circleSpike = contact.GetComponent<CircleSpikeProjectile3D>()
+            ?? contact.GetComponentInParent<CircleSpikeProjectile3D>();
+        if (circleSpike == null || !circleSpike.IsLaunched) return;
+
+        if (!circleSpike.CanTriggerSwitch) return;
+
+        if (TryActivate(SwitchActivationSource.CircleSpike, circleSpike.gameObject))
+            circleSpike.MarkSwitchTriggered();
     }
 
     private bool IsPlayer(Transform target)

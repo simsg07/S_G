@@ -1,0 +1,220 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2222222222242228222222222222222, type: 3}
+  m_Name: SceneMapGraphData3D
+  m_EditorClassIdentifier: Assembly-CSharp::SceneMapGraphData3D
+  dataVersion: 1
+  bakedAtUtc: 2026-08-09T00:00:00.0000000Z
+  rooms:
+  - stableSceneKey: room-b73a9c8d7e6f4051a2b3c4d5e6f70819
+    sceneGuid: b73a9c8d7e6f4051a2b3c4d5e6f70819
+    scenePath: Assets/_Project/Scenes/Title/MainMenu.unity
+    sceneName: MainMenu
+    displayName: Main Menu
+    mapPosition: {x: 0, y: -460}
+    mapSize: {x: 160, y: 68}
+    roomColor: {r: 0.18, g: 0.25, b: 0.34, a: 1}
+    active: 0
+    useManualLayout: 0
+    style: 5
+  - stableSceneKey: room-e7388b215dfc0a44984b6f7f1b564c8d
+    sceneGuid: e7388b215dfc0a44984b6f7f1b564c8d
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/Start_Room.unity
+    sceneName: Start_Room
+    displayName: Start Room
+    mapPosition: {x: 0, y: 0}
+    mapSize: {x: 170, y: 72}
+    roomColor: {r: 0.18, g: 0.32, b: 0.38, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 1
+  - stableSceneKey: room-1d4cb28007dfbd44499377e140a41ca3
+    sceneGuid: 1d4cb28007dfbd44499377e140a41ca3
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/hallwa_01.unity
+    sceneName: hallwa_01
+    displayName: Hallway 01
+    mapPosition: {x: 210, y: 58}
+    mapSize: {x: 150, y: 58}
+    roomColor: {r: 0.17, g: 0.24, b: 0.33, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 2
+  - stableSceneKey: room-78c97ef181e4c1146a33a8b513a4e316
+    sceneGuid: 78c97ef181e4c1146a33a8b513a4e316
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/middle_Room.unity
+    sceneName: middle_Room
+    displayName: Middle Room
+    mapPosition: {x: 420, y: 58}
+    mapSize: {x: 180, y: 76}
+    roomColor: {r: 0.2, g: 0.27, b: 0.37, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 0
+  - stableSceneKey: room-dad37d6495371e647b5872cf4f47db6d
+    sceneGuid: dad37d6495371e647b5872cf4f47db6d
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/hallwa_02.unity
+    sceneName: hallwa_02
+    displayName: Hallway 02
+    mapPosition: {x: 630, y: 173}
+    mapSize: {x: 150, y: 58}
+    roomColor: {r: 0.17, g: 0.24, b: 0.33, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 2
+  - stableSceneKey: room-2c5b6b90ec5ffbd49b5318d08504fa18
+    sceneGuid: 2c5b6b90ec5ffbd49b5318d08504fa18
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/Item_Room_01.unity
+    sceneName: Item_Room_01
+    displayName: Item Room 01
+    mapPosition: {x: 840, y: 173}
+    mapSize: {x: 170, y: 72}
+    roomColor: {r: 0.25, g: 0.27, b: 0.38, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 3
+  - stableSceneKey: room-bab6365b98d5e4f49a4dac2bb477a1b5
+    sceneGuid: bab6365b98d5e4f49a4dac2bb477a1b5
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/hallwa_03.unity
+    sceneName: hallwa_03
+    displayName: Hallway 03
+    mapPosition: {x: 210, y: -58}
+    mapSize: {x: 150, y: 58}
+    roomColor: {r: 0.17, g: 0.24, b: 0.33, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 2
+  - stableSceneKey: room-153249b23ef9e154db41885af74d7756
+    sceneGuid: 153249b23ef9e154db41885af74d7756
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/middle_Room_2.unity
+    sceneName: middle_Room_2
+    displayName: Middle Room 2
+    mapPosition: {x: 420, y: -58}
+    mapSize: {x: 180, y: 76}
+    roomColor: {r: 0.2, g: 0.27, b: 0.37, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 0
+  - stableSceneKey: room-b0aed4e70d46673418a08b2ca6508d14
+    sceneGuid: b0aed4e70d46673418a08b2ca6508d14
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/hallwa_04.unity
+    sceneName: hallwa_04
+    displayName: Hallway 04
+    mapPosition: {x: 630, y: -116}
+    mapSize: {x: 150, y: 58}
+    roomColor: {r: 0.17, g: 0.24, b: 0.33, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 2
+  - stableSceneKey: room-e95e4edb743d0044fb76cd1dfe4feee7
+    sceneGuid: e95e4edb743d0044fb76cd1dfe4feee7
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/Item_Room_02.unity
+    sceneName: Item_Room_02
+    displayName: Item Room 02
+    mapPosition: {x: 630, y: -231}
+    mapSize: {x: 170, y: 72}
+    roomColor: {r: 0.25, g: 0.27, b: 0.38, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 3
+  - stableSceneKey: room-a6c042c27034cc44293ed3ca042526ee
+    sceneGuid: a6c042c27034cc44293ed3ca042526ee
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/hallwa_05.unity
+    sceneName: hallwa_05
+    displayName: Hallway 05
+    mapPosition: {x: 630, y: 58}
+    mapSize: {x: 150, y: 58}
+    roomColor: {r: 0.17, g: 0.24, b: 0.33, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 2
+  - stableSceneKey: room-b404a43cdac80c54c88b1de304c94b6d
+    sceneGuid: b404a43cdac80c54c88b1de304c94b6d
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/Boss_Hint_Room.unity
+    sceneName: Boss_Hint_Room
+    displayName: Boss Hint Room
+    mapPosition: {x: 840, y: 58}
+    mapSize: {x: 180, y: 76}
+    roomColor: {r: 0.3, g: 0.24, b: 0.36, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 5
+  - stableSceneKey: room-6ac5507ac739e2f41a4b50c33967ad27
+    sceneGuid: 6ac5507ac739e2f41a4b50c33967ad27
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/hallwa_06.unity
+    sceneName: hallwa_06
+    displayName: Hallway 06
+    mapPosition: {x: 1050, y: 58}
+    mapSize: {x: 150, y: 58}
+    roomColor: {r: 0.17, g: 0.24, b: 0.33, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 2
+  - stableSceneKey: room-99c9720ab356a0642a771bea13969a05
+    sceneGuid: 99c9720ab356a0642a771bea13969a05
+    scenePath: Assets/_Project/Scenes/Stages/GameScene.unity
+    sceneName: GameScene
+    displayName: Game Scene
+    mapPosition: {x: 0, y: -575}
+    mapSize: {x: 160, y: 68}
+    roomColor: {r: 0.18, g: 0.25, b: 0.34, a: 1}
+    active: 0
+    useManualLayout: 0
+    style: 5
+  - stableSceneKey: room-4ae222f821f9437c9499b7f3f8061172
+    sceneGuid: 4ae222f821f9437c9499b7f3f8061172
+    scenePath: Assets/_Project/Scenes/Test/AbilityTestScene.unity
+    sceneName: AbilityTestScene
+    displayName: Ability Test Scene
+    mapPosition: {x: 0, y: -690}
+    mapSize: {x: 160, y: 68}
+    roomColor: {r: 0.18, g: 0.25, b: 0.34, a: 1}
+    active: 0
+    useManualLayout: 0
+    style: 5
+  - stableSceneKey: room-c81f7ef9ab9fd34488611853afce2bec
+    sceneGuid: c81f7ef9ab9fd34488611853afce2bec
+    scenePath: Assets/_Project/Scenes/Stages/ImportedSummerCampMap/Boss_Room.unity
+    sceneName: Boss_Room
+    displayName: Boss Room
+    mapPosition: {x: 0, y: -345}
+    mapSize: {x: 190, y: 82}
+    roomColor: {r: 0.36, g: 0.18, b: 0.24, a: 1}
+    active: 1
+    useManualLayout: 0
+    style: 4
+  connections:
+  - {fromRoomKey: room-b404a43cdac80c54c88b1de304c94b6d, toRoomKey: room-a6c042c27034cc44293ed3ca042526ee, targetSceneName: hallwa_05, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: Default, direction: 1, connectionType: 0, active: 0, bidirectional: 0, issues: 2}
+  - {fromRoomKey: room-b404a43cdac80c54c88b1de304c94b6d, toRoomKey: room-6ac5507ac739e2f41a4b50c33967ad27, targetSceneName: hallwa_06, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: Default, direction: 2, connectionType: 0, active: 0, bidirectional: 0, issues: 2}
+  - {fromRoomKey: room-2c5b6b90ec5ffbd49b5318d08504fa18, toRoomKey: room-dad37d6495371e647b5872cf4f47db6d, targetSceneName: hallwa_02, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: RightEntrance, direction: 0, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-e95e4edb743d0044fb76cd1dfe4feee7, toRoomKey: room-b404a43cdac80c54c88b1de304c94b6d, targetSceneName: Boss_Hint_Room, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: Default, direction: 3, connectionType: 0, active: 0, bidirectional: 0, issues: 2}
+  - {fromRoomKey: room-e95e4edb743d0044fb76cd1dfe4feee7, toRoomKey: room-153249b23ef9e154db41885af74d7756, targetSceneName: middle_Room_2, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: RightEntrance, direction: 2, connectionType: 0, active: 1, bidirectional: 0, issues: 0}
+  - {fromRoomKey: room-e95e4edb743d0044fb76cd1dfe4feee7, toRoomKey: room-153249b23ef9e154db41885af74d7756, targetSceneName: middle_Room_2, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit (1)', targetSpawnId: Default, direction: 4, connectionType: 0, active: 0, bidirectional: 0, issues: 2}
+  - {fromRoomKey: room-e7388b215dfc0a44984b6f7f1b564c8d, toRoomKey: room-1d4cb28007dfbd44499377e140a41ca3, targetSceneName: hallwa_01, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: LeftEntrance, direction: 2, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-e7388b215dfc0a44984b6f7f1b564c8d, toRoomKey: room-bab6365b98d5e4f49a4dac2bb477a1b5, targetSceneName: hallwa_03, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: LeftEntrance, direction: 1, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-1d4cb28007dfbd44499377e140a41ca3, toRoomKey: room-e7388b215dfc0a44984b6f7f1b564c8d, targetSceneName: Start_Room, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: RightEntrance, direction: 1, connectionType: 0, active: 1, bidirectional: 1, issues: 4}
+  - {fromRoomKey: room-1d4cb28007dfbd44499377e140a41ca3, toRoomKey: room-78c97ef181e4c1146a33a8b513a4e316, targetSceneName: middle_Room, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: RightEntrance1, direction: 3, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-1d4cb28007dfbd44499377e140a41ca3, toRoomKey: room-e7388b215dfc0a44984b6f7f1b564c8d, targetSceneName: Start_Room, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit_2', targetSpawnId: RightEntrance, direction: 2, connectionType: 0, active: 1, bidirectional: 1, issues: 4}
+  - {fromRoomKey: room-dad37d6495371e647b5872cf4f47db6d, toRoomKey: room-2c5b6b90ec5ffbd49b5318d08504fa18, targetSceneName: Item_Room_01, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: LeftEntrance, direction: 2, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-dad37d6495371e647b5872cf4f47db6d, toRoomKey: room-78c97ef181e4c1146a33a8b513a4e316, targetSceneName: middle_Room, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: UpperRightEntrance, direction: 1, connectionType: 0, active: 1, bidirectional: 0, issues: 0}
+  - {fromRoomKey: room-bab6365b98d5e4f49a4dac2bb477a1b5, toRoomKey: room-153249b23ef9e154db41885af74d7756, targetSceneName: middle_Room_2, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: LeftEntrance, direction: 1, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-bab6365b98d5e4f49a4dac2bb477a1b5, toRoomKey: room-e7388b215dfc0a44984b6f7f1b564c8d, targetSceneName: Start_Room, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: LeftEntrance, direction: 2, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-b0aed4e70d46673418a08b2ca6508d14, toRoomKey: room-153249b23ef9e154db41885af74d7756, targetSceneName: middle_Room_2, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: RightEntrance, direction: 2, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-b0aed4e70d46673418a08b2ca6508d14, toRoomKey: room-e95e4edb743d0044fb76cd1dfe4feee7, targetSceneName: Item_Room_02, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: RightEntrance, direction: 1, connectionType: 0, active: 1, bidirectional: 0, issues: 0}
+  - {fromRoomKey: room-a6c042c27034cc44293ed3ca042526ee, toRoomKey: room-78c97ef181e4c1146a33a8b513a4e316, targetSceneName: middle_Room, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: LowerRightEntrance, direction: 1, connectionType: 0, active: 1, bidirectional: 0, issues: 0}
+  - {fromRoomKey: room-a6c042c27034cc44293ed3ca042526ee, toRoomKey: room-b404a43cdac80c54c88b1de304c94b6d, targetSceneName: Boss_Hint_Room, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: LeftEntrance, direction: 2, connectionType: 0, active: 1, bidirectional: 0, issues: 0}
+  - {fromRoomKey: room-6ac5507ac739e2f41a4b50c33967ad27, toRoomKey: room-b404a43cdac80c54c88b1de304c94b6d, targetSceneName: Boss_Hint_Room, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: RightEntrance, direction: 0, connectionType: 0, active: 1, bidirectional: 0, issues: 0}
+  - {fromRoomKey: room-78c97ef181e4c1146a33a8b513a4e316, toRoomKey: room-1d4cb28007dfbd44499377e140a41ca3, targetSceneName: hallwa_01, fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: RightEntrance1, direction: 1, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-78c97ef181e4c1146a33a8b513a4e316, toRoomKey: '', targetSceneName: '', fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit (1)', targetSpawnId: Default, direction: 2, connectionType: 0, active: 0, bidirectional: 0, issues: 1}
+  - {fromRoomKey: room-78c97ef181e4c1146a33a8b513a4e316, toRoomKey: room-1d4cb28007dfbd44499377e140a41ca3, targetSceneName: hallwa_01, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: RightEntrance, direction: 3, connectionType: 0, active: 0, bidirectional: 0, issues: 0}
+  - {fromRoomKey: room-153249b23ef9e154db41885af74d7756, toRoomKey: room-b0aed4e70d46673418a08b2ca6508d14, targetSceneName: hallwa_04, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit (1)', targetSpawnId: RightEntrance, direction: 1, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-153249b23ef9e154db41885af74d7756, toRoomKey: room-bab6365b98d5e4f49a4dac2bb477a1b5, targetSceneName: hallwa_03, fromPortalId: LeftExit, portalHierarchyPath: '[SceneConnections]/Exits/LeftExit', targetSpawnId: RightEntrance, direction: 4, connectionType: 0, active: 1, bidirectional: 1, issues: 0}
+  - {fromRoomKey: room-153249b23ef9e154db41885af74d7756, toRoomKey: '', targetSceneName: '', fromPortalId: RightExit, portalHierarchyPath: '[SceneConnections]/Exits/RightExit', targetSpawnId: Default, direction: 2, connectionType: 0, active: 0, bidirectional: 0, issues: 1}

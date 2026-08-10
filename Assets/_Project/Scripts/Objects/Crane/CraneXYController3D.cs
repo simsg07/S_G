@@ -7,7 +7,7 @@ public enum CraneVerticalSide { Top, Bottom }
 public enum CraneXYActiveAxis { None, Horizontal, Vertical }
 
 [DisallowMultipleComponent]
-public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IShutterFreezeState3D
+public sealed class CraneXYController3D : MonoBehaviour
 {
     [Header("Structure")]
     [SerializeField] private Transform fixedRoot;
@@ -52,6 +52,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
     [SerializeField] private bool stopOnObstruction = true;
     [Min(0f)] [SerializeField] private float obstructionCheckPadding = 0.05f;
     [SerializeField] private BoxCollider carryAreaCollider;
+    [SerializeField] private CraneCarryZone3D magnetHeadCarryZone;
     [SerializeField] private UnityEvent onObstructed = new UnityEvent();
 
     [Header("Pause / Debug")]
@@ -66,21 +67,54 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
     [SerializeField] private CraneXYActiveAxis activeAxis;
     [SerializeField] private CraneXYActiveAxis pendingCommand;
     [SerializeField] private float activationRemainingTime;
+    [SerializeField] private string lastStopReason = "Idle";
+    [SerializeField] private string lastBlockingColliderName;
+    [SerializeField] private string lastBlockingParentName;
+    [SerializeField] private int lastBlockingLayer = -1;
 
     private readonly RaycastHit[] obstacleHits = new RaycastHit[16];
     private float currentAxisSpeed;
     private float topLocalY;
-    private float shutterReleaseTime;
     private bool initialized;
     private bool obstructionWarned;
     private CraneXYLeverSwitch3D activeLever;
+    private Collider[] magnetTransportColliders;
+    private int playerLayer = -1;
 
     public CraneXYOperationState State => state;
     public bool IsMoving => state == CraneXYOperationState.MovingHorizontal || state == CraneXYOperationState.MovingVertical;
     public bool IsBusy => state == CraneXYOperationState.ActivationDelay || IsMoving;
-    public bool IsShutterFrozen => shutterReleaseTime > Time.time;
     public float MaxDropDistance => ropeSegmentCount * ropeSegmentLength;
     public float RopeEndError { get; private set; }
+    public string LastStopReason => lastStopReason;
+    public string LastBlockingColliderName => lastBlockingColliderName;
+    public string LastBlockingParentName => lastBlockingParentName;
+    public int LastBlockingLayer => lastBlockingLayer;
+    public Vector3 CurrentRailDestination
+    {
+        get
+        {
+            if (!initialized) return transform.position;
+            if (activeAxis == CraneXYActiveAxis.Horizontal && horizontalMovingRoot != null && horizontalLeftPoint != null && horizontalRightPoint != null)
+            {
+                Vector3 destination = horizontalMovingRoot.position;
+                destination.x = horizontalSide == CraneHorizontalSide.Left ? horizontalRightPoint.position.x : horizontalLeftPoint.position.x;
+                return destination;
+            }
+            if (activeAxis == CraneXYActiveAxis.Vertical && verticalMovingRoot != null && verticalMovingRoot.parent != null)
+            {
+                Vector3 localDestination = verticalMovingRoot.localPosition;
+                localDestination.y = verticalSide == CraneVerticalSide.Top ? topLocalY - MaxDropDistance : topLocalY;
+                return verticalMovingRoot.parent.TransformPoint(localDestination);
+            }
+            return horizontalMovingRoot != null ? horizontalMovingRoot.position : transform.position;
+        }
+    }
+    public float RemainingRailDistance => activeAxis == CraneXYActiveAxis.Horizontal && horizontalMovingRoot != null
+        ? Mathf.Abs(CurrentRailDestination.x - horizontalMovingRoot.position.x)
+        : activeAxis == CraneXYActiveAxis.Vertical && verticalMovingRoot != null
+            ? Mathf.Abs(CurrentRailDestination.y - verticalMovingRoot.position.y)
+            : 0f;
 
     private void OnValidate()
     {
@@ -100,10 +134,15 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         obstructionCheckPadding = Mathf.Max(0f, obstructionCheckPadding);
     }
 
-    private void Awake() => InitializeOnce();
+    private void Awake()
+    {
+        playerLayer = LayerMask.NameToLayer("Player");
+        InitializeOnce();
+    }
 
     private void OnDisable()
     {
+        magnetTransportColliders = null;
         FinishLeverVisual(true);
         state = CraneXYOperationState.Idle;
         activeAxis = CraneXYActiveAxis.None;
@@ -114,7 +153,6 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
 
     private void Update()
     {
-        if (IsShutterFrozen) return;
         if (state != CraneXYOperationState.ActivationDelay) return;
         activationRemainingTime = Mathf.Max(0f, activationRemainingTime - Time.deltaTime);
         if (activationRemainingTime > 0f) return;
@@ -125,7 +163,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
 
     private void FixedUpdate()
     {
-        if (IsShutterFrozen || !IsMoving) return;
+        if (!IsMoving) return;
         if (state == CraneXYOperationState.MovingHorizontal) MoveHorizontal();
         else MoveVertical();
     }
@@ -167,6 +205,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         pendingCommand = CraneXYActiveAxis.None;
         currentAxisSpeed = 0f;
         activationRemainingTime = axis == CraneXYAxis.Horizontal ? horizontalActivationDelay : verticalActivationDelay;
+        lastStopReason = "Moving to lever-selected rail endpoint";
         state = CraneXYOperationState.ActivationDelay;
         return true;
     }
@@ -178,6 +217,10 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
             ? horizontalSide == CraneHorizontalSide.Right
             : verticalSide == CraneVerticalSide.Bottom;
     }
+
+    // This only prevents the active magnet target from being treated as a rail
+    // obstruction. It never changes the lever command or rail destination.
+    public void SetMagnetTransportTargetColliders(Collider[] colliders) => magnetTransportColliders = colliders;
 
     private bool LeverWins(CraneXYAxis axis, CraneXYLeverSwitch3D source, Transform actor)
     {
@@ -203,6 +246,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         Vector3 delta = new Vector3(nextX - horizontalMovingRoot.position.x, 0f, 0f);
         if (HasObstruction(delta, horizontalObstacleMask)) { Block(); return; }
         horizontalMovingRoot.position += delta;
+        magnetHeadCarryZone?.ApplyCarryDelta(delta);
     }
 
     private void MoveVertical()
@@ -218,6 +262,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         Vector3 local = verticalMovingRoot.localPosition;
         local.y = nextY;
         verticalMovingRoot.localPosition = local;
+        magnetHeadCarryZone?.ApplyCarryDelta(worldDelta);
     }
 
     private static float CalculateSpeed(float current, float maximum, float acceleration, float deceleration, float remaining)
@@ -240,9 +285,41 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         for (int i = 0; i < count; i++)
         {
             Collider hit = obstacleHits[i].collider;
-            if (hit != null && !hit.transform.IsChildOf(transform)) return true;
+            if (hit == null || hit.transform.IsChildOf(transform) || IsMagnetTransportCollider(hit) ||
+                IsMagneticCarryableTransportObject(hit)) continue;
+            lastBlockingColliderName = hit.name;
+            lastBlockingParentName = hit.transform.parent != null ? hit.transform.parent.name : "(none)";
+            lastBlockingLayer = hit.gameObject.layer;
+            lastStopReason = $"Blocked by {lastBlockingColliderName} (Layer {lastBlockingLayer})";
+            return true;
         }
         return false;
+    }
+
+    private bool IsMagnetTransportCollider(Collider collider)
+    {
+        if (magnetTransportColliders == null) return false;
+        for (int i = 0; i < magnetTransportColliders.Length; i++)
+        {
+            if (magnetTransportColliders[i] == collider) return true;
+        }
+        return false;
+    }
+
+    // This works before the magnet controller has selected or reserved a target.
+    // Only an explicitly movable magnetic object is exempt; other Ground objects
+    // continue through the existing obstruction path.
+    private bool IsMagneticCarryableTransportObject(Collider collider)
+    {
+        MagneticCarryable3D carryable = collider.GetComponentInParent<MagneticCarryable3D>();
+        if (carryable == null || !carryable.CanBeMovedByMagnet) return false;
+
+        for (Transform current = carryable.transform; current != null; current = current.parent)
+        {
+            if (current.CompareTag("Player") || (playerLayer >= 0 && current.gameObject.layer == playerLayer) ||
+                current.GetComponent<PlatformerPlayer3D>() != null) return false;
+        }
+        return true;
     }
 
     private void ArriveHorizontal(float x)
@@ -265,6 +342,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         state = CraneXYOperationState.Arrived;
         activeAxis = CraneXYActiveAxis.None;
         obstructionWarned = false;
+        lastStopReason = "Reached rail endpoint";
         FinishLeverVisual(false);
         state = CraneXYOperationState.Idle;
     }
@@ -291,6 +369,7 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
         state = CraneXYOperationState.Idle;
         activeAxis = CraneXYActiveAxis.None;
         currentAxisSpeed = 0f;
+        lastStopReason = "Command cancelled";
     }
 
     private void FinishLeverVisual(bool cancelled)
@@ -322,13 +401,6 @@ public sealed class CraneXYController3D : MonoBehaviour, IShutterFreezable3D, IS
             visualEnd = start + direction * (i * ropeSegmentLength + shown);
         }
         RopeEndError = Mathf.Max(0f, distance - Vector3.Dot(visualEnd - start, direction));
-    }
-
-    public bool ApplyShutterFreeze(float duration, CameraAbilitySystem3D source)
-    {
-        if (!canPauseByShutter || duration <= 0f) return false;
-        shutterReleaseTime = Mathf.Max(shutterReleaseTime, Time.time + duration);
-        return true;
     }
 
     private void OnDrawGizmosSelected()

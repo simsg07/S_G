@@ -1031,7 +1031,7 @@ MonoBehaviour:
   frameCooldownColor: {r: 1, g: 0.7, b: 0.25, a: 0.8}
   targetMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 4294967295
   aimHeightOffset: 0.35
   shutterRange: 7
   shutterBoxSize: {x: 1.5, y: 1.5, z: 1}
@@ -1043,14 +1043,7 @@ MonoBehaviour:
     m_Bits: 3584
   showShutterDebug: 0
   logShutterEvents: 0
-  shutterFreezeDuration: 1.2
-  shutterCooldown: 1
-  refreshFreezeWhileFrozen: 0
-  shutterMarkDuration: 5
-  shutterRemarkCooldown: 7
-  refreshMarkOnShutter: 0
-  allowFreezeWhileMarked: 1
-  allowFreezeDuringRemarkCooldown: 1
+  markDuration: 1.2
   focusCooldown: 0.2
   relayCooldown: 0.35
   flashLightIntensity: 7.5

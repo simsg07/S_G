@@ -18,7 +18,7 @@ public enum CraneMoveAxis
 [DefaultExecutionOrder(100)]
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
-public class CraneObject : MonoBehaviour, IShutterFreezable3D, IShutterFreezeState3D
+public class CraneObject : MonoBehaviour
 {
     [Header("Rail")]
     [SerializeField] private CraneRailPath3D railPath;
@@ -84,7 +84,7 @@ public class CraneObject : MonoBehaviour, IShutterFreezable3D, IShutterFreezeSta
 
     private readonly RaycastHit[] obstacleHits = new RaycastHit[16];
     private float shutterReleaseTime;
-    public bool IsShutterFrozen => isPaused && shutterReleaseTime > Time.time;
+    public bool IsMarked => isPaused && shutterReleaseTime > Time.time;
 
     public bool IsMoving => isMoving;
     public bool IsStopped => isStopped || isPaused || isBlocked;
@@ -346,18 +346,6 @@ public class CraneObject : MonoBehaviour, IShutterFreezable3D, IShutterFreezeSta
         {
             ResumeByShutter();
         }
-    }
-
-    public bool ApplyShutterFreeze(float duration, CameraAbilitySystem3D source)
-    {
-        if (!canPauseByShutter || duration <= 0f)
-        {
-            return false;
-        }
-
-        isPaused = true;
-        shutterReleaseTime = Mathf.Max(shutterReleaseTime, Time.time + duration);
-        return true;
     }
 
     [ContextMenu("Validate Crane Setup")]

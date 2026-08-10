@@ -15,7 +15,7 @@ public enum VerticalCraneMovementState
 }
 
 [DisallowMultipleComponent]
-public sealed class VerticalCraneController3D : MonoBehaviour, IShutterFreezable3D, IShutterFreezeState3D
+public sealed class VerticalCraneController3D : MonoBehaviour
 {
     [Header("Structure")]
     [SerializeField] private Transform fixedTopRoot;
@@ -63,7 +63,6 @@ public sealed class VerticalCraneController3D : MonoBehaviour, IShutterFreezable
     private float moveElapsed;
     private float moveDuration;
     private float waitRemaining;
-    private float shutterReleaseTime;
     private bool initialized;
     private bool nextDestinationIsBottom;
 
@@ -72,7 +71,6 @@ public sealed class VerticalCraneController3D : MonoBehaviour, IShutterFreezable
     public Vector3 BottomPosition => bottomPosition;
     public VerticalCraneMovementState State => state;
     public bool IsMoving => state == VerticalCraneMovementState.MovingDown || state == VerticalCraneMovementState.MovingUp;
-    public bool IsShutterFrozen => shutterReleaseTime > Time.time;
     public Vector3 RopeVisualStart { get; private set; }
     public Vector3 RopeVisualEnd { get; private set; }
     public float RopeEndError { get; private set; }
@@ -103,8 +101,6 @@ public sealed class VerticalCraneController3D : MonoBehaviour, IShutterFreezable
 
     private void Update()
     {
-        if (IsShutterFrozen) return;
-        if (shutterReleaseTime > 0f) shutterReleaseTime = 0f;
         if (!autoLoop || (state != VerticalCraneMovementState.WaitingAtTop && state != VerticalCraneMovementState.WaitingAtBottom)) return;
 
         waitRemaining -= Time.deltaTime;
@@ -114,7 +110,7 @@ public sealed class VerticalCraneController3D : MonoBehaviour, IShutterFreezable
 
     private void FixedUpdate()
     {
-        if (IsShutterFrozen || (state != VerticalCraneMovementState.MovingDown && state != VerticalCraneMovementState.MovingUp)) return;
+        if (state != VerticalCraneMovementState.MovingDown && state != VerticalCraneMovementState.MovingUp) return;
 
         moveElapsed = Mathf.Min(moveElapsed + Time.fixedDeltaTime, moveDuration);
         float normalized = moveDuration > 0f ? moveElapsed / moveDuration : 1f;
@@ -178,13 +174,6 @@ public sealed class VerticalCraneController3D : MonoBehaviour, IShutterFreezable
     public void StopMovement()
     {
         state = VerticalCraneMovementState.Stopped;
-    }
-
-    public bool ApplyShutterFreeze(float duration, CameraAbilitySystem3D source)
-    {
-        if (!canPauseByShutter || duration <= 0f) return false;
-        shutterReleaseTime = Mathf.Max(shutterReleaseTime, Time.time + duration);
-        return true;
     }
 
     private void CacheRopeRenderers()

@@ -2,6 +2,13 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
+
+public enum CheckpointState
+{
+    IDLE,
+    ACTIVATED
+}
 
 [DisallowMultipleComponent]
 public sealed class Checkpoint3D : MonoBehaviour, IInteractable3D
@@ -20,16 +27,26 @@ public sealed class Checkpoint3D : MonoBehaviour, IInteractable3D
     [SerializeField] private Sprite inactiveSprite;
     [SerializeField] private Sprite activeSprite;
     [SerializeField] private bool showInteractionGuide = true;
+    [Tooltip("Invoked only on the first transition from IDLE to ACTIVATED.")]
+    [SerializeField] private UnityEvent onCheckpointActivated;
+    [Tooltip("Invoked after every successful Player save, including reuse while ACTIVATED.")]
     [SerializeField] private UnityEvent onCheckpointSaved;
+
+    [Header("Persistent Progress Event")]
+    [Tooltip("Optional scene-local progress key used by MarkConfiguredProgressCompleted().")]
+    [SerializeField] private string progressKey;
 
     [Header("Debug")]
     [SerializeField] private bool debugMode;
-    [SerializeField] private bool isActive;
+    [FormerlySerializedAs("isActive")]
+    [SerializeField] private CheckpointState currentState;
+    [SerializeField] private bool savedActivationFound;
 
     public string CheckpointId => checkpointId;
     public Key InteractionKey => interactionKey;
     public Transform LinkedSpawnPoint => linkedSpawnPoint;
-    public bool IsActive => isActive;
+    public bool IsActive => currentState == CheckpointState.ACTIVATED;
+    public CheckpointState CurrentState => currentState;
     public Transform SpawnPosition => linkedSpawnPoint != null ? linkedSpawnPoint : transform;
 
     private void Awake()
@@ -56,16 +73,27 @@ public sealed class Checkpoint3D : MonoBehaviour, IInteractable3D
             return false;
         }
 
-        ActivateCheckpoint();
+        ActivateCheckpointForPlayer();
         return true;
     }
 
-    public void ActivateCheckpoint()
+    private void ActivateCheckpointForPlayer()
     {
-        bool wasAlreadyActive = isActive;
-        GameProgressSave3D.RecordCheckpointActivated(SceneManager.GetActiveScene().name, checkpointId);
-        isActive = true;
+        bool wasAlreadyActive = IsActive;
+        Transform spawn = SpawnPosition;
+        GameProgressSave3D.RecordCheckpointActivated(
+            SceneManager.GetActiveScene().name,
+            checkpointId,
+            spawn.position,
+            spawn.rotation,
+            WorldSystem3D.ActiveWorld);
+        currentState = CheckpointState.ACTIVATED;
+        savedActivationFound = true;
         RefreshVisual();
+        if (!wasAlreadyActive)
+        {
+            onCheckpointActivated?.Invoke();
+        }
         onCheckpointSaved?.Invoke();
         Log(wasAlreadyActive
             ? $"Checkpoint '{checkpointId}' selected again as the latest respawn point."
@@ -74,8 +102,26 @@ public sealed class Checkpoint3D : MonoBehaviour, IInteractable3D
 
     private void RestoreSavedVisualState()
     {
-        isActive = !string.IsNullOrWhiteSpace(checkpointId)
+        savedActivationFound = !string.IsNullOrWhiteSpace(checkpointId)
             && GameProgressSave3D.IsCheckpointActivated(checkpointId);
+        currentState = savedActivationFound ? CheckpointState.ACTIVATED : CheckpointState.IDLE;
+    }
+
+    public void SaveCurrentProgress()
+    {
+        GameProgressSave3D.SaveNow();
+    }
+
+    public void MarkConfiguredProgressCompleted()
+    {
+        if (string.IsNullOrWhiteSpace(progressKey))
+        {
+            Debug.LogWarning("[Checkpoint3D] Progress Key is empty. Permanent progress was not recorded.", this);
+            return;
+        }
+
+        string sceneQualifiedKey = $"{SceneManager.GetActiveScene().name}.{progressKey.Trim()}";
+        GameProgressSave3D.RecordPuzzlePermanentlyCompleted(sceneQualifiedKey);
     }
 
     private bool IsInsideInteractionRange(Vector3 actorPosition)
@@ -88,7 +134,7 @@ public sealed class Checkpoint3D : MonoBehaviour, IInteractable3D
     {
         if (spriteRenderer != null)
         {
-            spriteRenderer.sprite = isActive ? activeSprite : inactiveSprite;
+            spriteRenderer.sprite = IsActive ? activeSprite : inactiveSprite;
         }
     }
 

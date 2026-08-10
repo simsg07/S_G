@@ -76,6 +76,7 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
 
     private void Update()
     {
+        if (GameplayInputLock3D.IsLocked) return;
         Keyboard keyboard = Keyboard.current;
         if (keyboard != null && keyboard[manualRespawnKey].wasPressedThisFrame)
         {
@@ -131,12 +132,20 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         SetRenderersEnabled(true);
 
         bool checkpointLoadStarted = false;
-        Transform targetRespawnPoint = ResolveCheckpointRespawnPoint(ref checkpointLoadStarted);
-        if (targetRespawnPoint == null && !checkpointLoadStarted)
+        bool hasCheckpointPose = TryResolveCheckpointRespawnPose(
+            ref checkpointLoadStarted,
+            out Vector3 checkpointPosition,
+            out Quaternion checkpointRotation);
+        Transform targetRespawnPoint = null;
+        if (!hasCheckpointPose && !checkpointLoadStarted)
         {
             targetRespawnPoint = ResolveRespawnPoint();
         }
-        if (targetRespawnPoint != null)
+        if (hasCheckpointPose)
+        {
+            transform.SetPositionAndRotation(checkpointPosition, checkpointRotation);
+        }
+        else if (targetRespawnPoint != null)
         {
             transform.position = targetRespawnPoint.position;
         }
@@ -162,12 +171,17 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
         }
     }
 
-    private Transform ResolveCheckpointRespawnPoint(ref bool checkpointLoadStarted)
+    private bool TryResolveCheckpointRespawnPose(
+        ref bool checkpointLoadStarted,
+        out Vector3 position,
+        out Quaternion rotation)
     {
         checkpointLoadStarted = false;
+        position = default;
+        rotation = Quaternion.identity;
         if (!GameProgressSave3D.TryGetLastCheckpoint(out string checkpointScene, out string checkpointId))
         {
-            return null;
+            return false;
         }
 
         string activeScene = SceneManager.GetActiveScene().name;
@@ -178,17 +192,32 @@ public class PlayerDamageReceiver : MonoBehaviour, IDamageable
             {
                 Debug.LogWarning($"[PlayerDamageReceiver] Could not load saved checkpoint '{checkpointScene}/{checkpointId}'. Using current scene Default spawn.", this);
             }
-            return null;
+            return false;
+        }
+
+        if (GameProgressSave3D.TryGetLastCheckpointPose(
+                out string poseScene,
+                out string poseCheckpointId,
+                out position,
+                out rotation,
+                out ResearchWorldId savedWorld)
+            && string.Equals(poseScene, checkpointScene, StringComparison.Ordinal)
+            && string.Equals(poseCheckpointId, checkpointId, StringComparison.Ordinal))
+        {
+            WorldSystem3D.EnsureInstance().SetWorld(savedWorld);
+            return true;
         }
 
         Checkpoint3D checkpoint = SceneLoader.FindCheckpoint(checkpointId);
         if (checkpoint == null)
         {
             Debug.LogWarning($"[PlayerDamageReceiver] Saved checkpoint '{checkpointId}' is missing in scene '{activeScene}'. Using Default PlayerSpawnPoint.", this);
-            return null;
+            return false;
         }
 
-        return checkpoint.SpawnPosition;
+        position = checkpoint.SpawnPosition.position;
+        rotation = checkpoint.SpawnPosition.rotation;
+        return true;
     }
 
     [ContextMenu("Test Kill And Respawn")]

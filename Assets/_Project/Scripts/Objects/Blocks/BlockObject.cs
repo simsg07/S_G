@@ -1,15 +1,29 @@
 using System.Collections;
 using UnityEngine;
 
+[AddComponentMenu("_Project/Objects/Weak Wall (Block Object)")]
+[DefaultExecutionOrder(-100)]
 [DisallowMultipleComponent]
 public class BlockObject : MonoBehaviour
 {
+    public enum WeakWallState
+    {
+        INTACT,
+        DESTROYED
+    }
+
     private static readonly int BreakHash = Animator.StringToHash("Break");
     private static readonly int IsBrokenHash = Animator.StringToHash("IsBroken");
 
     [Header("Block Type")]
     [SerializeField] private BlockObjectType blockType;
     [SerializeField] private bool isBroken;
+
+    [Header("Weak Wall Progress")]
+    [Tooltip("When enabled, a destroyed wall is permanent and reset calls cannot restore it.")]
+    [SerializeField] private bool permanentDestruction;
+    [Tooltip("Runtime state shown for the Weak_Wall prefab.")]
+    [SerializeField] private WeakWallState currentState = WeakWallState.INTACT;
 
     [Header("Block Rules")]
     [SerializeField] private bool canBlockPlayer = true;
@@ -38,6 +52,11 @@ public class BlockObject : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private PersistentSceneObject3D persistentState;
 
+    [Header("Runtime Debug (Read Only)")]
+    [SerializeField] private string debugPersistentId = string.Empty;
+    [SerializeField] private bool loadedPersistentDestroyed;
+    [SerializeField] private string lastStateApplyReason = "Not applied";
+
     [Header("Debug")]
     [SerializeField] private bool debugMode = true;
 
@@ -46,6 +65,10 @@ public class BlockObject : MonoBehaviour
 
     public BlockObjectType BlockType => blockType;
     public bool IsBroken => isBroken;
+    public WeakWallState CurrentState => currentState;
+    public string DebugPersistentId => debugPersistentId;
+    public bool LoadedPersistentDestroyed => loadedPersistentDestroyed;
+    public string LastStateApplyReason => lastStateApplyReason;
     public bool CanBlockPlayer => canBlockPlayer;
     public bool CanBlockMonster => canBlockMonster;
     public bool CanBlockSight => canBlockSight;
@@ -54,11 +77,34 @@ public class BlockObject : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+        if (permanentDestruction && !RestorePersistentState("Awake"))
+        {
+            ApplyIntactVisualAndCollider("Awake: no saved DESTROYED state");
+        }
     }
 
     private void OnEnable()
     {
         CacheReferences();
+
+        if (!permanentDestruction)
+        {
+            RegisterHitReceiver();
+            return;
+        }
+
+        if (RestorePersistentState("OnEnable (scene/world activation)"))
+        {
+            return;
+        }
+
+        if (isBroken)
+        {
+            ApplyDestroyedVisualAndCollider("OnEnable: runtime DESTROYED state");
+            return;
+        }
+
+        ApplyIntactVisualAndCollider("OnEnable: no saved DESTROYED state");
         RegisterHitReceiver();
     }
 
@@ -72,7 +118,15 @@ public class BlockObject : MonoBehaviour
         visualHideDelay = Mathf.Max(0f, visualHideDelay);
         safePushDistance = Mathf.Max(0f, safePushDistance);
         overlapCheckPadding = Mathf.Max(0f, overlapCheckPadding);
+        currentState = isBroken ? WeakWallState.DESTROYED : WeakWallState.INTACT;
         CacheReferences();
+#if UNITY_EDITOR
+        if (permanentDestruction && persistentState != null)
+        {
+            persistentState.EnsureEditorPersistentId("weak_wall");
+        }
+#endif
+        RefreshPersistentDebug();
     }
 
     [ContextMenu("Apply Block Data")]
@@ -130,6 +184,8 @@ public class BlockObject : MonoBehaviour
 
         Log($"BreakBlock started: {name}");
         isBroken = true;
+        currentState = WeakWallState.DESTROYED;
+        lastStateApplyReason = "Boomber damage: DESTROYED";
 
         if (hitReceiver != null)
         {
@@ -179,12 +235,18 @@ public class BlockObject : MonoBehaviour
         Log("BreakBlock complete.");
         if (persistentState == null) persistentState = GetComponent<PersistentSceneObject3D>();
         persistentState?.MarkDestroyed();
+        RefreshPersistentDebug();
     }
 
     [ContextMenu("Reset Block")]
     public void ResetBlock()
     {
-        isBroken = false;
+        if (permanentDestruction && (isBroken || IsPersistentlyDestroyed()))
+        {
+            ApplyDestroyedVisualAndCollider("ResetBlock rejected: permanent DESTROYED state");
+            Log("ResetBlock ignored because permanent destruction is saved.");
+            return;
+        }
 
         if (hideVisualRoutine != null)
         {
@@ -197,12 +259,47 @@ public class BlockObject : MonoBehaviour
             breakableObject.ResetBreakable();
         }
 
-        if (hitReceiver != null)
+        if (hitReceiver != null) hitReceiver.ResetHitCount();
+        ApplyIntactVisualAndCollider("ResetBlock: non-permanent reset");
+
+        if (animator != null && HasParameter(IsBrokenHash, AnimatorControllerParameterType.Bool))
         {
-            hitReceiver.ResetHitCount();
-            hitReceiver.SetCanBeTargeted(true);
+            animator.SetBool(IsBrokenHash, false);
         }
 
+        Log("ResetBlock complete.");
+    }
+
+    private bool IsPersistentlyDestroyed()
+    {
+        if (!permanentDestruction || persistentState == null)
+        {
+            return false;
+        }
+
+        return persistentState.TryGetSavedState(out PersistentSceneObjectState savedState)
+            ? savedState == PersistentSceneObjectState.Destroyed
+            : persistentState.CurrentState == PersistentSceneObjectState.Destroyed;
+    }
+
+    private bool RestorePersistentState(string reason)
+    {
+        RefreshPersistentDebug();
+        if (!permanentDestruction || !loadedPersistentDestroyed)
+        {
+            return false;
+        }
+
+        ApplyDestroyedVisualAndCollider($"{reason}: loaded persistent DESTROYED");
+        return true;
+    }
+
+    private void ApplyIntactVisualAndCollider(string reason)
+    {
+        isBroken = false;
+        currentState = WeakWallState.INTACT;
+
+        if (hitReceiver != null) hitReceiver.SetCanBeTargeted(true);
         SetCollisionEnabled(true);
         SetVisualEnabled(true);
 
@@ -211,7 +308,49 @@ public class BlockObject : MonoBehaviour
             animator.SetBool(IsBrokenHash, false);
         }
 
-        Log("ResetBlock complete.");
+        lastStateApplyReason = reason;
+    }
+
+    private void ApplyDestroyedVisualAndCollider(string reason)
+    {
+        isBroken = true;
+        currentState = WeakWallState.DESTROYED;
+
+        if (hideVisualRoutine != null)
+        {
+            StopCoroutine(hideVisualRoutine);
+            hideVisualRoutine = null;
+        }
+
+        if (hitReceiver != null)
+        {
+            hitReceiver.SetCanBeTargeted(false);
+        }
+
+        if (removeColliderOnBreak)
+        {
+            SetCollisionEnabled(false);
+        }
+
+        if (hideVisualOnBreak)
+        {
+            SetVisualEnabled(false);
+        }
+
+        if (animator != null && HasParameter(IsBrokenHash, AnimatorControllerParameterType.Bool))
+        {
+            animator.SetBool(IsBrokenHash, true);
+        }
+
+        lastStateApplyReason = reason;
+    }
+
+    private void RefreshPersistentDebug()
+    {
+        debugPersistentId = persistentState != null ? persistentState.PersistentId : string.Empty;
+        loadedPersistentDestroyed = persistentState != null
+            && persistentState.TryGetSavedState(out PersistentSceneObjectState savedState)
+            && savedState == PersistentSceneObjectState.Destroyed;
     }
 
     public void SetCollisionEnabled(bool enabled)

@@ -16,6 +16,7 @@ TagManager:
   - Door
   - Platform
   - Player
+  - ElectronicNoise
   layers:
   - Default
   - TransparentFX

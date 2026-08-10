@@ -101,6 +101,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2954969696277576494}
   - component: {fileID: 7001697023837001595}
+  - component: {fileID: 7001697023837001596}
   m_Layer: 0
   m_Name: Checkpoint
   m_TagString: Untagged
@@ -146,11 +147,51 @@ MonoBehaviour:
   inactiveSprite: {fileID: 21300000, guid: f59b01bcb9511d540bf92333e72a212d, type: 3}
   activeSprite: {fileID: 21300000, guid: 1e2f35b56803af64db9174524113388e, type: 3}
   showInteractionGuide: 1
+  onCheckpointActivated:
+    m_PersistentCalls:
+      m_Calls: []
   onCheckpointSaved:
     m_PersistentCalls:
       m_Calls: []
+  progressKey:
   debugMode: 0
-  isActive: 0
+  currentState: 0
+  savedActivationFound: 0
+--- !u!114 &7001697023837001596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 857596426746229661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f371114fcf524086a7890501c10c4652, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::WorldPresence
+  presenceMode: 1
+  applyOnStart: 1
+  autoCollectRenderers: 1
+  autoCollectColliders: 1
+  autoCollectRigidbodies: 0
+  autoCollectAnimators: 1
+  disableControlledBehavioursWhenAbsent: 1
+  autoCollectMonsterBehaviours: 0
+  controlledRenderers:
+  - {fileID: 534744321456532284}
+  controlledColliders:
+  - {fileID: 738569911277446596}
+  controlledBehaviours:
+  - {fileID: 7001697023837001595}
+  primaryRigidbody: {fileID: 0}
+  controlledRigidbodies: []
+  controlledAnimators: []
+  debugMode: 0
+  showGizmos: 1
+  legacyAffectRootActive: 0
+  legacyVisualRoot: {fileID: 0}
+  legacyAffectMonsterAI: 1
+  legacyAffectBehaviours: 0
 --- !u!1 &871235865529081030
 GameObject:
   m_ObjectHideFlags: 0

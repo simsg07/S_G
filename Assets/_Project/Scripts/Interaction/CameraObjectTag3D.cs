@@ -28,7 +28,7 @@ public class CameraObjectTag3D : MonoBehaviour
     private Renderer[] cachedRenderers = System.Array.Empty<Renderer>();
     private Collider[] cachedColliders = System.Array.Empty<Collider>();
     private Rigidbody cachedRigidbody;
-    private IShutterFreezable3D cachedFreezable;
+    private IMarkable3D cachedMarkable;
     private MaterialPropertyBlock propertyBlock;
     private bool highlightActive;
 
@@ -156,7 +156,7 @@ public class CameraObjectTag3D : MonoBehaviour
 
     private bool HasFreezableCapability()
     {
-        return cachedRigidbody != null || cachedFreezable != null;
+        return cachedRigidbody != null || cachedMarkable != null;
     }
 
     private void EnsureOutline()
@@ -270,11 +270,11 @@ public class CameraObjectTag3D : MonoBehaviour
         cachedRenderers = GetComponentsInChildren<Renderer>(true);
         cachedColliders = GetComponentsInChildren<Collider>(true);
         cachedRigidbody = GetComponentInParent<Rigidbody>();
-        cachedFreezable = null;
+        cachedMarkable = null;
         MonoBehaviour[] behaviours = GetComponentsInParent<MonoBehaviour>();
         for (int i = 0; i < behaviours.Length; i++)
         {
-            if (behaviours[i] is IShutterFreezable3D freezable) { cachedFreezable = freezable; break; }
+            if (behaviours[i] is IMarkable3D markable) { cachedMarkable = markable; break; }
         }
     }
 

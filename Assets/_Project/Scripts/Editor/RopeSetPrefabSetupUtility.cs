@@ -114,6 +114,12 @@ public static class RopeSetPrefabSetupUtility
         GameObject root = PrefabUtility.LoadPrefabContents(BoxPath);
         try
         {
+            root.tag = CameraTagUtility3D.ElectronicNoiseTag;
+            Rigidbody body = root.GetComponent<Rigidbody>();
+            CameraMarkState3D markState = root.GetComponent<CameraMarkState3D>();
+            if (markState == null) markState = root.AddComponent<CameraMarkState3D>();
+            SetObjectReference(markState, "targetBody", body);
+
             Transform legacyVisual = root.transform.Find("Visual");
             if (legacyVisual != null)
             {
@@ -340,10 +346,9 @@ public static class RopeSetPrefabSetupUtility
             SetFloat(projectile, "initialMoveSpeed", 5f);
             SetFloat(projectile, "moveAcceleration", 0f);
             SetFloat(projectile, "maxMoveSpeed", 5f);
-            SetFloat(projectile, "rollingLifetime", 8f);
+            SetFloat(projectile, "rollingLifetime", 3.5f);
             SetBool(projectile, "stopOnWall", true);
             SetBool(projectile, "disableOnStop", true);
-            SetBool(projectile, "disableOnPlayerHit", true);
             SetBool(projectile, "trackPlayerWhileRolling", false);
             SetBool(projectile, "allowDirectionReversal", false);
             SetBool(projectile, "reacquirePlayerOnLanding", true);
@@ -473,6 +478,7 @@ public static class RopeSetPrefabSetupUtility
         GameObject root = new GameObject("CircleSpike");
         try
         {
+            root.tag = CameraTagUtility3D.ElectronicNoiseTag;
             Rigidbody rb = root.AddComponent<Rigidbody>();
             rb.useGravity = false;
             rb.isKinematic = true;
@@ -490,6 +496,8 @@ public static class RopeSetPrefabSetupUtility
             GravityObjectDamageDealer damage = root.AddComponent<GravityObjectDamageDealer>();
             CircleSpikeObject spike = root.AddComponent<CircleSpikeObject>();
             CircleSpikeProjectile3D projectile = root.AddComponent<CircleSpikeProjectile3D>();
+            CameraMarkState3D markState = root.AddComponent<CameraMarkState3D>();
+            SetObjectReference(markState, "targetBody", rb);
 
             SetObjectReference(gravity, "rb", rb);
             SetBool(gravity, "startAttached", true);
@@ -498,6 +506,7 @@ public static class RopeSetPrefabSetupUtility
             SetBool(gravity, "lockZPosition", true);
             SetBool(gravity, "debugMode", false);
             SetBool(damage, "damageOnlyWhileFalling", false);
+            SetBool(damage, "instantKillPlayer", false);
             SetBool(damage, "debugMode", false);
             SetObjectReference(spike, "gravityObject", gravity);
             SetObjectReference(spike, "damageDealer", damage);
@@ -526,6 +535,7 @@ public static class RopeSetPrefabSetupUtility
             SetFloat(projectile, "initialMoveSpeed", 5f);
             SetFloat(projectile, "moveAcceleration", 0f);
             SetFloat(projectile, "maxMoveSpeed", 5f);
+            SetFloat(projectile, "rollingLifetime", 3.5f);
             SetInt(projectile, "rotationMode", (int)CircleSpikeVisualRotationMode.DistanceBased);
             SetFloat(projectile, "visualRotationSpeed", 180f);
             SetFloat(projectile, "visualRotationMultiplier", 0.35f);

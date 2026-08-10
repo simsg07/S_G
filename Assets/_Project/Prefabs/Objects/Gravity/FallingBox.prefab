@@ -13,16 +13,16 @@ GameObject:
   - component: {fileID: 220004}
   - component: {fileID: 220005}
   - component: {fileID: 220006}
-  - component: {fileID: 220011}
   - component: {fileID: 220007}
   - component: {fileID: 220010}
   - component: {fileID: 220008}
   - component: {fileID: 220009}
   - component: {fileID: 220012}
   - component: {fileID: 7141094275798631066}
-  m_Layer: 14
+  - component: {fileID: 7141094275798631067}
+  m_Layer: 9
   m_Name: FallingBox
-  m_TagString: Untagged
+  m_TagString: ElectronicNoise
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -136,27 +136,6 @@ MonoBehaviour:
   damageOncePerTarget: 1
   onlyWhenEnabled: 1
   debugMode: 1
---- !u!114 &220011
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 220001}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8aa72eb0cc54a9383e21068a5bffb23, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GravityObjectDamageDealer
-  instantKillPlayer: 1
-  damageOnlyWhileFalling: 1
-  playerLayerMask:
-    serializedVersion: 2
-    m_Bits: 0
-  playerTag: Player
-  stoneObject: {fileID: 0}
-  fallingBoxObject: {fileID: 220007}
-  debugMode: 1
 --- !u!114 &220007
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -169,16 +148,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc156c3ffef04be89b7cd2806a107d56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FallingBoxObject
+  currentState: 0
   isDropped: 0
   isLanded: 0
   remainAsPlatformOnGround: 1
   groundLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 7936
   gravityObject: {fileID: 220004}
   damageDealer: {fileID: 220006}
-  gravityObjectDamageDealer: {fileID: 220011}
   pausablePhysicsObject: {fileID: 220005}
+  magneticCarryable: {fileID: 7141094275798631066}
   rb: {fileID: 220008}
   mainCollider: {fileID: 220009}
   debugMode: 1
@@ -305,6 +285,34 @@ MonoBehaviour:
   restoreGravityState: 1
   restoreConstraints: 1
   magnetHoldOffset: {x: 0, y: 0, z: 0}
+--- !u!114 &7141094275798631067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 220001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94569c5ebf9d431bb0bd118af737a52f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraMarkState3D
+  markedColor: {r: 0.35, g: 0.95, b: 1, a: 0.95}
+  markerWidth: 0.95
+  markerHeight: 0.08
+  markerDepth: 0.08
+  markerYOffset: 0.28
+  pulseSpeed: 8
+  targetBody: {fileID: 220008}
+  pinTransformWhileMarked: 1
+  restoreMarkedTransformOnRelease: 1
+  runtimeMarked: 0
+  runtimeRemainingTime: 0
+  runtimeStoredLinearVelocity: {x: 0, y: 0, z: 0}
+  runtimeStoredAngularVelocity: {x: 0, y: 0, z: 0}
+  runtimeStoredKinematic: 0
+  runtimeStoredUseGravity: 0
+  runtimeStoredConstraints: 0
 --- !u!1 &220101
 GameObject:
   m_ObjectHideFlags: 0
@@ -316,7 +324,7 @@ GameObject:
   - component: {fileID: 220102}
   - component: {fileID: 220103}
   - component: {fileID: 220104}
-  m_Layer: 14
+  m_Layer: 9
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -404,7 +412,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1988410887564171785}
-  m_Layer: 14
+  m_Layer: 9
   m_Name: BoxTopAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -436,7 +444,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4977712123056890043}
   - component: {fileID: 6999148935436547871}
-  m_Layer: 14
+  m_Layer: 9
   m_Name: BoxVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}

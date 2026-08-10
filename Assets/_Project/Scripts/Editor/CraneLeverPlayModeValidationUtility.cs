@@ -1,6 +1,8 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Events;
+using System.Reflection;
 
 public static class CraneLeverPlayModeValidationUtility
 {
@@ -16,6 +18,7 @@ public static class CraneLeverPlayModeValidationUtility
     private static float stageStarted;
     private static int stage;
     private static bool failed;
+    private static int horizontalActivationCount;
 
     [MenuItem("Tools/_Project/Crane/Validate Lever Play Mode")]
     public static void Run()
@@ -64,7 +67,19 @@ public static class CraneLeverPlayModeValidationUtility
             }
             horizontalStart = horizontalCrane.transform.position;
             verticalStart = verticalCrane.transform.Find("MovingAssemblyRoot")?.position ?? Vector3.zero;
-            if (!horizontalLever.ActivateLever() || !verticalLever.ActivateLever()) Fail("Initial lever activation was rejected.");
+            horizontalActivationCount = 0;
+            GetActivationEvent(horizontalLever).AddListener(CountHorizontalActivation);
+
+            Collider circleSpikeCollider = CreateLaunchedCircleSpike();
+            horizontalLever.SendMessage("OnTriggerEnter", circleSpikeCollider, SendMessageOptions.DontRequireReceiver);
+            horizontalLever.SendMessage("OnTriggerEnter", circleSpikeCollider, SendMessageOptions.DontRequireReceiver);
+            if (horizontalLever.State != CraneLeverOperationState.WaitingForActivation || horizontalActivationCount != 1)
+                Fail("CircleSpike did not activate the Switch exactly once.");
+
+            if (!verticalLever.TryActivate(SwitchActivationSource.Stone, new GameObject("Validation_Stone")))
+                Fail("Stone activation was rejected.");
+
+            ValidateBoxDoesNotActivateSwitch();
             if (horizontalCrane.IsMoving || verticalCrane.IsMoving) Fail("A Crane moved before Activation Delay elapsed.");
             if (horizontalLever.ActivateLever() || verticalLever.ActivateLever()) Fail("Repeated delay input was not blocked.");
             stageStarted = Time.realtimeSinceStartup;
@@ -133,6 +148,47 @@ public static class CraneLeverPlayModeValidationUtility
         data.ApplyModifiedPropertiesWithoutUndo();
     }
 
+    private static Collider CreateLaunchedCircleSpike()
+    {
+        GameObject source = new GameObject("Validation_CircleSpike");
+        BoxCollider sourceCollider = source.AddComponent<BoxCollider>();
+        source.AddComponent<Rigidbody>();
+        source.AddComponent<CircleSpikeObject>();
+        CircleSpikeProjectile3D projectile = source.AddComponent<CircleSpikeProjectile3D>();
+        if (!projectile.ReleaseAndDrop()) Fail("Validation CircleSpike could not enter its launched state.");
+        return sourceCollider;
+    }
+
+    private static void ValidateBoxDoesNotActivateSwitch()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(HorizontalPath);
+        GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        instance.name = "Validation_BoxExclusionCrane";
+        instance.transform.position = new Vector3(0f, 10f, 0f);
+        CraneLeverSwitch lever = instance.GetComponentInChildren<CraneLeverSwitch>(true);
+        ConfigureFastMovement(lever, "activationDelay", 3f);
+
+        GameObject box = new GameObject("Validation_Box");
+        BoxCollider boxCollider = box.AddComponent<BoxCollider>();
+        box.AddComponent<Rigidbody>();
+        box.AddComponent<FallingBoxObject>();
+        lever.SendMessage("OnTriggerEnter", boxCollider, SendMessageOptions.DontRequireReceiver);
+        if (lever.State != CraneLeverOperationState.Idle) Fail("Box incorrectly activated the Switch.");
+    }
+
+    private static UnityEvent GetActivationEvent(CraneLeverSwitch lever)
+    {
+        FieldInfo field = typeof(CraneLeverSwitch).GetField("onLeverActivated", BindingFlags.Instance | BindingFlags.NonPublic);
+        UnityEvent result = field != null ? field.GetValue(lever) as UnityEvent : null;
+        if (result == null) Fail("Switch activation event was not available for validation.");
+        return result;
+    }
+
+    private static void CountHorizontalActivation()
+    {
+        horizontalActivationCount++;
+    }
+
     private static void Fail(string message)
     {
         failed = true;
@@ -143,7 +199,7 @@ public static class CraneLeverPlayModeValidationUtility
     private static void Finish()
     {
         EditorApplication.update -= Tick;
-        if (!failed) Debug.Log("[CraneLeverPlayModeValidation] PASS: delayed start, duplicate blocking, arrival, and reverse arrival validated for both Cranes.");
+        if (!failed) Debug.Log("[CraneLeverPlayModeValidation] PASS: Player/Stone/CircleSpike inputs, CircleSpike duplicate blocking, Box exclusion, delayed start, arrival, and reverse arrival validated.");
         EditorApplication.ExitPlaymode();
     }
 }

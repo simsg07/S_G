@@ -1,60 +1,179 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class CameraMarkState3D : MonoBehaviour
+public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
 {
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
 
     [SerializeField] private Color markedColor = new Color(0.35f, 0.95f, 1f, 0.95f);
-    [SerializeField] private Color cooldownColor = new Color(1f, 0.76f, 0.24f, 0.65f);
     [SerializeField] private float markerWidth = 0.95f;
     [SerializeField] private float markerHeight = 0.08f;
     [SerializeField] private float markerDepth = 0.08f;
     [SerializeField] private float markerYOffset = 0.28f;
     [SerializeField] private float pulseSpeed = 8f;
 
+    [Header("Mark Physics Target")]
+    [SerializeField] private Rigidbody targetBody;
+    [SerializeField] private bool pinTransformWhileMarked = true;
+    [SerializeField] private bool restoreMarkedTransformOnRelease = true;
+
+    [Header("Runtime Debug (Read Only)")]
+    [SerializeField] private bool runtimeMarked;
+    [SerializeField] private float runtimeRemainingTime;
+    [SerializeField] private Vector3 runtimeStoredLinearVelocity;
+    [SerializeField] private Vector3 runtimeStoredAngularVelocity;
+    [SerializeField] private bool runtimeStoredKinematic;
+    [SerializeField] private bool runtimeStoredUseGravity;
+    [SerializeField] private RigidbodyConstraints runtimeStoredConstraints;
+
     private MeshRenderer markerRenderer;
     private MeshFilter markerFilter;
     private Renderer[] cachedRenderers = System.Array.Empty<Renderer>();
     private MaterialPropertyBlock propertyBlock;
     private float markEndTime;
-    private float cooldownEndTime;
+    private bool markPhysicsCaptured;
+    private bool storedKinematic;
+    private bool storedUseGravity;
+    private RigidbodyConstraints storedConstraints;
+    private CollisionDetectionMode storedCollisionDetectionMode;
+    private RigidbodyInterpolation storedInterpolation;
+    private Vector3 storedLinearVelocity;
+    private Vector3 storedAngularVelocity;
+    private Vector3 markedPosition;
+    private Quaternion markedRotation;
 
-    public bool IsMarked => Time.time < markEndTime;
-    public bool IsCoolingDown => Time.time >= markEndTime && Time.time < cooldownEndTime;
+    public bool IsMarked => markPhysicsCaptured;
+    public float RemainingMarkTime => IsMarked ? Mathf.Max(0f, markEndTime - Time.time) : 0f;
 
     private void Awake()
     {
+        if (targetBody == null) targetBody = GetComponent<Rigidbody>();
         RefreshCache();
         EnsureMarker();
         ApplyVisual();
-        enabled = IsMarked || IsCoolingDown;
+        enabled = IsMarked;
     }
 
     private void Update()
     {
+        runtimeMarked = IsMarked;
+        runtimeRemainingTime = RemainingMarkTime;
+        if (IsMarked && Time.time >= markEndTime)
+        {
+            ReleaseMark();
+            return;
+        }
         ApplyVisual();
+    }
+
+    private void LateUpdate()
+    {
+        if (!IsMarked || !pinTransformWhileMarked) return;
+        RestoreMarkedTransform();
     }
 
     private void OnDisable()
     {
+        ReleaseMark();
         if (markerRenderer != null) markerRenderer.enabled = false;
     }
 
-    public void SetMarkWindow(float markEnd, float cooldownEnd)
+    public bool ApplyMark(float duration, CameraAbilitySystem3D source)
     {
-        markEndTime = markEnd;
-        cooldownEndTime = Mathf.Max(cooldownEnd, markEnd);
+        if (duration <= 0f || !gameObject.activeInHierarchy) return false;
+
+        if (!IsMarked)
+        {
+            CaptureAndStopPhysics();
+        }
+
+        // Re촬영은 남은 시간에 더하지 않고 촬영 시점부터 전체 시간을 다시 부여한다.
+        markEndTime = Time.time + duration;
+        runtimeMarked = true;
+        runtimeRemainingTime = duration;
         EnsureMarker();
         ApplyVisual();
-        enabled = IsMarked || IsCoolingDown;
+        enabled = true;
+        return true;
     }
 
     public void ClearMark()
     {
+        ReleaseMark();
+    }
+
+    private void CaptureAndStopPhysics()
+    {
+        if (targetBody == null) targetBody = GetComponent<Rigidbody>();
+        markPhysicsCaptured = true;
+        Transform markedTransform = targetBody != null ? targetBody.transform : transform;
+        markedPosition = markedTransform.position;
+        markedRotation = markedTransform.rotation;
+
+        if (targetBody == null) return;
+
+        storedKinematic = targetBody.isKinematic;
+        storedUseGravity = targetBody.useGravity;
+        storedConstraints = targetBody.constraints;
+        storedCollisionDetectionMode = targetBody.collisionDetectionMode;
+        storedInterpolation = targetBody.interpolation;
+        storedLinearVelocity = targetBody.linearVelocity;
+        storedAngularVelocity = targetBody.angularVelocity;
+        runtimeStoredKinematic = storedKinematic;
+        runtimeStoredUseGravity = storedUseGravity;
+        runtimeStoredConstraints = storedConstraints;
+        runtimeStoredLinearVelocity = storedLinearVelocity;
+        runtimeStoredAngularVelocity = storedAngularVelocity;
+
+        targetBody.linearVelocity = Vector3.zero;
+        targetBody.angularVelocity = Vector3.zero;
+        targetBody.useGravity = false;
+        targetBody.isKinematic = true;
+    }
+
+    private void RestoreMarkedTransform()
+    {
+        if (targetBody != null)
+        {
+            targetBody.position = markedPosition;
+            targetBody.rotation = markedRotation;
+        }
+        else
+        {
+            transform.SetPositionAndRotation(markedPosition, markedRotation);
+        }
+    }
+
+    private void ReleaseMark()
+    {
+        if (!markPhysicsCaptured)
+        {
+            markEndTime = 0f;
+            runtimeMarked = false;
+            runtimeRemainingTime = 0f;
+            return;
+        }
+
+        if (restoreMarkedTransformOnRelease) RestoreMarkedTransform();
+        if (targetBody != null)
+        {
+            targetBody.isKinematic = storedKinematic;
+            targetBody.useGravity = storedUseGravity;
+            targetBody.constraints = storedConstraints;
+            targetBody.collisionDetectionMode = storedCollisionDetectionMode;
+            targetBody.interpolation = storedInterpolation;
+            if (!targetBody.isKinematic)
+            {
+                targetBody.linearVelocity = TwoPointFiveDUtility3D.ProjectVelocityToPlane(storedLinearVelocity);
+                targetBody.angularVelocity = storedAngularVelocity;
+            }
+        }
+
+        markPhysicsCaptured = false;
         markEndTime = 0f;
-        cooldownEndTime = 0f;
+        runtimeMarked = false;
+        runtimeRemainingTime = 0f;
         ApplyVisual();
         enabled = false;
     }
@@ -81,7 +200,7 @@ public class CameraMarkState3D : MonoBehaviour
     {
         EnsureMarker();
 
-        bool active = IsMarked || IsCoolingDown;
+        bool active = IsMarked;
         markerRenderer.enabled = active;
         if (!active)
         {
@@ -105,10 +224,10 @@ public class CameraMarkState3D : MonoBehaviour
         }
         markerTransform.position = markerPosition;
 
-        float pulse = IsMarked ? 1f + Mathf.Sin(Time.time * pulseSpeed) * 0.08f : 1f;
+        float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * 0.08f;
         markerTransform.localScale = new Vector3(markerWidth * pulse, markerHeight, markerDepth);
 
-        SetMarkerColor(IsMarked ? markedColor : cooldownColor);
+        SetMarkerColor(markedColor);
     }
 
     private void SetMarkerColor(Color color)

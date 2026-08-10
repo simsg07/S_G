@@ -6,6 +6,8 @@ public static class GameProgressSave3D
     private const string PlayerPrefsKey = "S_G_CameraMetroidvaniaProgress";
 
     private static SavePayload cachedPayload;
+    private static SavePayload transientPayload;
+    private static int transientSessionDepth;
 
     public static bool HasSaveData => PlayerPrefs.HasKey(PlayerPrefsKey);
 
@@ -72,6 +74,24 @@ public static class GameProgressSave3D
         return !string.IsNullOrWhiteSpace(sceneName) && !string.IsNullOrWhiteSpace(checkpointId);
     }
 
+    public static bool TryGetLastCheckpointPose(
+        out string sceneName,
+        out string checkpointId,
+        out Vector3 position,
+        out Quaternion rotation,
+        out ResearchWorldId world)
+    {
+        SavePayload payload = LoadPayload();
+        sceneName = payload.lastCheckpointScene;
+        checkpointId = payload.lastCheckpointId;
+        position = payload.lastCheckpointPosition;
+        rotation = payload.lastCheckpointRotation;
+        world = payload.lastCheckpointWorld;
+        return payload.hasLastCheckpointPose
+            && !string.IsNullOrWhiteSpace(sceneName)
+            && !string.IsNullOrWhiteSpace(checkpointId);
+    }
+
     public static void RecordCheckpointActivated(string sceneName, string checkpointId)
     {
         if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(checkpointId))
@@ -85,6 +105,32 @@ public static class GameProgressSave3D
         payload.lastCheckpointScene = sceneName;
         payload.lastCheckpointId = checkpointId;
         payload.saveVersion = Mathf.Max(payload.saveVersion, 2);
+        WritePayload(payload);
+    }
+
+    public static void RecordCheckpointActivated(
+        string sceneName,
+        string checkpointId,
+        Vector3 position,
+        Quaternion rotation,
+        ResearchWorldId world)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(checkpointId))
+        {
+            Debug.LogWarning("[GameProgressSave3D] Checkpoint scene and ID are required. Save skipped.");
+            return;
+        }
+
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.activatedCheckpointIds, checkpointId);
+        payload.lastCheckpointScene = sceneName;
+        payload.lastCheckpointId = checkpointId;
+        payload.lastCheckpointPosition = position;
+        payload.lastCheckpointRotation = rotation;
+        payload.lastCheckpointWorld = world;
+        payload.hasLastCheckpointPose = true;
+        payload.currentWorld = world;
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 5);
         WritePayload(payload);
     }
 
@@ -129,7 +175,38 @@ public static class GameProgressSave3D
 
     public static void SaveNow()
     {
+        if (transientSessionDepth > 0) return;
         if (cachedPayload != null) PlayerPrefs.Save();
+    }
+
+    /// <summary>
+    /// Isolates progress mutations in memory until the matching transient session ends.
+    /// Intended for development/test scenes that must never overwrite live progress.
+    /// </summary>
+    public static void BeginTransientSession()
+    {
+        if (transientSessionDepth == 0)
+        {
+            SavePayload source = LoadPayload();
+            transientPayload = JsonUtility.FromJson<SavePayload>(JsonUtility.ToJson(source)) ?? new SavePayload();
+            transientPayload.EnsureLists();
+        }
+
+        transientSessionDepth++;
+    }
+
+    public static void EndTransientSession()
+    {
+        if (transientSessionDepth <= 0)
+        {
+            return;
+        }
+
+        transientSessionDepth--;
+        if (transientSessionDepth == 0)
+        {
+            transientPayload = null;
+        }
     }
 
     public static void RecordAbilityUnlocked(CameraAbilityId ability)
@@ -191,6 +268,12 @@ public static class GameProgressSave3D
 
     public static void ResetProgress()
     {
+        if (transientSessionDepth > 0)
+        {
+            transientPayload = new SavePayload();
+            return;
+        }
+
         cachedPayload = new SavePayload();
         PlayerPrefs.DeleteKey(PlayerPrefsKey);
         PlayerPrefs.Save();
@@ -198,6 +281,13 @@ public static class GameProgressSave3D
 
     private static SavePayload LoadPayload()
     {
+        if (transientSessionDepth > 0)
+        {
+            transientPayload ??= new SavePayload();
+            transientPayload.EnsureLists();
+            return transientPayload;
+        }
+
         if (cachedPayload != null)
         {
             return cachedPayload;
@@ -223,6 +313,12 @@ public static class GameProgressSave3D
     private static void WritePayload(SavePayload payload)
     {
         payload.EnsureLists();
+        if (transientSessionDepth > 0)
+        {
+            transientPayload = payload;
+            return;
+        }
+
         cachedPayload = payload;
         PlayerPrefs.SetString(PlayerPrefsKey, JsonUtility.ToJson(payload));
         PlayerPrefs.Save();
@@ -253,6 +349,10 @@ public static class GameProgressSave3D
         public List<string> completedPuzzleIds = new List<string>();
         public string lastCheckpointScene = string.Empty;
         public string lastCheckpointId = string.Empty;
+        public bool hasLastCheckpointPose;
+        public Vector3 lastCheckpointPosition;
+        public Quaternion lastCheckpointRotation = Quaternion.identity;
+        public ResearchWorldId lastCheckpointWorld = ResearchWorldId.WorldA;
         public List<PersistentObjectRecord> persistentObjectStates = new List<PersistentObjectRecord>();
         public ResearchWorldId currentWorld = ResearchWorldId.WorldA;
         public bool hiddenEndingUnlocked;

@@ -304,6 +304,15 @@ public static class SummerCampStageBootstrap3D
         }
     }
 
+    /// <summary>
+    /// Removes the stage-only Player before loading a utility scene such as the title.
+    /// The destination scene remains responsible for creating its own camera and UI.
+    /// </summary>
+    public static void PrepareForUtilitySceneLoad()
+    {
+        RemovePersistentStagePlayer();
+    }
+
     private static void RemovePersistentStagePlayer()
     {
         if (persistentPlayer == null)
@@ -313,6 +322,7 @@ public static class SummerCampStageBootstrap3D
 
         if (persistentPlayer != null)
         {
+            persistentPlayer.gameObject.SetActive(false);
             Object.Destroy(persistentPlayer.gameObject);
             persistentPlayer = null;
         }

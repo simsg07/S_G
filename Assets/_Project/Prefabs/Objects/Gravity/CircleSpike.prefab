@@ -15,9 +15,10 @@ GameObject:
   - component: {fileID: 7101126046778786735}
   - component: {fileID: 8551396359708706361}
   - component: {fileID: 6844972387319200001}
+  - component: {fileID: 6844972387319200002}
   m_Layer: 0
   m_Name: CircleSpike
-  m_TagString: Untagged
+  m_TagString: ElectronicNoise
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -120,7 +121,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8aa72eb0cc54a9383e21068a5bffb23, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GravityObjectDamageDealer
-  instantKillPlayer: 1
+  instantKillPlayer: 0
   damageOnlyWhileFalling: 0
   playerLayerMask:
     serializedVersion: 2
@@ -166,10 +167,9 @@ MonoBehaviour:
   initialMoveSpeed: 5
   moveAcceleration: 0
   maxMoveSpeed: 5
-  rollingLifetime: 8
+  rollingLifetime: 3.5
   stopOnWall: 1
   disableOnStop: 1
-  disableOnPlayerHit: 1
   trackPlayerWhileRolling: 0
   allowDirectionReversal: 0
   reacquirePlayerOnLanding: 1
@@ -193,6 +193,34 @@ MonoBehaviour:
   state: 0
   rollDirection: 0
   currentMoveSpeed: 0
+--- !u!114 &6844972387319200002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 334712123917156425}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94569c5ebf9d431bb0bd118af737a52f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraMarkState3D
+  markedColor: {r: 0.35, g: 0.95, b: 1, a: 0.95}
+  markerWidth: 0.95
+  markerHeight: 0.08
+  markerDepth: 0.08
+  markerYOffset: 0.28
+  pulseSpeed: 8
+  targetBody: {fileID: 5594948398264624409}
+  pinTransformWhileMarked: 1
+  restoreMarkedTransformOnRelease: 1
+  runtimeMarked: 0
+  runtimeRemainingTime: 0
+  runtimeStoredLinearVelocity: {x: 0, y: 0, z: 0}
+  runtimeStoredAngularVelocity: {x: 0, y: 0, z: 0}
+  runtimeStoredKinematic: 0
+  runtimeStoredUseGravity: 0
+  runtimeStoredConstraints: 0
 --- !u!1 &1308674580908456456
 GameObject:
   m_ObjectHideFlags: 0
