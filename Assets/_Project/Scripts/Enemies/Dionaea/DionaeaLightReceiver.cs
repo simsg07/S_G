@@ -84,6 +84,13 @@ public sealed class DionaeaLightReceiver : MonoBehaviour
         {
             Collider hit = hits[i];
             if (hit == null || hit.transform.IsChildOf(transform)) continue;
+            if (GameplayLightSource3D.TryResolve(hit, out IGameplayLightSource3D source))
+            {
+                if (source is Component sourceComponent &&
+                    !WorldDamageFilter3D.CanAffect(sourceComponent, this)) continue;
+                if (source.IsProvidingLight && source.IsIlluminating(transform.position)) return true;
+                continue;
+            }
             Light light = hit.GetComponentInParent<Light>();
             if (light != null && LightReaches(light)) return true;
             if (useTagFallback && HasTagSafely(hit.gameObject, lightTag)) return true;
@@ -112,6 +119,12 @@ public sealed class DionaeaLightReceiver : MonoBehaviour
 
     private bool LightReaches(Light light)
     {
+        if (GameplayLightSource3D.TryResolve(light, out IGameplayLightSource3D source))
+        {
+            if (source is Component sourceComponent &&
+                !WorldDamageFilter3D.CanAffect(sourceComponent, this)) return false;
+            return source.IsProvidingLight && source.IsIlluminating(transform.position);
+        }
         if (!light.isActiveAndEnabled || light.intensity <= 0f) return false;
         if (light.type == LightType.Directional) return true;
         Vector3 delta = transform.position - light.transform.position;

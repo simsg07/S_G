@@ -16,7 +16,6 @@ public class GravityObjectSpawner : MonoBehaviour
     [SerializeField] private float respawnDelay = 1f;
     [SerializeField] private bool enableSpawn = true;
     [SerializeField] private bool useSpawnPointRotation = true;
-    [SerializeField, Min(1)] private int maxAliveCount = 1;
     [SerializeField] private bool allowRepeatedRespawn = true;
     [SerializeField] private Transform spawnedParent;
 

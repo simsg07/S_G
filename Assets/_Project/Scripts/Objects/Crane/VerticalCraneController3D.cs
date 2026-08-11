@@ -52,7 +52,6 @@ public sealed class VerticalCraneController3D : MonoBehaviour
     [SerializeField] private AnimationCurve movementCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
     [Header("Shutter / Debug")]
-    [SerializeField] private bool canPauseByShutter = true;
     [SerializeField] private bool showGizmos = true;
     [SerializeField] private VerticalCraneMovementState state = VerticalCraneMovementState.WaitingAtTop;
 

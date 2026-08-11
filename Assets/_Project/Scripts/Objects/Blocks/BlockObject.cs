@@ -1,5 +1,40 @@
+using System;
 using System.Collections;
 using UnityEngine;
+
+public enum TemporalWeakWallWorldRole
+{
+    Current = 0,
+    Past = 1
+}
+
+public static class TemporalWeakWallProgress3D
+{
+    public static event Action<string, string, TemporalWeakWallWorldRole> Changed;
+
+    public static bool IsDestroyed(string sceneName, string temporalKey, TemporalWeakWallWorldRole role)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(temporalKey)) return false;
+        return GameProgressSave3D.TryGetPersistentObjectState(sceneName, BuildId(temporalKey, role), out PersistentSceneObjectState state)
+            && state == PersistentSceneObjectState.Destroyed;
+    }
+
+    public static bool RecordDestroyed(string sceneName, string temporalKey, TemporalWeakWallWorldRole role)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(temporalKey)
+            || IsDestroyed(sceneName, temporalKey, role)) return false;
+        GameProgressSave3D.RecordRuntimePersistentObjectState(
+            sceneName, BuildId(temporalKey, role), PersistentSceneObjectState.Destroyed);
+        Changed?.Invoke(sceneName, temporalKey.Trim(), role);
+        return true;
+    }
+
+    private static string BuildId(string temporalKey, TemporalWeakWallWorldRole role)
+    {
+        string suffix = role == TemporalWeakWallWorldRole.Past ? "past_destroyed" : "current_destroyed";
+        return $"temporal_weak_wall.{temporalKey.Trim()}.{suffix}";
+    }
+}
 
 [AddComponentMenu("_Project/Objects/Weak Wall (Block Object)")]
 [DefaultExecutionOrder(-100)]
@@ -24,6 +59,10 @@ public class BlockObject : MonoBehaviour
     [SerializeField] private bool permanentDestruction;
     [Tooltip("Runtime state shown for the Weak_Wall prefab.")]
     [SerializeField] private WeakWallState currentState = WeakWallState.INTACT;
+    [Tooltip("같은 시간축의 Weak_Wall을 연결하는 키입니다. 빈 값이면 기존 독립 진행을 사용합니다.")]
+    [SerializeField] private string temporalProgressKey;
+    [Tooltip("World A는 Current, World B는 Past입니다.")]
+    [SerializeField] private TemporalWeakWallWorldRole worldRole = TemporalWeakWallWorldRole.Current;
 
     [Header("Block Rules")]
     [SerializeField] private bool canBlockPlayer = true;
@@ -56,12 +95,15 @@ public class BlockObject : MonoBehaviour
     [SerializeField] private string debugPersistentId = string.Empty;
     [SerializeField] private bool loadedPersistentDestroyed;
     [SerializeField] private string lastStateApplyReason = "Not applied";
+    [SerializeField] private bool debugPastDestroyed;
+    [SerializeField] private bool debugCurrentDestroyed;
 
     [Header("Debug")]
     [SerializeField] private bool debugMode = true;
 
     private Coroutine hideVisualRoutine;
     private bool registeredHitReceiver;
+    private bool temporalProgressSubscribed;
 
     public BlockObjectType BlockType => blockType;
     public bool IsBroken => isBroken;
@@ -73,11 +115,13 @@ public class BlockObject : MonoBehaviour
     public bool CanBlockMonster => canBlockMonster;
     public bool CanBlockSight => canBlockSight;
     public bool CanBlockLight => canBlockLight;
+    public TemporalWeakWallWorldRole WorldRole => worldRole;
+    public string TemporalProgressKey => temporalProgressKey;
 
     private void Awake()
     {
         CacheReferences();
-        if (permanentDestruction && !RestorePersistentState("Awake"))
+        if (!RestoreProgressState("Awake"))
         {
             ApplyIntactVisualAndCollider("Awake: no saved DESTROYED state");
         }
@@ -86,15 +130,16 @@ public class BlockObject : MonoBehaviour
     private void OnEnable()
     {
         CacheReferences();
+        SubscribeTemporalProgress();
+
+        if (RestoreProgressState("OnEnable (scene/world activation)"))
+        {
+            return;
+        }
 
         if (!permanentDestruction)
         {
             RegisterHitReceiver();
-            return;
-        }
-
-        if (RestorePersistentState("OnEnable (scene/world activation)"))
-        {
             return;
         }
 
@@ -110,8 +155,11 @@ public class BlockObject : MonoBehaviour
 
     private void OnDisable()
     {
+        UnsubscribeTemporalProgress();
         UnregisterHitReceiver();
     }
+
+    private void OnDestroy() => UnsubscribeTemporalProgress();
 
     private void OnValidate()
     {
@@ -234,14 +282,17 @@ public class BlockObject : MonoBehaviour
 
         Log("BreakBlock complete.");
         if (persistentState == null) persistentState = GetComponent<PersistentSceneObject3D>();
-        persistentState?.MarkDestroyed();
+        persistentState?.MarkDestroyedRuntime();
+        if (!string.IsNullOrWhiteSpace(temporalProgressKey))
+            TemporalWeakWallProgress3D.RecordDestroyed(gameObject.scene.name, temporalProgressKey, worldRole);
         RefreshPersistentDebug();
     }
 
     [ContextMenu("Reset Block")]
     public void ResetBlock()
     {
-        if (permanentDestruction && (isBroken || IsPersistentlyDestroyed()))
+        if ((permanentDestruction || !string.IsNullOrWhiteSpace(temporalProgressKey))
+            && (isBroken || IsPersistentlyDestroyed()))
         {
             ApplyDestroyedVisualAndCollider("ResetBlock rejected: permanent DESTROYED state");
             Log("ResetBlock ignored because permanent destruction is saved.");
@@ -272,25 +323,22 @@ public class BlockObject : MonoBehaviour
 
     private bool IsPersistentlyDestroyed()
     {
-        if (!permanentDestruction || persistentState == null)
-        {
-            return false;
-        }
-
-        return persistentState.TryGetSavedState(out PersistentSceneObjectState savedState)
+        bool independentlyDestroyed = permanentDestruction && persistentState != null
+            && (persistentState.TryGetSavedState(out PersistentSceneObjectState savedState)
             ? savedState == PersistentSceneObjectState.Destroyed
-            : persistentState.CurrentState == PersistentSceneObjectState.Destroyed;
+            : persistentState.CurrentState == PersistentSceneObjectState.Destroyed);
+        return independentlyDestroyed || IsTemporallyDestroyed();
     }
 
-    private bool RestorePersistentState(string reason)
+    private bool RestoreProgressState(string reason)
     {
         RefreshPersistentDebug();
-        if (!permanentDestruction || !loadedPersistentDestroyed)
+        if (!IsPersistentlyDestroyed())
         {
             return false;
         }
 
-        ApplyDestroyedVisualAndCollider($"{reason}: loaded persistent DESTROYED");
+        ApplyDestroyedVisualAndCollider($"{reason}: loaded persistent/temporal DESTROYED");
         return true;
     }
 
@@ -315,6 +363,7 @@ public class BlockObject : MonoBehaviour
     {
         isBroken = true;
         currentState = WeakWallState.DESTROYED;
+        UnregisterHitReceiver();
 
         if (hideVisualRoutine != null)
         {
@@ -351,6 +400,53 @@ public class BlockObject : MonoBehaviour
         loadedPersistentDestroyed = persistentState != null
             && persistentState.TryGetSavedState(out PersistentSceneObjectState savedState)
             && savedState == PersistentSceneObjectState.Destroyed;
+        string sceneName = gameObject.scene.name;
+        debugPastDestroyed = TemporalWeakWallProgress3D.IsDestroyed(
+            sceneName, temporalProgressKey, TemporalWeakWallWorldRole.Past);
+        debugCurrentDestroyed = TemporalWeakWallProgress3D.IsDestroyed(
+            sceneName, temporalProgressKey, TemporalWeakWallWorldRole.Current);
+    }
+
+    private bool IsTemporallyDestroyed()
+    {
+        if (string.IsNullOrWhiteSpace(temporalProgressKey)) return false;
+        string sceneName = gameObject.scene.name;
+        bool pastDestroyed = TemporalWeakWallProgress3D.IsDestroyed(
+            sceneName, temporalProgressKey, TemporalWeakWallWorldRole.Past);
+        if (worldRole == TemporalWeakWallWorldRole.Past) return pastDestroyed;
+        return pastDestroyed || TemporalWeakWallProgress3D.IsDestroyed(
+            sceneName, temporalProgressKey, TemporalWeakWallWorldRole.Current);
+    }
+
+    private void SubscribeTemporalProgress()
+    {
+        if (temporalProgressSubscribed) return;
+        TemporalWeakWallProgress3D.Changed += HandleTemporalProgressChanged;
+        temporalProgressSubscribed = true;
+    }
+
+    private void UnsubscribeTemporalProgress()
+    {
+        if (!temporalProgressSubscribed) return;
+        TemporalWeakWallProgress3D.Changed -= HandleTemporalProgressChanged;
+        temporalProgressSubscribed = false;
+    }
+
+    private void HandleTemporalProgressChanged(
+        string sceneName, string changedKey, TemporalWeakWallWorldRole changedRole)
+    {
+        if (isBroken || string.IsNullOrWhiteSpace(temporalProgressKey)
+            || !string.Equals(gameObject.scene.name, sceneName, StringComparison.Ordinal)
+            || !string.Equals(temporalProgressKey.Trim(), changedKey, StringComparison.Ordinal)) return;
+
+        bool appliesHere = changedRole == worldRole
+            || (changedRole == TemporalWeakWallWorldRole.Past && worldRole == TemporalWeakWallWorldRole.Current);
+        if (!appliesHere) return;
+        RefreshPersistentDebug();
+        ApplyDestroyedVisualAndCollider(
+            changedRole == TemporalWeakWallWorldRole.Past
+                ? "Temporal sync: Past DESTROYED propagated to Current"
+                : "Temporal sync: Current DESTROYED applied to Current only");
     }
 
     public void SetCollisionEnabled(bool enabled)
@@ -582,7 +678,7 @@ public class BlockObject : MonoBehaviour
         }
     }
 
-    private void LogComponent(string label, Object component)
+    private void LogComponent(string label, UnityEngine.Object component)
     {
         if (!debugMode)
         {

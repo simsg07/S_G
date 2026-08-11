@@ -18,7 +18,6 @@ public class CraneCarryZone3D : MonoBehaviour
     [SerializeField] private QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction.Ignore;
     [SerializeField] private bool autoAttach = true;
     [SerializeField] private bool releaseAtDestination;
-    [SerializeField] private bool preserveWorldPositionOnAttach = true;
     [SerializeField] private Transform carryAnchor;
     [SerializeField] private Vector3 carryOffset;
     [Min(0f)] [SerializeField] private float maximumCarryMass;

@@ -11,6 +11,18 @@ public enum FocusingSpawnerState
     Disabled
 }
 
+public enum FocusingSpawnWorldPolicy
+{
+    [InspectorName("Use Prefab Setting")]
+    UsePrefabSetting = 0,
+    [InspectorName("Current World Only (World A)")]
+    CurrentWorldOnly = 1,
+    [InspectorName("Past World Only (World B)")]
+    PastWorldOnly = 2,
+    [InspectorName("Both Worlds")]
+    BothWorlds = 3
+}
+
 [DisallowMultipleComponent]
 [AddComponentMenu("_Project/Puzzle/Focusing Spawner 3D")]
 public sealed class FocusingSpawner3D : MonoBehaviour
@@ -33,6 +45,10 @@ public sealed class FocusingSpawner3D : MonoBehaviour
     [FormerlySerializedAs("resetByFocusingRing")]
     [SerializeField, Tooltip("포커싱 링 전체 초기화 대상에 포함합니다.")]
     private bool includeInFullReset = true;
+    [SerializeField, Tooltip("이 스포너가 생성한 인스턴스에만 적용할 World 소속입니다. 기본값은 Prefab 설정을 유지합니다.")]
+    private FocusingSpawnWorldPolicy spawnWorldPolicy = FocusingSpawnWorldPolicy.UsePrefabSetting;
+    [SerializeField, Tooltip("숨겨진 World에서의 실행 정책입니다. Continue Monster Logic은 Monster 스포너에만 적용됩니다.")]
+    private HiddenWorldSimulationPolicy hiddenWorldSimulationPolicy = HiddenWorldSimulationPolicy.PauseWhenHidden;
 
     [Header("Persistent Completion")]
     [SerializeField] private bool permanentlyDisableAfterPuzzleCompletion;
@@ -72,6 +88,9 @@ public sealed class FocusingSpawner3D : MonoBehaviour
     public bool ResetByFocusingRing => includeInFullReset;
     public bool IsPermanentlyDisabled => state == FocusingSpawnerState.Disabled;
     public bool SpawnInProgress => spawnInProgress;
+    public FocusingSpawnWorldPolicy SpawnWorldPolicy => spawnWorldPolicy;
+    public HiddenWorldSimulationPolicy EffectiveHiddenWorldSimulationPolicy => GetEffectiveHiddenWorldSimulationPolicy();
+    public string AppliedWorldSummary => GetAppliedWorldSummary();
 
     internal static void CopyRegisteredTo(List<FocusingSpawner3D> destination)
     {
@@ -121,19 +140,35 @@ public sealed class FocusingSpawner3D : MonoBehaviour
             // A defeated instance can remain temporarily registered until the full reset.
             ClearTemporaryObjects();
             Transform point = spawnPoint != null ? spawnPoint : transform;
-            DirectPlacedMonsterSpawnOwner3D.BeginSpawnerInstantiation();
+            GameObject stagingRoot = new GameObject($"{name} (Spawn Staging)");
+            stagingRoot.hideFlags = HideFlags.HideAndDontSave;
+            stagingRoot.SetActive(false);
             try
             {
-                currentInstance = Instantiate(spawnPrefab, point.position, point.rotation, spawnParent);
+                DirectPlacedMonsterSpawnOwner3D.BeginSpawnerInstantiation();
+                try
+                {
+                    currentInstance = Instantiate(spawnPrefab, point.position, point.rotation, stagingRoot.transform);
+                    currentInstance.SetActive(false);
+                }
+                finally
+                {
+                    DirectPlacedMonsterSpawnOwner3D.EndSpawnerInstantiation();
+                }
+
+                ApplySpawnWorldPolicy(currentInstance);
+                currentInstance.transform.SetParent(spawnParent, true);
+                currentInstance.transform.SetPositionAndRotation(point.position, point.rotation);
             }
             finally
             {
-                DirectPlacedMonsterSpawnOwner3D.EndSpawnerInstantiation();
+                Destroy(stagingRoot);
             }
             currentInstance.name = spawnPrefab.name;
             BindInstanceEvents(currentInstance);
-            NotifyAfterSpawn(currentInstance);
             state = FocusingSpawnerState.Alive;
+            currentInstance.SetActive(true);
+            NotifyAfterSpawn(currentInstance);
             ApplyPlayerOverlapProtection(currentInstance);
             spawned.Invoke();
             return true;
@@ -332,8 +367,73 @@ public sealed class FocusingSpawner3D : MonoBehaviour
         Debug.LogWarning($"[FocusingSpawner] Spawn Prefab is not assigned on '{name}'. This spawner was skipped.", this);
     }
 
+    private void ApplySpawnWorldPolicy(GameObject instance)
+    {
+        if (instance == null) return;
+
+        WorldPresence[] presences = instance.GetComponentsInChildren<WorldPresence>(true);
+        if (spawnWorldPolicy != FocusingSpawnWorldPolicy.UsePrefabSetting)
+        {
+            WorldPresenceMode mode = ToPresenceMode(spawnWorldPolicy);
+            if (presences.Length == 0)
+            {
+                WorldPresence adapter = instance.AddComponent<WorldPresence>();
+                adapter.ConfigureRuntimeAdapter(mode);
+                presences = new[] { adapter };
+            }
+            else
+            {
+                for (int i = 0; i < presences.Length; i++) presences[i].SetPresenceMode(mode);
+            }
+        }
+
+        HiddenWorldSimulationPolicy simulationPolicy = GetEffectiveHiddenWorldSimulationPolicy();
+        for (int i = 0; i < presences.Length; i++)
+            presences[i].ConfigureHiddenWorldSimulation(simulationPolicy, instance);
+
+        if (WorldManager.Instance != null)
+        {
+            for (int i = 0; i < presences.Length; i++) presences[i].ApplyWorldState(WorldManager.Instance.CurrentWorld);
+        }
+        else
+        {
+            ResearchWorldId activeWorld = WorldSystem3D.ActiveWorld;
+            for (int i = 0; i < presences.Length; i++) presences[i].ApplyWorldState(activeWorld);
+        }
+    }
+
+    private static WorldPresenceMode ToPresenceMode(FocusingSpawnWorldPolicy policy)
+    {
+        switch (policy)
+        {
+            case FocusingSpawnWorldPolicy.CurrentWorldOnly: return WorldPresenceMode.WorldAOnly;
+            case FocusingSpawnWorldPolicy.PastWorldOnly: return WorldPresenceMode.WorldBOnly;
+            default: return WorldPresenceMode.Both;
+        }
+    }
+
+    private string GetAppliedWorldSummary()
+    {
+        switch (spawnWorldPolicy)
+        {
+            case FocusingSpawnWorldPolicy.CurrentWorldOnly: return "Current World only (World A)";
+            case FocusingSpawnWorldPolicy.PastWorldOnly: return "Past World only (World B)";
+            case FocusingSpawnWorldPolicy.BothWorlds: return "Both Worlds";
+            default: return "Uses each spawned Prefab's WorldPresence setting";
+        }
+    }
+
+    private HiddenWorldSimulationPolicy GetEffectiveHiddenWorldSimulationPolicy()
+    {
+        return spawnerType == FocusingSpawnerType.Monster
+            ? hiddenWorldSimulationPolicy
+            : HiddenWorldSimulationPolicy.PauseWhenHidden;
+    }
+
     private void OnValidate()
     {
+        if (spawnerType != FocusingSpawnerType.Monster)
+            hiddenWorldSimulationPolicy = HiddenWorldSimulationPolicy.PauseWhenHidden;
         if (spawnPrefab != null) missingPrefabWarningLogged = false;
         if (permanentlyDisableAfterPuzzleCompletion && string.IsNullOrWhiteSpace(persistentCompletionKey))
             Debug.LogWarning("[FocusingSpawner] Permanent completion requires a unique key.", this);
@@ -343,7 +443,7 @@ public sealed class FocusingSpawner3D : MonoBehaviour
     {
         if (!showGizmo) return;
         Transform point = spawnPoint != null ? spawnPoint : transform;
-        Gizmos.color = GetSpawnerTypeColor();
+        Gizmos.color = GetSpawnWorldGizmoColor();
         Gizmos.DrawWireSphere(point.position, 0.35f);
         Gizmos.DrawRay(point.position, point.right * 0.8f);
         if (point != transform) Gizmos.DrawLine(transform.position, point.position);
@@ -358,6 +458,17 @@ public sealed class FocusingSpawner3D : MonoBehaviour
             case FocusingSpawnerType.DestructibleObject: return new Color(1f, 0.65f, 0.15f, 0.9f);
             case FocusingSpawnerType.Monster: return new Color(1f, 0.25f, 0.3f, 0.9f);
             default: return gizmoColor;
+        }
+    }
+
+    private Color GetSpawnWorldGizmoColor()
+    {
+        switch (spawnWorldPolicy)
+        {
+            case FocusingSpawnWorldPolicy.CurrentWorldOnly: return new Color(0.1f, 0.95f, 0.9f, 0.9f);
+            case FocusingSpawnWorldPolicy.PastWorldOnly: return new Color(0.85f, 0.3f, 1f, 0.9f);
+            case FocusingSpawnWorldPolicy.BothWorlds: return Color.white;
+            default: return GetSpawnerTypeColor();
         }
     }
 }

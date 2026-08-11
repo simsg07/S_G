@@ -32,16 +32,9 @@ public class CameraAbilitySystem3D : MonoBehaviour
     [FormerlySerializedAs("directWorldSwitchKey")]
     [SerializeField] private Key worldSwitchKey = Key.Q; // Global world switch key. This does not consume camera interventions.
     [SerializeField] private Key lightToggleKey = Key.R; // Simple camera light on/off key.
-    // Legacy serialized fields. Keep these for save/prefab compatibility, but camera-slot input is no longer used.
-    [SerializeField, HideInInspector] private Key previousCameraSlotKey = Key.None;
-    [SerializeField, HideInInspector] private Key nextCameraSlotKey = Key.E;
-    [SerializeField, HideInInspector] private CameraAbilityId selectedCameraAbility = CameraAbilityId.Shutter;
-
     [Header("Camera Mode")]
     [SerializeField] private Key cameraModeKey = Key.None; // 보조 키보드 카메라 모드 키입니다. None이면 마우스 우클릭만 사용합니다.
-    [SerializeField, HideInInspector] private bool holdCameraMode = true; // Legacy serialized value. Right mouse camera input is always Hold.
     [SerializeField] private bool startInCameraMode = false; // 테스트용으로 시작하자마자 카메라 모드를 켤지 정합니다.
-    [SerializeField, HideInInspector] private float cameraModeSlowDuration = 2f; // Legacy serialized value; camera slow motion now lasts for the whole camera mode.
     [SerializeField, Range(0.01f, 1f)] private float cameraModeTimeScale = 0.25f;
 
     [Header("Mouse Camera Frame")]
@@ -74,14 +67,24 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     [Header("Shutter Runtime Debug (Read Only)")]
     [SerializeField] private bool runtimeCameraModeActive;
-    [SerializeField] private bool runtimeLastShutterInputReceived;
+    [SerializeField, InspectorName("Left Click Detected This Frame")] private bool runtimeLeftClickDetectedThisFrame;
+    [SerializeField, InspectorName("Input Block Reason")] private string runtimeInputBlockReason = "None";
+    [SerializeField, InspectorName("Shutter Request Count")] private int runtimeShutterRequestCount;
+    [SerializeField, InspectorName("Last Shutter Request Time")] private float runtimeLastShutterRequestTime = -1f;
+    [SerializeField, InspectorName("World Switch Double Click Pending")] private bool runtimeDoubleClickPending;
+    [SerializeField, InspectorName("Last Capture Call Succeeded")] private bool runtimeLastCaptureCallSucceeded;
+    [SerializeField, InspectorName("Last Shutter Input Received")] private bool runtimeLastShutterInputReceived;
     [SerializeField] private string runtimeLastShutterExecutionResult = "Not executed";
-    [SerializeField] private string runtimeLastShutterBlockReason = "None";
-    [SerializeField] private int runtimeShutterPhysicsHitCount;
+    [SerializeField, InspectorName("Freeze Failure Reason")] private string runtimeLastShutterBlockReason = "None";
+    [SerializeField, InspectorName("Physics Search Count")] private int runtimeShutterPhysicsHitCount;
+    [SerializeField, InspectorName("Total Candidate Count")] private int runtimeShutterCandidateCount;
+    [SerializeField, InspectorName("Candidates Inside Viewport")] private int runtimeShutterViewportCandidateCount;
+    [SerializeField, InspectorName("Airborne Candidate Count")] private int runtimeShutterAirborneCandidateCount;
     [SerializeField] private int runtimeElectronicNoiseRootCount;
-    [SerializeField] private int runtimeMarkableResolvedCount;
-    [SerializeField] private int runtimeMarkInvokedCount;
-    [SerializeField] private string runtimeLastMarkedObjectName = "None";
+    [SerializeField, InspectorName("Valid Shutter Target Count")] private int runtimeMarkableResolvedCount;
+    [SerializeField, InspectorName("Mark Applied Count")] private int runtimeMarkInvokedCount;
+    [SerializeField, InspectorName("Freeze Invoked Count")] private int runtimeFreezeInvokedCount;
+    [SerializeField, InspectorName("Last Target Root Name")] private string runtimeLastMarkedObjectName = "None";
     [SerializeField] private float runtimeMarkDuration;
 
     [Header("Mark")]
@@ -142,8 +145,15 @@ public class CameraAbilitySystem3D : MonoBehaviour
         ? cameraAbilityUnlockState.UnlockedAbilities
         : unlockedAbilities;
     public bool IsCameraModeActive => cameraModeState == CameraModeState.Active;
+    public bool RuntimeLastShutterInputReceived => runtimeLastShutterInputReceived;
     public bool CanEnterCameraMode => cameraModeState == CameraModeState.Ready && !requireRightMouseRelease;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public bool DebugLeftClickDetectedThisFrame => runtimeLeftClickDetectedThisFrame;
+    public string DebugInputBlockReason => runtimeInputBlockReason;
+    public int DebugShutterRequestCount => runtimeShutterRequestCount;
+    public float DebugLastShutterRequestTime => runtimeLastShutterRequestTime;
+    public bool DebugDoubleClickPending => runtimeDoubleClickPending;
+    public bool DebugLastCaptureCallSucceeded => runtimeLastCaptureCallSucceeded;
     public int DebugEnterRequestCount => cameraDiagnostics.EnterRequestCount;
     public int DebugActualEnterCount => cameraDiagnostics.ActualEnterCount;
     public int DebugApplySlowMotionCount => cameraDiagnostics.ApplySlowMotionCount;
@@ -232,10 +242,13 @@ public class CameraAbilitySystem3D : MonoBehaviour
     private void Update()
     {
         runtimeCameraModeActive = cameraModeState == CameraModeState.Active;
+        runtimeLeftClickDetectedThisFrame = false;
+        runtimeInputBlockReason = "None";
         cameraAbilityCooldowns.Tick(Time.unscaledDeltaTime);
 
         if (Application.isPlaying && GameplayInputLock3D.IsLocked)
         {
+            runtimeInputBlockReason = "Gameplay input locked";
             if (cameraModeState == CameraModeState.Active || cameraModeTimeController.IsActive)
                 ForceExitCameraMode("Gameplay input locked", true);
             UpdateCameraFrame();
@@ -246,6 +259,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
         if (!Application.isPlaying)
         {
+            runtimeInputBlockReason = "Not in Play Mode";
             UpdateCameraFrame();
             return;
         }
@@ -254,13 +268,16 @@ public class CameraAbilitySystem3D : MonoBehaviour
         CameraInputSnapshot3D input = cameraModeInputReader.Read(
             usePrimaryFireForCameraAbility,
             useSecondaryFireForCameraMode,
+            cameraModeKey,
             worldSwitchKey,
             lightToggleKey);
         UpdateCameraModeInput(input);
-        TickPendingPrimaryCameraClick();
+        runtimeCameraModeActive = cameraModeState == CameraModeState.Active;
+        UpdateDoubleClickWindow();
         UpdateCameraWorldTargetStates();
 
         UpdateCameraFrame();
+        ProcessPrimaryShutterInput(input.PrimaryPressedThisFrame);
         if (input.WorldSwitchPressedThisFrame)
         {
             TryUseGlobalWorldSwitch();
@@ -272,16 +289,23 @@ public class CameraAbilitySystem3D : MonoBehaviour
             ToggleCameraLight();
         }
 
+    }
+
+    private void ProcessPrimaryShutterInput(bool primaryPressedThisFrame)
+    {
+        if (!primaryPressedThisFrame) return;
+
+        runtimeLeftClickDetectedThisFrame = true;
         if (cameraModeState != CameraModeState.Active)
         {
+            runtimeInputBlockReason = cameraModeState == CameraModeState.ForcedExitBlocked
+                ? "Camera mode blocked until secondary release"
+                : "Camera mode inactive";
             return;
         }
 
-        if (input.PrimaryPressedThisFrame)
-        {
-            runtimeLastShutterInputReceived = true;
-            HandlePrimaryCameraClick();
-        }
+        runtimeLastShutterInputReceived = true;
+        HandlePrimaryCameraClick();
     }
 
     private void UpdateCameraModeInput(in CameraInputSnapshot3D input)
@@ -375,6 +399,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 #endif
         ResetCameraDrag();
         primaryFirePending = false;
+        runtimeDoubleClickPending = false;
         RestoreCameraModeSlowMotion();
         ClearCameraWorldTargetStates();
         LogCameraTransition("Camera Exit", reason);
@@ -451,6 +476,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
         else
         {
             primaryFirePending = false;
+            runtimeDoubleClickPending = false;
             ResetCameraDrag();
             RestoreCameraModeSlowMotion();
         }
@@ -538,18 +564,24 @@ public class CameraAbilitySystem3D : MonoBehaviour
     private void HandlePrimaryCameraClick()
     {
         float clickTime = Time.unscaledTime;
+        runtimeShutterRequestCount++;
+        runtimeLastShutterRequestTime = clickTime;
+        runtimeLastCaptureCallSucceeded = TryUseShutter();
+
         if (primaryFirePending && clickTime - pendingPrimaryFireTime <= DoubleClickInterval)
         {
             primaryFirePending = false;
+            runtimeDoubleClickPending = false;
             TryUseFocus();
             return;
         }
 
         pendingPrimaryFireTime = clickTime;
         primaryFirePending = true;
+        runtimeDoubleClickPending = true;
     }
 
-    private void TickPendingPrimaryCameraClick()
+    private void UpdateDoubleClickWindow()
     {
         if (!primaryFirePending || Time.unscaledTime - pendingPrimaryFireTime <= DoubleClickInterval)
         {
@@ -557,7 +589,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
         }
 
         primaryFirePending = false;
-        TryUseShutter(); // Capture and Shutter are the same single-click action.
+        runtimeDoubleClickPending = false;
     }
 
     public bool IsUnlocked(CameraAbilityId ability)
@@ -590,12 +622,12 @@ public class CameraAbilitySystem3D : MonoBehaviour
         return CameraAbilityUnlockState3D.ToFlag(ability);
     }
 
-    private void TryUseShutter()
+    private bool TryUseShutter()
     {
-        using (ShutterMarker.Auto()) TryUseShutterCore();
+        using (ShutterMarker.Auto()) return TryUseShutterCore();
     }
 
-    private void TryUseShutterCore()
+    private bool TryUseShutterCore()
     {
         ResetShutterRuntimeDebug();
         if (!IsUnlocked(CameraAbilityId.Shutter))
@@ -603,14 +635,14 @@ public class CameraAbilitySystem3D : MonoBehaviour
             runtimeLastShutterExecutionResult = "Blocked";
             runtimeLastShutterBlockReason = "Shutter locked";
             LogShutter("사용 불가: 미해금");
-            return;
+            return false;
         }
 
         if (markDuration <= 0f)
         {
             runtimeLastShutterExecutionResult = "Blocked";
             runtimeLastShutterBlockReason = "Mark Duration must be greater than zero";
-            return;
+            return false;
         }
 
         int targetCount = CollectMarkTargets();
@@ -620,12 +652,12 @@ public class CameraAbilitySystem3D : MonoBehaviour
             runtimeLastShutterBlockReason = runtimeShutterPhysicsHitCount == 0
                 ? "No collider in Mark range"
                 : runtimeElectronicNoiseRootCount == 0
-                    ? "No ElectronicNoise root in camera frame"
+                    ? "No explicit Shutter target root in camera frame"
                     : runtimeMarkableResolvedCount == 0
                         ? "IMarkable3D not resolved"
                         : "Rejected by frame, line of sight, or camera policy";
             LogShutter("유효한 Mark 대상이 없습니다.");
-            return;
+            return false;
         }
 
         for (int i = 0; i < targetCount; i++)
@@ -635,14 +667,16 @@ public class CameraAbilitySystem3D : MonoBehaviour
             if (target == null || targetComponent == null || !target.ApplyMark(markDuration, this)) continue;
 
             runtimeMarkInvokedCount++;
+            runtimeFreezeInvokedCount++;
             runtimeLastMarkedObjectName = markTargetRoots[i] != null ? markTargetRoots[i].name : targetComponent.name;
         }
 
         runtimeLastShutterExecutionResult = runtimeMarkInvokedCount > 0
-            ? $"Mark applied: {runtimeMarkInvokedCount}"
+            ? $"Mark/Freeze applied: {runtimeMarkInvokedCount}/{runtimeFreezeInvokedCount}"
             : "Targets rejected Mark";
         runtimeLastShutterBlockReason = runtimeMarkInvokedCount > 0 ? "None" : "ApplyMark rejected";
         LogShutter($"Mark 적용 완료: {runtimeMarkInvokedCount}/{targetCount}");
+        return runtimeMarkInvokedCount > 0;
     }
 
     private void ResetShutterRuntimeDebug()
@@ -650,9 +684,13 @@ public class CameraAbilitySystem3D : MonoBehaviour
         runtimeLastShutterExecutionResult = "Executing";
         runtimeLastShutterBlockReason = "None";
         runtimeShutterPhysicsHitCount = 0;
+        runtimeShutterCandidateCount = 0;
+        runtimeShutterViewportCandidateCount = 0;
+        runtimeShutterAirborneCandidateCount = 0;
         runtimeElectronicNoiseRootCount = 0;
         runtimeMarkableResolvedCount = 0;
         runtimeMarkInvokedCount = 0;
+        runtimeFreezeInvokedCount = 0;
         runtimeLastMarkedObjectName = "None";
         runtimeMarkDuration = markDuration;
         for (int i = 0; i < shutterElectronicRoots.Length; i++)
@@ -730,22 +768,23 @@ public class CameraAbilitySystem3D : MonoBehaviour
         if (useMouseFrameTargeting)
         {
             if (camera == null) return 0;
-            Rect frameRect = GetMouseFrameRect();
-            int hitCount = Physics.OverlapSphereNonAlloc(
-                transform.position,
-                Mathf.Max(0.1f, shutterRange),
-                targetHits,
-                targetMask,
-                QueryTriggerInteraction.Collide);
-            runtimeShutterPhysicsHitCount = hitCount;
-
-            for (int i = 0; i < hitCount; i++)
+            runtimeShutterCandidateCount = ShutterTargetRegistry3D.Count;
+            for (int i = 0; i < ShutterTargetRegistry3D.Count; i++)
             {
-                Collider hit = targetHits[i];
-                if (!IsValidMarkHit(hit) || !BoundsIntersectsFrame(hit.bounds, frameRect, camera)) continue;
-                if (IsShutterLineOfSightBlocked(camera.transform.position, hit)) continue;
-                RegisterMarkTarget(hit);
+                ShutterTargetRegistry3D.Entry entry = ShutterTargetRegistry3D.Get(i);
+                Component component = entry != null ? entry.Component : null;
+                if (component == null || !component.gameObject.activeInHierarchy) continue;
+                if (!WorldDamageFilter3D.CanAffect(this, component)) continue;
+                if (!entry.TryGetBounds(out Bounds bounds)) continue;
+                if (!BoundsIntersectsViewport(bounds, camera)) continue;
+                runtimeShutterViewportCandidateCount++;
+                if (IsAirborneCandidate(entry, bounds)) runtimeShutterAirborneCandidateCount++;
+                Collider sightCollider = entry.GetActiveCollider();
+                if (sightCollider != null
+                    && IsShutterLineOfSightBlocked(camera.transform.position, sightCollider)) continue;
+                RegisterMarkTarget(entry.Target, component);
             }
+            runtimeShutterPhysicsHitCount = runtimeShutterCandidateCount;
         }
         else
         {
@@ -788,24 +827,84 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private void RegisterMarkTarget(Collider hit)
     {
-        Transform taggedRoot = FindTaggedParent(hit, CameraTagUtility3D.ElectronicNoiseTag);
-        if (taggedRoot == null) return;
+        IMarkable3D target = ResolveInterface<IMarkable3D>(hit);
+        Component targetComponent = ResolveTargetComponent(target, hit);
+        Transform shutterRoot = targetComponent != null ? targetComponent.transform : null;
+        if (target == null || targetComponent == null || shutterRoot == null) return;
 
         for (int i = 0; i < runtimeMarkableResolvedCount; i++)
         {
-            if (markTargetRoots[i] == taggedRoot) return;
+            if (markTargetRoots[i] == shutterRoot) return;
         }
 
         if (runtimeMarkableResolvedCount >= markTargets.Length) return;
-        IMarkable3D target = ResolveInterface<IMarkable3D>(hit);
-        Component targetComponent = ResolveTargetComponent(target, hit);
-        if (target == null || targetComponent == null) return;
 
         int index = runtimeMarkableResolvedCount;
         markTargets[index] = target;
         markTargetComponents[index] = targetComponent;
-        markTargetRoots[index] = taggedRoot;
-        RegisterMarkableRoot(taggedRoot);
+        markTargetRoots[index] = shutterRoot;
+        RegisterMarkableRoot(shutterRoot);
+    }
+
+    private void RegisterMarkTarget(IMarkable3D target, Component targetComponent)
+    {
+        Transform shutterRoot = targetComponent != null ? targetComponent.transform : null;
+        if (target == null || targetComponent == null || shutterRoot == null) return;
+        if (!CameraObjectTag3D.AllowsCameraInteraction(targetComponent)
+            || !CameraObjectTag3D.AllowsCameraFreeze(targetComponent)) return;
+        for (int i = 0; i < runtimeMarkableResolvedCount; i++)
+            if (markTargetRoots[i] == shutterRoot) return;
+        if (runtimeMarkableResolvedCount >= markTargets.Length) return;
+        int index = runtimeMarkableResolvedCount;
+        markTargets[index] = target;
+        markTargetComponents[index] = targetComponent;
+        markTargetRoots[index] = shutterRoot;
+        RegisterElectronicNoiseRoot(shutterRoot);
+        RegisterMarkableRoot(shutterRoot);
+    }
+
+    private static bool BoundsIntersectsViewport(Bounds bounds, Camera camera)
+    {
+        if (camera == null || !SafeMath3D.IsFinite(bounds.center) || !SafeMath3D.IsFinite(bounds.extents)) return false;
+        Vector3 min = bounds.min;
+        Vector3 max = bounds.max;
+        float minX = float.PositiveInfinity, minY = float.PositiveInfinity;
+        float maxX = float.NegativeInfinity, maxY = float.NegativeInfinity;
+        bool inFront = false;
+        AccumulateViewportPoint(camera, new Vector3(min.x, min.y, min.z), ref inFront, ref minX, ref minY, ref maxX, ref maxY);
+        AccumulateViewportPoint(camera, new Vector3(min.x, min.y, max.z), ref inFront, ref minX, ref minY, ref maxX, ref maxY);
+        AccumulateViewportPoint(camera, new Vector3(min.x, max.y, min.z), ref inFront, ref minX, ref minY, ref maxX, ref maxY);
+        AccumulateViewportPoint(camera, new Vector3(min.x, max.y, max.z), ref inFront, ref minX, ref minY, ref maxX, ref maxY);
+        AccumulateViewportPoint(camera, new Vector3(max.x, min.y, min.z), ref inFront, ref minX, ref minY, ref maxX, ref maxY);
+        AccumulateViewportPoint(camera, new Vector3(max.x, min.y, max.z), ref inFront, ref minX, ref minY, ref maxX, ref maxY);
+        AccumulateViewportPoint(camera, new Vector3(max.x, max.y, min.z), ref inFront, ref minX, ref minY, ref maxX, ref maxY);
+        AccumulateViewportPoint(camera, new Vector3(max.x, max.y, max.z), ref inFront, ref minX, ref minY, ref maxX, ref maxY);
+        return inFront && maxX >= 0f && minX <= 1f && maxY >= 0f && minY <= 1f;
+    }
+
+    private static void AccumulateViewportPoint(
+        Camera camera,
+        Vector3 worldPoint,
+        ref bool inFront,
+        ref float minX,
+        ref float minY,
+        ref float maxX,
+        ref float maxY)
+    {
+        Vector3 viewport = camera.WorldToViewportPoint(worldPoint);
+        if (viewport.z <= camera.nearClipPlane || viewport.z >= camera.farClipPlane) return;
+        inFront = true;
+        minX = Mathf.Min(minX, viewport.x);
+        maxX = Mathf.Max(maxX, viewport.x);
+        minY = Mathf.Min(minY, viewport.y);
+        maxY = Mathf.Max(maxY, viewport.y);
+    }
+
+    private bool IsAirborneCandidate(ShutterTargetRegistry3D.Entry entry, Bounds bounds)
+    {
+        Rigidbody body = entry.Rigidbody;
+        if (body != null && !body.isKinematic && Mathf.Abs(body.linearVelocity.y) > 0.01f) return true;
+        return bounds.min.y > transform.position.y + 0.25f;
     }
 
     private bool TryFindRelayTarget(out IRelayTransferable3D target)
@@ -978,24 +1077,27 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private bool CanResolveShutterTarget(Collider hit)
     {
-        if (hit == null || !HasTagInParents(hit, CameraTagUtility3D.ElectronicNoiseTag))
+        if (hit == null)
         {
             return false;
         }
         Transform taggedRoot = FindTaggedParent(hit, CameraTagUtility3D.ElectronicNoiseTag);
-        RegisterElectronicNoiseRoot(taggedRoot);
+        CameraObjectTag3D explicitTag = CameraObjectTag3D.FindFor(hit);
+        IMarkable3D target = ResolveInterface<IMarkable3D>(hit);
+        Component targetComponent = ResolveTargetComponent(target, hit);
+        if (taggedRoot == null && explicitTag == null && !(targetComponent is ShutterTarget3D))
+        {
+            return false;
+        }
+        RegisterElectronicNoiseRoot(taggedRoot != null
+            ? taggedRoot
+            : explicitTag != null ? explicitTag.transform : targetComponent.transform);
         if (!CameraObjectTag3D.AllowsCameraInteraction(hit) || !CameraObjectTag3D.AllowsCameraFreeze(hit))
         {
             return false;
         }
 
-        IMarkable3D target = ResolveInterface<IMarkable3D>(hit);
-        if (target == null)
-        {
-            return false;
-        }
-
-        return ResolveTargetComponent(target, hit) != null;
+        return target != null && targetComponent != null;
     }
 
     private void RegisterElectronicNoiseRoot(Transform root)
@@ -1133,17 +1235,21 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private Rect GetMouseFrameRect()
     {
+        Camera camera = GetTargetCamera();
+        Rect viewport = camera != null ? camera.pixelRect : new Rect(0f, 0f, Screen.width, Screen.height);
         Vector2 frameSize = GetFramePixelSize();
         Vector2 center = GetMouseScreenPosition();
-        center.x = Mathf.Clamp(center.x, frameSize.x * 0.5f, Screen.width - frameSize.x * 0.5f);
-        center.y = Mathf.Clamp(center.y, frameSize.y * 0.5f, Screen.height - frameSize.y * 0.5f);
+        center.x = Mathf.Clamp(center.x, viewport.xMin + frameSize.x * 0.5f, viewport.xMax - frameSize.x * 0.5f);
+        center.y = Mathf.Clamp(center.y, viewport.yMin + frameSize.y * 0.5f, viewport.yMax - frameSize.y * 0.5f);
         return new Rect(center - frameSize * 0.5f, frameSize);
     }
 
     private Vector2 GetFramePixelSize()
     {
-        float widthScale = referenceResolution.x > 0f ? Screen.width / referenceResolution.x : 1f;
-        float heightScale = referenceResolution.y > 0f ? Screen.height / referenceResolution.y : 1f;
+        Camera camera = GetTargetCamera();
+        Rect viewport = camera != null ? camera.pixelRect : new Rect(0f, 0f, Screen.width, Screen.height);
+        float widthScale = referenceResolution.x > 0f ? viewport.width / referenceResolution.x : 1f;
+        float heightScale = referenceResolution.y > 0f ? viewport.height / referenceResolution.y : 1f;
         return new Vector2(
             Mathf.Max(32f, shutterFrameReferenceSize.x * widthScale),
             Mathf.Max(18f, shutterFrameReferenceSize.y * heightScale)

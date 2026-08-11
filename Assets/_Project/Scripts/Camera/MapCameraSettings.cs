@@ -93,7 +93,8 @@ public class MapCameraSettings : MonoBehaviour
         }
 
         float halfHeight = ViewSize;
-        float halfWidth = halfHeight * camera.aspect;
+        CameraFollow3D follow = camera.GetComponent<CameraFollow3D>();
+        float halfWidth = halfHeight * (follow != null ? follow.FixedAspect : camera.aspect);
         float minX = bounds.min.x + halfWidth + EdgePadding;
         float maxX = bounds.max.x - halfWidth - EdgePadding;
         float minY = bounds.min.y + halfHeight + EdgePadding + FloorOffset;

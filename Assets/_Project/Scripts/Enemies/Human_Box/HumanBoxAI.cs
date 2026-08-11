@@ -144,6 +144,7 @@ public sealed class HumanBoxAI : MonsterAIBase
     protected override void FixedUpdate()
     {
         if (currentState == HumanBoxState.DEAD_PLATFORM) return;
+        if (IsWorldPhysicsSuspended) return;
         UpdateGroundCheck();
         if (currentState == HumanBoxState.WALK)
         {
@@ -213,6 +214,7 @@ public sealed class HumanBoxAI : MonsterAIBase
 
     public void TryRegisterAttackHit(Collider other)
     {
+        if (!MonsterWorldSimulationGate3D.AllowsPlayerInteraction(this)) return;
         if (currentState != HumanBoxState.ATTACK || attackHitPlayer || other == null) return;
         Transform player = ResolvePlayerTransform(other.transform);
         if (player == null) return;
@@ -285,6 +287,7 @@ public sealed class HumanBoxAI : MonsterAIBase
 
     private bool CanDetectPlayer(float range)
     {
+        if (!MonsterWorldSimulationGate3D.AllowsPlayerInteraction(this)) return false;
         if (playerTarget == null || currentState == HumanBoxState.DEAD_PLATFORM || !IsPlayerAlive()) return false;
         if (monsterDetection != null && (!monsterDetection.enableDetection || !monsterDetection.canDetectPlayer)) return false;
         return IsInRange(playerTarget, range) && (!requireLineOfSight || IsPlayerVisible());
@@ -317,7 +320,7 @@ public sealed class HumanBoxAI : MonsterAIBase
 
     private void StopHorizontalMovement()
     {
-        if (body == null || body.isKinematic) return;
+        if (body == null || IsWorldPhysicsSuspended || body.isKinematic) return;
         Vector3 velocity = body.linearVelocity;
         velocity.x = 0f;
         body.linearVelocity = velocity;

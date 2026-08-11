@@ -39,7 +39,16 @@ public class PlayerInteraction3D : MonoBehaviour
             return;
         }
 
+        if (!CanProcessInteraction()) return;
+        if (Checkpoint3D.TryInteractNearest(gameObject)) return;
         TryInteract();
+    }
+
+    private bool CanProcessInteraction()
+    {
+        if (Time.timeScale <= 0f || movement == null || movement.ControlsLocked) return false;
+        PlayerDamageReceiver damageReceiver = GetComponent<PlayerDamageReceiver>();
+        return damageReceiver == null || !damageReceiver.IsDead;
     }
 
     private void TryInteract()

@@ -56,7 +56,6 @@ public sealed class CraneXYController3D : MonoBehaviour
     [SerializeField] private UnityEvent onObstructed = new UnityEvent();
 
     [Header("Pause / Debug")]
-    [SerializeField] private bool canPauseByShutter = true;
     [SerializeField] private bool showGizmos = true;
     [SerializeField] private bool debugMode;
 

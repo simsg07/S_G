@@ -8,6 +8,7 @@ public enum ResearchWorldId
     WorldB
 }
 
+[DefaultExecutionOrder(-12000)]
 public class WorldSystem3D : MonoBehaviour
 {
     [SerializeField] private ResearchWorldId currentWorld = ResearchWorldId.WorldA;
@@ -121,6 +122,13 @@ public class WorldSystem3D : MonoBehaviour
             {
                 variants[i].Refresh(currentWorld);
             }
+        }
+
+        // Physics auto-sync is disabled in project settings. Publish the newly enabled
+        // Ground/World collider transforms before any hidden Rigidbody is restored.
+        if (Application.isPlaying)
+        {
+            Physics.SyncTransforms();
         }
 
         WorldPresenceRegistry.RefreshAllFromScene(currentWorld);

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 public static class GameProgressSave3D
@@ -8,8 +9,11 @@ public static class GameProgressSave3D
     private static SavePayload cachedPayload;
     private static SavePayload transientPayload;
     private static int transientSessionDepth;
+    private static readonly Dictionary<string, PersistentSceneObjectState> runtimePersistentStates =
+        new Dictionary<string, PersistentSceneObjectState>();
 
     public static bool HasSaveData => PlayerPrefs.HasKey(PlayerPrefsKey);
+    public static event Action<string, string, string, string> ActiveCheckpointChanged;
 
     public static CameraAbilityFlags GetUnlockedAbilities()
     {
@@ -50,6 +54,14 @@ public static class GameProgressSave3D
     public static bool IsCheckpointActivated(string checkpointId)
     {
         return Contains(LoadPayload().activatedCheckpointIds, checkpointId);
+    }
+
+    public static bool IsCurrentActiveCheckpoint(string sceneName, string checkpointId)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(checkpointId)) return false;
+        SavePayload payload = LoadPayload();
+        return string.Equals(payload.lastCheckpointScene, sceneName, StringComparison.Ordinal)
+            && string.Equals(payload.lastCheckpointId, checkpointId, StringComparison.Ordinal);
     }
 
     public static bool IsPuzzlePermanentlyCompleted(string puzzleId)
@@ -101,11 +113,16 @@ public static class GameProgressSave3D
         }
 
         SavePayload payload = LoadPayload();
+        string previousScene = payload.lastCheckpointScene;
+        string previousId = payload.lastCheckpointId;
         AddUnique(payload.activatedCheckpointIds, checkpointId);
         payload.lastCheckpointScene = sceneName;
         payload.lastCheckpointId = checkpointId;
         payload.saveVersion = Mathf.Max(payload.saveVersion, 2);
+        ApplyRuntimePersistentStates(payload);
         WritePayload(payload);
+        runtimePersistentStates.Clear();
+        ActiveCheckpointChanged?.Invoke(previousScene, previousId, sceneName, checkpointId);
     }
 
     public static void RecordCheckpointActivated(
@@ -122,6 +139,8 @@ public static class GameProgressSave3D
         }
 
         SavePayload payload = LoadPayload();
+        string previousScene = payload.lastCheckpointScene;
+        string previousId = payload.lastCheckpointId;
         AddUnique(payload.activatedCheckpointIds, checkpointId);
         payload.lastCheckpointScene = sceneName;
         payload.lastCheckpointId = checkpointId;
@@ -131,13 +150,20 @@ public static class GameProgressSave3D
         payload.hasLastCheckpointPose = true;
         payload.currentWorld = world;
         payload.saveVersion = Mathf.Max(payload.saveVersion, 5);
+        ApplyRuntimePersistentStates(payload);
         WritePayload(payload);
+        runtimePersistentStates.Clear();
+        ActiveCheckpointChanged?.Invoke(previousScene, previousId, sceneName, checkpointId);
     }
 
     public static bool TryGetPersistentObjectState(string sceneName, string persistentId, out PersistentSceneObjectState state)
     {
         state = PersistentSceneObjectState.Exists;
         if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(persistentId)) return false;
+        if (runtimePersistentStates.TryGetValue(BuildRuntimePersistentKey(sceneName, persistentId), out state))
+        {
+            return true;
+        }
         List<PersistentObjectRecord> records = LoadPayload().persistentObjectStates;
         for (int i = 0; i < records.Count; i++)
         {
@@ -173,6 +199,29 @@ public static class GameProgressSave3D
         WritePayload(payload);
     }
 
+    public static void RecordRuntimePersistentObjectState(
+        string sceneName, string persistentId, PersistentSceneObjectState state)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(persistentId)) return;
+        runtimePersistentStates[BuildRuntimePersistentKey(sceneName, persistentId)] = state;
+    }
+
+    public static void CommitCheckpointProgress()
+    {
+        SavePayload payload = LoadPayload();
+        ApplyRuntimePersistentStates(payload);
+        WritePayload(payload);
+        runtimePersistentStates.Clear();
+    }
+
+    public static void DiscardRuntimeProgress()
+    {
+        runtimePersistentStates.Clear();
+        cachedPayload = null;
+        transientPayload = null;
+        transientSessionDepth = 0;
+    }
+
     public static void SaveNow()
     {
         if (transientSessionDepth > 0) return;
@@ -185,6 +234,7 @@ public static class GameProgressSave3D
     /// </summary>
     public static void BeginTransientSession()
     {
+        runtimePersistentStates.Clear();
         if (transientSessionDepth == 0)
         {
             SavePayload source = LoadPayload();
@@ -206,6 +256,7 @@ public static class GameProgressSave3D
         if (transientSessionDepth == 0)
         {
             transientPayload = null;
+            runtimePersistentStates.Clear();
         }
     }
 
@@ -271,12 +322,30 @@ public static class GameProgressSave3D
         if (transientSessionDepth > 0)
         {
             transientPayload = new SavePayload();
+            ActiveCheckpointChanged?.Invoke(string.Empty, string.Empty, string.Empty, string.Empty);
             return;
         }
 
         cachedPayload = new SavePayload();
+        runtimePersistentStates.Clear();
         PlayerPrefs.DeleteKey(PlayerPrefsKey);
         PlayerPrefs.Save();
+        ActiveCheckpointChanged?.Invoke(string.Empty, string.Empty, string.Empty, string.Empty);
+    }
+
+    /// <summary>
+    /// Clears the live profile and every in-memory view of it before a title-screen New Game.
+    /// Unlike ResetProgress, this also exits any development-only transient save session.
+    /// </summary>
+    public static void ClearCurrentSaveForNewGame()
+    {
+        transientSessionDepth = 0;
+        transientPayload = null;
+        cachedPayload = new SavePayload();
+        runtimePersistentStates.Clear();
+        PlayerPrefs.DeleteKey(PlayerPrefsKey);
+        PlayerPrefs.Save();
+        ActiveCheckpointChanged?.Invoke(string.Empty, string.Empty, string.Empty, string.Empty);
     }
 
     private static SavePayload LoadPayload()
@@ -322,6 +391,37 @@ public static class GameProgressSave3D
         cachedPayload = payload;
         PlayerPrefs.SetString(PlayerPrefsKey, JsonUtility.ToJson(payload));
         PlayerPrefs.Save();
+    }
+
+    private static string BuildRuntimePersistentKey(string sceneName, string persistentId)
+    {
+        return $"{sceneName}\n{persistentId}";
+    }
+
+    private static void ApplyRuntimePersistentStates(SavePayload payload)
+    {
+        if (payload == null || runtimePersistentStates.Count == 0) return;
+        payload.EnsureLists();
+        foreach (KeyValuePair<string, PersistentSceneObjectState> runtimeState in runtimePersistentStates)
+        {
+            int separator = runtimeState.Key.IndexOf('\n');
+            if (separator <= 0 || separator >= runtimeState.Key.Length - 1) continue;
+            string sceneName = runtimeState.Key.Substring(0, separator);
+            string persistentId = runtimeState.Key.Substring(separator + 1);
+            PersistentObjectRecord record = payload.persistentObjectStates.Find(item =>
+                item != null
+                && string.Equals(item.sceneName, sceneName, System.StringComparison.Ordinal)
+                && string.Equals(item.persistentId, persistentId, System.StringComparison.Ordinal));
+            if (record == null)
+            {
+                record = new PersistentObjectRecord();
+                payload.persistentObjectStates.Add(record);
+            }
+            record.sceneName = sceneName;
+            record.persistentId = persistentId;
+            record.savedState = runtimeState.Value;
+        }
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 3);
     }
 
     private static bool Contains(List<string> values, string value)

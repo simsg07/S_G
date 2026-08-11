@@ -13,6 +13,7 @@ public class EnemyDetectionSettings3D
     [SerializeField] private float detectionSize = 3.8f; // 해당 몬스터 타입의 정사각형 인식 범위 크기입니다.
     [SerializeField] private Color detectionColor = new Color(0.25f, 0.45f, 1f, 0.18f); // 인식 범위 미리보기 색상입니다.
 
+    public string DisplayName => displayName;
     public float DetectionSize => Mathf.Max(0.1f, detectionSize);
     public Color DetectionColor => detectionColor;
 }

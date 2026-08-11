@@ -44,6 +44,7 @@ internal sealed class CameraModeInputReader3D
     public CameraInputSnapshot3D Read(
         bool readPrimaryMouse,
         bool readSecondaryMouse,
+        Key cameraModeKey,
         Key worldSwitchKey,
         Key lightToggleKey)
     {
@@ -51,15 +52,18 @@ internal sealed class CameraModeInputReader3D
         Mouse mouse = Mouse.current;
         bool hasMouse = mouse != null;
 
-        bool secondaryPressedThisFrame = readSecondaryMouse
+        bool cameraKeyPressedThisFrame = WasKeyPressed(keyboard, cameraModeKey);
+        bool cameraKeyHeld = IsKeyHeld(keyboard, cameraModeKey);
+        bool cameraKeyReleasedThisFrame = WasKeyReleased(keyboard, cameraModeKey);
+        bool secondaryPressedThisFrame = cameraKeyPressedThisFrame || (readSecondaryMouse
             && mouse != null
-            && mouse.rightButton.wasPressedThisFrame;
-        bool secondaryHeld = readSecondaryMouse
+            && mouse.rightButton.wasPressedThisFrame);
+        bool secondaryHeld = cameraKeyHeld || (readSecondaryMouse
             && mouse != null
-            && mouse.rightButton.isPressed;
-        bool secondaryReleasedThisFrame = readSecondaryMouse
+            && mouse.rightButton.isPressed);
+        bool secondaryReleasedThisFrame = cameraKeyReleasedThisFrame || (readSecondaryMouse
             && mouse != null
-            && mouse.rightButton.wasReleasedThisFrame;
+            && mouse.rightButton.wasReleasedThisFrame);
         bool primaryPressedThisFrame = readPrimaryMouse
             && mouse != null
             && mouse.leftButton.wasPressedThisFrame;
@@ -74,7 +78,7 @@ internal sealed class CameraModeInputReader3D
 
         return new CameraInputSnapshot3D(
             hasMouse,
-            readSecondaryMouse && mouse != null,
+            (readSecondaryMouse && mouse != null) || (keyboard != null && cameraModeKey != Key.None),
             secondaryPressedThisFrame,
             secondaryHeld,
             secondaryReleasedThisFrame,
@@ -94,5 +98,15 @@ internal sealed class CameraModeInputReader3D
     private static bool WasKeyPressed(Keyboard keyboard, Key key)
     {
         return keyboard != null && key != Key.None && keyboard[key].wasPressedThisFrame;
+    }
+
+    private static bool IsKeyHeld(Keyboard keyboard, Key key)
+    {
+        return keyboard != null && key != Key.None && keyboard[key].isPressed;
+    }
+
+    private static bool WasKeyReleased(Keyboard keyboard, Key key)
+    {
+        return keyboard != null && key != Key.None && keyboard[key].wasReleasedThisFrame;
     }
 }

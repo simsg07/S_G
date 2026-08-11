@@ -21,18 +21,12 @@ public class MainMenuController : MonoBehaviour
     private Canvas canvas;
     private RectTransform menuRoot;
     private int selectedIndex;
-    private MenuMode mode = MenuMode.Main;
     private int volumePercent = 100;
     private bool fullscreen;
 
-    private enum MenuMode
-    {
-        Main,
-        Options
-    }
-
     private void Awake()
     {
+        GameProgressSave3D.DiscardRuntimeProgress();
         fullscreen = Screen.fullScreen;
         EnsureEventSystem();
         BuildMenuUI();
@@ -115,17 +109,19 @@ public class MainMenuController : MonoBehaviour
 
     private void ShowMainMenu()
     {
-        mode = MenuMode.Main;
         ClearEntries();
         AddTitle("S_G");
-        AddButton("게임 시작", StartGame);
+        AddButton("새 게임", StartNewGame);
+        if (GameProgressSave3D.HasSaveData)
+        {
+            AddButton("이어하기", ContinueGame);
+        }
         AddButton("옵션", ShowOptionsMenu);
         SelectIndex(0);
     }
 
     private void ShowOptionsMenu()
     {
-        mode = MenuMode.Options;
         ClearEntries();
         AddTitle("옵션");
         AddButton(GetVolumeLabel(), CycleVolume);
@@ -266,7 +262,21 @@ public class MainMenuController : MonoBehaviour
         selectedIndex = 0;
     }
 
-    private void StartGame()
+    private void StartNewGame()
+    {
+        GameProgressSave3D.ClearCurrentSaveForNewGame();
+        SummerCampStageBootstrap3D.PrepareForUtilitySceneLoad();
+
+        WorldSystem3D worldSystem = WorldSystem3D.Instance;
+        if (worldSystem != null)
+        {
+            worldSystem.SetWorld(ResearchWorldId.WorldA);
+        }
+
+        SceneManager.LoadScene(GameSceneName);
+    }
+
+    private void ContinueGame()
     {
         SceneManager.LoadScene(GameSceneName);
     }

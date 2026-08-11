@@ -43,6 +43,7 @@ public static class CheckpointSetupUtility
             triggerObject.transform.SetParent(root.transform, false);
             var trigger = triggerObject.AddComponent<BoxCollider>();
             trigger.isTrigger = true;
+            triggerObject.AddComponent<CheckpointInteractionTrigger3D>();
             trigger.center = new Vector3(0f, 0.2f, 0f);
             trigger.size = new Vector3(4.25f, 4.5f, 1.5f);
 

@@ -567,7 +567,6 @@ MonoBehaviour:
   triggerInteraction: 2
   autoAttach: 1
   releaseAtDestination: 0
-  preserveWorldPositionOnAttach: 1
   carryAnchor: {fileID: 0}
   carryOffset: {x: 0, y: 0, z: 0}
   maximumCarryMass: 0

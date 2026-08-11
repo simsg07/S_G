@@ -48,12 +48,15 @@ public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
 
     private void Awake()
     {
+        ShutterTargetRegistry3D.Register(this, this);
         if (targetBody == null) targetBody = GetComponent<Rigidbody>();
         RefreshCache();
         EnsureMarker();
         ApplyVisual();
         enabled = IsMarked;
     }
+
+    private void OnDestroy() => ShutterTargetRegistry3D.Unregister(this);
 
     private void Update()
     {

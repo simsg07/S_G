@@ -39,6 +39,7 @@ public sealed class DionaeaAttack : MonoBehaviour
 
     public bool PerformAttack()
     {
+        if (!MonsterWorldSimulationGate3D.AllowsPlayerInteraction(this)) return false;
         damaged.Clear();
         Vector3 center = GetCenter();
         int count = Physics.OverlapBoxNonAlloc(center, attackBoxSize * 0.5f, hits,

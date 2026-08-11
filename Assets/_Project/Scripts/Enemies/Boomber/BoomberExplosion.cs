@@ -45,6 +45,7 @@ public class BoomberExplosion : MonoBehaviour
     private Transform pendingPlayerTarget;
     private bool pausedByShutter;
     private float remainingExplosionDelay;
+    private Collider contactCandidate;
 
     public bool HasExploded => exploded;
     public bool IsExploding => isExploding;
@@ -57,6 +58,11 @@ public class BoomberExplosion : MonoBehaviour
     public void ConfigureDamage(int damage)
     {
         explosionDamage = Mathf.Max(0, damage);
+    }
+
+    public void RegisterContactCandidate(Collider candidate)
+    {
+        if (candidate != null && WorldDamageFilter3D.CanAffect(this, candidate)) contactCandidate = candidate;
     }
 
     public void ResetExplosion()
@@ -78,6 +84,7 @@ public class BoomberExplosion : MonoBehaviour
         pendingPlayerTarget = null;
         pausedByShutter = false;
         remainingExplosionDelay = 0f;
+        contactCandidate = null;
     }
 
     public bool StartExplosion(Transform playerTarget)
@@ -108,7 +115,13 @@ public class BoomberExplosion : MonoBehaviour
         Log("Explosion triggered");
         DamageBreakableObjects();
 
-        if (playerTarget == null)
+        Component playerComponent = playerTarget != null ? playerTarget : null;
+        if (!MonsterWorldSimulationGate3D.AllowsPlayerInteraction(this)
+            || (playerComponent != null && !WorldDamageFilter3D.CanAffect(this, playerComponent)))
+        {
+            Log("Explosion Player damage skipped: monster is outside the active World");
+        }
+        else if (playerTarget == null)
         {
             Log("Explosion damage skipped: Player target missing");
         }
@@ -233,6 +246,7 @@ public class BoomberExplosion : MonoBehaviour
             {
                 if (behaviours[j] is IExplosionBreakable breakable && damaged.Add(breakable))
                 {
+                    if (!WorldDamageFilter3D.CanAffect(this, behaviours[j])) continue;
                     breakable.ReceiveExplosion(explosionDamage, transform.position);
                     Log($"Breakable hit: {behaviours[j].name}");
                 }
@@ -248,6 +262,7 @@ public class BoomberExplosion : MonoBehaviour
             {
                 continue;
             }
+            if (!WorldDamageFilter3D.CanAffect(this, hitReceiver)) continue;
 
             Vector3 hitPoint = hit.ClosestPoint(transform.position);
             Vector3 hitDirection = (hitReceiver.transform.position - transform.position).normalized;
@@ -264,6 +279,37 @@ public class BoomberExplosion : MonoBehaviour
             hitReceiver.RegisterHit(damageInfo);
             Log($"RegisterHit sent. Source: {damageInfo.hitSourceType}");
         }
+
+
+        DamageContactCandidate(hitReceivers);
+    }
+
+    private void DamageContactCandidate(HashSet<HitReceiver> hitReceivers)
+    {
+        Collider candidate = contactCandidate;
+        contactCandidate = null;
+        if (candidate == null || !candidate.enabled || !WorldDamageFilter3D.CanAffect(this, candidate)) return;
+
+        Vector3 closestPoint = candidate.ClosestPoint(transform.position);
+        Vector3 delta = closestPoint - transform.position;
+        delta.z = 0f;
+        if (delta.sqrMagnitude > explosionRadius * explosionRadius) return;
+
+        HitReceiver receiver = FindHitReceiver(candidate.transform);
+        if (receiver == null || !receiver.CanAcceptHitSource(HitSourceType.BoomberExplosion)
+            || !hitReceivers.Add(receiver)) return;
+
+        Vector3 hitDirection = (receiver.transform.position - transform.position).normalized;
+        DamageInfo damageInfo = new DamageInfo(
+            Mathf.Max(1, explosionDamage),
+            gameObject,
+            gameObject,
+            closestPoint,
+            hitDirection,
+            DamageType.Explosion,
+            HitSourceType.BoomberExplosion);
+        receiver.RegisterHit(damageInfo);
+        Log($"Contact candidate explosion hit: {receiver.name}");
     }
 
     private static HitReceiver FindHitReceiver(Transform target)

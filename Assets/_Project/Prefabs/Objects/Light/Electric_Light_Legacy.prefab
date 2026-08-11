@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 100003}
   - component: {fileID: 100004}
   m_Layer: 0
-  m_Name: Electric_Light
+  m_Name: Electric_Light_Legacy
   m_TagString: light
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -34,7 +34,6 @@ Transform:
   m_Children:
   - {fileID: 100021}
   - {fileID: 100011}
-  - {fileID: 100031}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &100002
@@ -73,19 +72,19 @@ MonoBehaviour:
   gameplayLight: {fileID: 100012}
   gameplayIntensity: 7.5
   gameplayColor: {r: 0.78, g: 0.95, b: 1, a: 1}
-  useDirectionalCone: 1
-  coneOrigin: {fileID: 100031}
-  directionTransform: {fileID: 100031}
-  lightRange: 4
+  useDirectionalCone: 0
+  coneOrigin: {fileID: 100001}
+  directionTransform: {fileID: 100001}
+  lightRange: 6.5
   lightAngle: 90
   occlusionLayerMask:
     serializedVersion: 2
     m_Bits: 3584
-  coneVisual: {fileID: 100041}
-  coneColor: {r: 1, g: 0.9, b: 0.52, a: 0.16}
+  coneVisual: {fileID: 0}
+  coneColor: {r: 1, g: 0.86, b: 0.42, a: 0.28}
   coneSortingLayer: Default
   coneSortingOrder: 0
-  coneSegments: 32
+  coneSegments: 24
   maxHP: 3
   damageColliders:
   - {fileID: 100002}
@@ -118,7 +117,6 @@ MonoBehaviour:
   autoCollectMonsterBehaviours: 1
   controlledRenderers:
   - {fileID: 100022}
-  - {fileID: 0}
   controlledColliders:
   - {fileID: 100002}
   controlledBehaviours:
@@ -177,7 +175,7 @@ Light:
   m_Type: 2
   m_Color: {r: 0.78, g: 0.95, b: 1, a: 1}
   m_Intensity: 7.5
-  m_Range: 4
+  m_Range: 6.5
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -321,66 +319,3 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!1 &100030
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 100031}
-  m_Layer: 0
-  m_Name: ConeOrigin
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &100031
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100030}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.6, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 100041}
-  m_Father: {fileID: 100001}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &100040
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 100041}
-  m_Layer: 0
-  m_Name: Electric Light Cone
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &100041
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100040}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.05}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 100031}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
