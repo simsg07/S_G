@@ -4757,7 +4757,12 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 512
   layerBoundsPadding: 0
+  layerBoundsRefreshInterval: 0.25
   includeTriggerBoundaries: 0
+  stopHorizontalViewAtLayerWalls: 1
+  stopVerticalViewAtLayerWalls: 0
+  horizontalWallProbeHeight: 1.5
+  verticalWallProbeWidth: 1.5
   drawLayerBoundaryGizmos: 1
 --- !u!81 &1679559904
 AudioListener:
