@@ -16,8 +16,6 @@ public sealed class LeverSpriteVisual3D : MonoBehaviour
     [Tooltip("Visual-only switch. For the vertical lever, Up normally uses the left frames and Down uses the right frames.")]
     [SerializeField] private bool swapDirectionVisual;
     [Min(0.01f)] [SerializeField] private float frameDuration = 0.1f;
-    [SerializeField] private bool holdEndFrameDuringActivationDelay = true;
-    [SerializeField] private bool holdEndFrameDuringMovement = true;
     [SerializeField] private bool returnToNeutralOnArrival = true;
     [SerializeField] private bool returnToNeutralOnCancel = true;
 

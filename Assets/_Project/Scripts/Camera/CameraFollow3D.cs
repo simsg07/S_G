@@ -18,6 +18,10 @@ public class CameraFollow3D : MonoBehaviour
     [SerializeField, Min(0f)] private float boundarySmoothTime = 0.18f;
     [SerializeField, Min(0f)] private float edgePadding;
 
+    [Header("Fixed Game View")]
+    [SerializeField] private Vector2 referenceAspect = new Vector2(16f, 9f);
+    [SerializeField] private Color letterboxColor = Color.black;
+
     [Header("Ground Layer Boundary")]
     [SerializeField] private bool constrainToLayerBounds = true;
     [SerializeField] private LayerMask boundaryLayerMask;
@@ -39,10 +43,16 @@ public class CameraFollow3D : MonoBehaviour
     private bool boundaryCacheBuilt;
     private bool targetLookupPending;
     private bool hadValidTarget;
+    private int lastScreenWidth;
+    private int lastScreenHeight;
+
+    public float FixedAspect => Mathf.Max(0.01f, referenceAspect.x) / Mathf.Max(0.01f, referenceAspect.y);
+    public Rect GameViewportRect => targetCamera != null ? targetCamera.rect : new Rect(0f, 0f, 1f, 1f);
 
     private void Awake()
     {
         targetCamera = GetComponent<Camera>();
+        ApplyFixedAspectViewport(true);
         EnsureDefaultBoundaryLayer();
         RefreshMapSettings();
     }
@@ -51,6 +61,7 @@ public class CameraFollow3D : MonoBehaviour
     {
         SceneManager.activeSceneChanged += HandleActiveSceneChanged;
         SceneManager.sceneLoaded += HandleSceneLoaded;
+        ApplyFixedAspectViewport(true);
         RefreshMapSettings();
         RequestTargetRefresh();
     }
@@ -65,6 +76,8 @@ public class CameraFollow3D : MonoBehaviour
     {
         viewSize = Mathf.Max(0.01f, viewSize);
         fieldOfView = Mathf.Clamp(fieldOfView, 1f, 179f);
+        referenceAspect.x = Mathf.Max(0.01f, referenceAspect.x);
+        referenceAspect.y = Mathf.Max(0.01f, referenceAspect.y);
         EnsureDefaultBoundaryLayer();
         if (!Application.isPlaying)
         {
@@ -111,6 +124,7 @@ public class CameraFollow3D : MonoBehaviour
 
     private void LateUpdate()
     {
+        ApplyFixedAspectViewport(false);
         if (target != null)
         {
             hadValidTarget = true;
@@ -284,7 +298,7 @@ public class CameraFollow3D : MonoBehaviour
             halfHeight = Mathf.Tan(targetCamera.fieldOfView * Mathf.Deg2Rad * 0.5f) * distance;
         }
 
-        halfWidth = halfHeight * targetCamera.aspect;
+        halfWidth = halfHeight * FixedAspect;
     }
 
     private void TryAcquirePlayerTarget()
@@ -337,6 +351,52 @@ public class CameraFollow3D : MonoBehaviour
         {
             targetCamera.fieldOfView = Mathf.Clamp(selectedFieldOfView, 1f, 179f);
         }
+    }
+
+    private void ApplyFixedAspectViewport(bool force)
+    {
+        if (targetCamera == null) targetCamera = GetComponent<Camera>();
+        int width = Mathf.Max(1, Screen.width);
+        int height = Mathf.Max(1, Screen.height);
+        if (!force && width == lastScreenWidth && height == lastScreenHeight) return;
+
+        lastScreenWidth = width;
+        lastScreenHeight = height;
+        float windowAspect = width / (float)height;
+        float targetAspect = FixedAspect;
+        Rect viewport = new Rect(0f, 0f, 1f, 1f);
+        if (windowAspect > targetAspect)
+        {
+            viewport.width = targetAspect / windowAspect;
+            viewport.x = (1f - viewport.width) * 0.5f;
+        }
+        else if (windowAspect < targetAspect)
+        {
+            viewport.height = windowAspect / targetAspect;
+            viewport.y = (1f - viewport.height) * 0.5f;
+        }
+        targetCamera.rect = viewport;
+        targetCamera.backgroundColor = letterboxColor;
+    }
+
+    private void OnGUI()
+    {
+        if (targetCamera == null || Event.current.type != EventType.Repaint) return;
+        Rect pixelRect = targetCamera.pixelRect;
+        Color previousColor = GUI.color;
+        GUI.color = letterboxColor;
+        if (pixelRect.xMin > 0f)
+        {
+            GUI.DrawTexture(new Rect(0f, 0f, pixelRect.xMin, Screen.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(pixelRect.xMax, 0f, Screen.width - pixelRect.xMax, Screen.height), Texture2D.whiteTexture);
+        }
+        if (pixelRect.yMin > 0f)
+        {
+            float topHeight = Screen.height - pixelRect.yMax;
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, topHeight), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(0f, Screen.height - pixelRect.yMin, Screen.width, pixelRect.yMin), Texture2D.whiteTexture);
+        }
+        GUI.color = previousColor;
     }
 
     private void OnDrawGizmosSelected()

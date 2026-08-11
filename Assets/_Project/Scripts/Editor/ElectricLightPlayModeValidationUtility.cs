@@ -118,8 +118,8 @@ public static class ElectricLightPlayModeValidationUtility
                 "Electric light did not start ACTIVE.");
             Require(electricLight.IsProvidingLight && gameplayLight != null && gameplayLight.enabled,
                 "ACTIVE state does not provide an enabled gameplay Light.");
-            Require(Mathf.Abs(gameplayLight.range - 6.5f) <= 0.001f && Mathf.Abs(gameplayLight.intensity - 7.5f) <= 0.001f,
-                "Gameplay Light does not match Player Light range/intensity defaults.");
+            Require(Mathf.Abs(gameplayLight.range - 4f) <= 0.001f && Mathf.Abs(gameplayLight.intensity - 7.5f) <= 0.001f,
+                "Gameplay Light does not match Electric cone range/intensity defaults.");
 
             worldPresence.SetPresenceEnabled(false);
             Require(!gameplayLight.enabled && !damageCollider.enabled,
@@ -130,7 +130,7 @@ public static class ElectricLightPlayModeValidationUtility
 
             GameObject dionaeaPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Enemies/Dionaea.prefab");
             Require(dionaeaPrefab != null, "Dionaea prefab is missing.");
-            dionaeaObject = UnityEngine.Object.Instantiate(dionaeaPrefab, new Vector3(1001f, 1000f, 0f), Quaternion.identity);
+            dionaeaObject = UnityEngine.Object.Instantiate(dionaeaPrefab, new Vector3(1000f, 998f, 0f), Quaternion.identity);
             DionaeaLightReceiver receiver = dionaeaObject.GetComponentInChildren<DionaeaLightReceiver>(true);
             DionaeaAI dionaeaAI = dionaeaObject.GetComponent<DionaeaAI>();
             Require(receiver != null && dionaeaAI != null, "Dionaea light receiver is incomplete.");
@@ -142,7 +142,7 @@ public static class ElectricLightPlayModeValidationUtility
 
             GameObject eyeballPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Enemies/EyeballFly.prefab");
             Require(eyeballPrefab != null, "EyeballFly prefab is missing.");
-            eyeballObject = UnityEngine.Object.Instantiate(eyeballPrefab, new Vector3(1002f, 1000f, 0f), Quaternion.identity);
+            eyeballObject = UnityEngine.Object.Instantiate(eyeballPrefab, new Vector3(1000f, 997f, 0f), Quaternion.identity);
             EyeballFlyAI eyeballAI = eyeballObject.GetComponent<EyeballFlyAI>();
             Require(eyeballAI != null, "EyeballFlyAI is missing.");
             SetField(typeof(MonsterAIBase), eyeballAI, "moveAnchorPosition", eyeballObject.transform.position);

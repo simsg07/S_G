@@ -19,12 +19,6 @@ public enum PersistentSceneObjectState
     Deactivated
 }
 
-public enum PersistentResetPolicy
-{
-    KeepSavedState,
-    ResetWhenSaveIsCleared
-}
-
 [DefaultExecutionOrder(-200)]
 [DisallowMultipleComponent]
 public sealed class PersistentSceneObject3D : MonoBehaviour
@@ -39,8 +33,6 @@ public sealed class PersistentSceneObject3D : MonoBehaviour
     [SerializeField] private bool saveCollectedState = true;
     [Tooltip("Disable the root when a destroyed/collected state is restored. Turn this off when the owning object applies its own persistent presentation.")]
     [SerializeField] private bool deactivateRootOnDestroyedRestore = true;
-    [SerializeField] private PersistentResetPolicy resetPolicy = PersistentResetPolicy.KeepSavedState;
-
     [Header("Restore Events")]
     [SerializeField] private UnityEvent onRestoreActivated;
     [SerializeField] private UnityEvent onRestoreDeactivated;
@@ -87,6 +79,15 @@ public sealed class PersistentSceneObject3D : MonoBehaviour
     public void MarkDestroyed()
     {
         if (saveDestroyedState) RecordState(PersistentSceneObjectState.Destroyed);
+    }
+
+    public void MarkDestroyedRuntime()
+    {
+        if (!saveDestroyedState || string.IsNullOrWhiteSpace(persistentId)) return;
+        currentState = PersistentSceneObjectState.Destroyed;
+        GameProgressSave3D.RecordRuntimePersistentObjectState(
+            gameObject.scene.name, persistentId, PersistentSceneObjectState.Destroyed);
+        Log($"Staged runtime Destroyed: {persistentId}");
     }
 
     public void MarkCollected()

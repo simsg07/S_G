@@ -62,7 +62,6 @@ public class DionaeaAI : MonoBehaviour, IFocusingInPlaceResettable3D
     private MonsterDetection monsterDetection;
     private MonsterAttack monsterAttack;
     private MonsterAnimatorBridge animatorBridge;
-    private float darknessTime;
     private float retractAnimationTime;
     private float recoverAnimationTime;
     private float nextAttackTime;
@@ -127,7 +126,11 @@ public class DionaeaAI : MonoBehaviour, IFocusingInPlaceResettable3D
         UpdateState();
     }
 
-    private void FixedUpdate() => LockBody();
+    private void FixedUpdate()
+    {
+        if (MonsterWorldSimulationGate3D.IsPhysicsSuspended(this)) return;
+        LockBody();
+    }
 
     public void UpdateState()
     {
@@ -262,7 +265,6 @@ public class DionaeaAI : MonoBehaviour, IFocusingInPlaceResettable3D
     private void CompleteRecovery()
     {
         lightExposureTime = 0f;
-        darknessTime = 0f;
         recoverAnimationTime = 0f;
         nextAllowedAttackTime = Time.time + postRecoverAttackLockTime;
         SetState(DionaeaState.Idle);
@@ -274,7 +276,6 @@ public class DionaeaAI : MonoBehaviour, IFocusingInPlaceResettable3D
         isRetracted = false;
         retractAnimationTime = 0f;
         lightExposureTime = 0f;
-        darknessTime = 0f;
         StartRecoveringFromLightLost();
     }
 
@@ -304,7 +305,6 @@ public class DionaeaAI : MonoBehaviour, IFocusingInPlaceResettable3D
         detectedPlayer = null;
         isLit = false;
         lightExposureTime = 0f;
-        darknessTime = 0f;
         retractAnimationTime = 0f;
         recoverAnimationTime = 0f;
         nextAttackTime = 0f;
@@ -372,7 +372,6 @@ public class DionaeaAI : MonoBehaviour, IFocusingInPlaceResettable3D
         if (isLit)
         {
             lightExposureTime += deltaTime;
-            darknessTime = 0f;
             if (retractWhenLit && lightExposureTime >= requiredLightExposureTime) StartRetractFromLight();
             return;
         }

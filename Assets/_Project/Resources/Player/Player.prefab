@@ -907,35 +907,6 @@ Transform:
   - {fileID: 7328960942149588238}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &880000000000000001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2916280608873643439}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6be9ff241e0e4786b35581a185dd4fd1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FocusingRingController3D
-  abilityAvailable: 1
-  resetPresentationTime: 0.1
-  resetCooldownDuration: 0.5
-  resetInputBufferDuration: 0.2
-  includeRegisteredSpawners: 1
-  explicitSpawners: []
-  state: 0
-  resetCooldownRemaining: 0
-  resetStarted:
-    m_PersistentCalls:
-      m_Calls: []
-  resetCompleted:
-    m_PersistentCalls:
-      m_Calls: []
-  cooldownCompleted:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!114 &3825017814145501927
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -949,13 +920,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 6
-  jumpForce: 13.3
+  jumpForce: 17
   groundLayer:
     serializedVersion: 2
     m_Bits: 512
   enableDoubleJump: 0
   useSeparateDoubleJumpForce: 0
-  doubleJumpForce: 13.3
+  doubleJumpForce: 17
   gravityScale: 3
   fallGravityMultiplier: 1.35
   maxFallSpeed: 18
@@ -965,7 +936,6 @@ MonoBehaviour:
   groundCheckDistance: 0.08
   dropThroughDuration: 0.45
   passThroughClearance: 0.05
-  colliderSize: {x: 0.8, y: 1.2, z: 1}
   gameplayPlaneZ: 0
   playerPhysicsMaterial: {fileID: 13400000, guid: 4f86b2cf4e14477b98479ebef9ccd233, type: 2}
 --- !u!114 &7100014209207147258
@@ -1011,13 +981,8 @@ MonoBehaviour:
   useSecondaryFireForCameraMode: 1
   worldSwitchKey: 31
   lightToggleKey: 32
-  previousCameraSlotKey: 0
-  nextCameraSlotKey: 19
-  selectedCameraAbility: 0
   cameraModeKey: 0
-  holdCameraMode: 1
   startInCameraMode: 0
-  cameraModeSlowDuration: 2
   cameraModeTimeScale: 0.25
   useMouseFrameTargeting: 1
   showCameraFrame: 1
@@ -1029,6 +994,7 @@ MonoBehaviour:
   frameAccentColor: {r: 0.42, g: 0.78, b: 1, a: 0.48}
   frameRecordColor: {r: 1, g: 0.12, b: 0.12, a: 0.95}
   frameCooldownColor: {r: 1, g: 0.7, b: 0.25, a: 0.8}
+  cameraDragSensitivity: 1
   targetMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -1037,13 +1003,33 @@ MonoBehaviour:
   shutterBoxSize: {x: 1.5, y: 1.5, z: 1}
   relayRange: 3
   relayBoxSize: {x: 1.6, y: 1.6, z: 1}
-  allowUntaggedShutterTargets: 1
   shutterLineOfSightMask:
     serializedVersion: 2
     m_Bits: 3584
   showShutterDebug: 0
   logShutterEvents: 0
-  markDuration: 1.2
+  debugCameraMode: 0
+  runtimeCameraModeActive: 0
+  runtimeLeftClickDetectedThisFrame: 0
+  runtimeInputBlockReason: None
+  runtimeShutterRequestCount: 0
+  runtimeLastShutterRequestTime: -1
+  runtimeDoubleClickPending: 0
+  runtimeLastCaptureCallSucceeded: 0
+  runtimeLastShutterInputReceived: 0
+  runtimeLastShutterExecutionResult: Not executed
+  runtimeLastShutterBlockReason: None
+  runtimeShutterPhysicsHitCount: 0
+  runtimeShutterCandidateCount: 0
+  runtimeShutterViewportCandidateCount: 0
+  runtimeShutterAirborneCandidateCount: 0
+  runtimeElectronicNoiseRootCount: 0
+  runtimeMarkableResolvedCount: 0
+  runtimeMarkInvokedCount: 0
+  runtimeFreezeInvokedCount: 0
+  runtimeLastMarkedObjectName: None
+  runtimeMarkDuration: 0
+  markDuration: 5
   focusCooldown: 0.2
   relayCooldown: 0.35
   flashLightIntensity: 7.5
@@ -1053,6 +1039,7 @@ MonoBehaviour:
   cameraLightFollower: {fileID: 0}
   cameraWorldSwitcher: {fileID: 0}
   interventionLimiter: {fileID: 8691335266303364152}
+  cameraTargetRefreshInterval: 0.05
 --- !u!114 &1223271334666151995
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1207,7 +1194,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8a41c791da54eeca8aa6a430bf25ff9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerVisualSettings3D
   visualRoot: {fileID: 5278597659841166381}
   visualScale: {x: 1, y: 1}
@@ -1219,6 +1206,35 @@ MonoBehaviour:
   colliderSize: {x: 1.12, y: 2.4, z: 1}
   previewInEditor: 1
   debugMode: 0
+--- !u!114 &880000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2916280608873643439}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6be9ff241e0e4786b35581a185dd4fd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FocusingRingController3D
+  abilityAvailable: 1
+  resetPresentationTime: 0.1
+  resetCooldownDuration: 0.5
+  resetInputBufferDuration: 0.2
+  includeRegisteredSpawners: 1
+  explicitSpawners: []
+  state: 0
+  resetCooldownRemaining: 0
+  resetStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  resetCompleted:
+    m_PersistentCalls:
+      m_Calls: []
+  cooldownCompleted:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &3398501789853840607
 GameObject:
   m_ObjectHideFlags: 0

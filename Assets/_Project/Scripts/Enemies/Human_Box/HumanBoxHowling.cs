@@ -85,6 +85,7 @@ public sealed class HumanBoxHowling : MonoBehaviour
 
     public bool TryApplyPlayerStun(Transform playerTarget)
     {
+        if (!MonsterWorldSimulationGate3D.AllowsPlayerInteraction(this)) return false;
         if (playerStunAppliedThisHowl || playerStunAttemptedThisHowl) return playerStunAppliedThisHowl;
         playerStunAttemptedThisHowl = true;
 

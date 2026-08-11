@@ -17,6 +17,9 @@ public class BoomberBrain : MonsterAIBase
 
     [Header("Locked Run")]
     [SerializeField] private float lockedRunDirection;
+    [SerializeField] private bool hasAggro;
+    [SerializeField] private Vector3 lockedAggroDirection;
+    [SerializeField] private Vector3 lastKnownTargetPosition;
 
     [Header("Run Acceleration")]
     [SerializeField] private float baseRunSpeed = 3f;
@@ -43,9 +46,13 @@ public class BoomberBrain : MonsterAIBase
     private readonly HashSet<HitReceiver> contactHitReceivers = new HashSet<HitReceiver>();
     [SerializeField] private bool isPausedByShutter;
     private bool isDestroyed;
+    private bool runtimeInitialized;
 
     public BoomberState CurrentState => currentState;
     public float LockedRunDirection => lockedRunDirection;
+    public bool HasAggro => hasAggro;
+    public Vector3 LockedAggroDirection => lockedAggroDirection;
+    public Vector3 LastKnownTargetPosition => lastKnownTargetPosition;
     public float CurrentRunSpeed => currentRunSpeed;
     public float RunElapsedTime => runElapsedTime;
     public float ActualMoveSpeed => actualMoveSpeed;
@@ -90,22 +97,17 @@ public class BoomberBrain : MonsterAIBase
         CacheBoomberReferences();
         SubscribeExplosion();
 
-        currentTarget = null;
-        currentTargetType = MonsterTargetType.None;
-        lockedRunDirection = 0f;
-        currentRunSpeed = baseRunSpeed;
-        runElapsedTime = 0f;
-        actualMoveSpeed = 0f;
-        isAttackStarted = false;
-        lastLoggedSpeedStep = -1;
-        contactHitReceivers.Clear();
-
-        if (explosion != null)
+        if (!runtimeInitialized)
         {
-            explosion.ResetExplosion();
+            InitializeRuntimeState();
+            runtimeInitialized = true;
+            ChangeState(BoomberState.Idle, true);
+            return;
         }
 
-        ChangeState(BoomberState.Idle, true);
+        // Re-enabling an existing instance (including a World transition) must not
+        // reset its locked aggro direction, timer, speed, or explosion sequence.
+        if (hasAggro && currentState == BoomberState.Run) SetHorizontalMovementLocked(false);
     }
 
     protected override void OnValidate()
@@ -166,6 +168,12 @@ public class BoomberBrain : MonsterAIBase
             return;
         }
 
+        if (IsWorldPhysicsSuspended)
+        {
+            SimulateHiddenWorldRun(Time.fixedDeltaTime);
+            return;
+        }
+
         if (isPausedByShutter || isDestroyed)
         {
             StopHorizontalMovement();
@@ -183,6 +191,37 @@ public class BoomberBrain : MonsterAIBase
         UpdateBaseMovement(Time.fixedDeltaTime);
     }
 
+    private void SimulateHiddenWorldRun(float deltaTime)
+    {
+        if (isPausedByShutter || isDestroyed || currentState != BoomberState.Run || !hasAggro)
+        {
+            return;
+        }
+
+        Vector3 direction = lockedAggroDirection;
+        if (Mathf.Abs(direction.x) < 0.0001f)
+        {
+            return;
+        }
+
+        // The world gate has already disabled gravity and collision detection. Keep only
+        // Boomber's locked horizontal intent advancing; do not query obstacles or deal damage.
+        AdvanceRunSpeed(deltaTime);
+        Vector3 nextPosition = ProjectToFixedZ(GetCurrentPosition()
+            + direction * (actualMoveSpeed * deltaTime));
+        lastMoveDirection = direction;
+        moveAnchorPosition = nextPosition;
+
+        if (body != null)
+        {
+            body.position = nextPosition;
+        }
+        else
+        {
+            transform.position = nextPosition;
+        }
+    }
+
     protected override void UpdateBaseMovement(float deltaTime)
     {
         if (currentState != BoomberState.Run)
@@ -193,7 +232,7 @@ public class BoomberBrain : MonsterAIBase
 
         SetHorizontalMovementLocked(false);
 
-        Vector3 direction = new Vector3(Mathf.Sign(lockedRunDirection), 0f, 0f);
+        Vector3 direction = lockedAggroDirection;
         if (direction.x == 0f)
         {
             StopHorizontalMovement();
@@ -246,6 +285,9 @@ public class BoomberBrain : MonsterAIBase
         }
 
         lockedRunDirection = 0f;
+        hasAggro = false;
+        lockedAggroDirection = Vector3.zero;
+        lastKnownTargetPosition = Vector3.zero;
         currentRunSpeed = baseRunSpeed;
         runElapsedTime = 0f;
         actualMoveSpeed = 0f;
@@ -294,17 +336,32 @@ public class BoomberBrain : MonsterAIBase
         {
             explosion.ConfigureDamage(monsterAttack.attackDamage);
         }
+
+        int weakWallObstacleMask = LayerMask.GetMask("TileObstacle");
+        movementObstacleLayerMask |= weakWallObstacleMask;
+        runObstacleLayerMask |= weakWallObstacleMask;
+        objectStopLayerMask |= weakWallObstacleMask;
     }
 
     private void UpdateIdle()
     {
+        if (hasAggro)
+        {
+            ChangeState(BoomberState.Run);
+            return;
+        }
+
         if (!HasVisiblePlayerTarget())
         {
             return;
         }
 
-        float dx = playerTarget.position.x - transform.position.x;
-        lockedRunDirection = dx >= 0f ? 1f : -1f;
+        lastKnownTargetPosition = playerTarget.position;
+        float dx = lastKnownTargetPosition.x - transform.position.x;
+        float fallbackDirection = lockedRunDirection != 0f ? Mathf.Sign(lockedRunDirection) : 1f;
+        lockedRunDirection = Mathf.Abs(dx) > 0.0001f ? Mathf.Sign(dx) : fallbackDirection;
+        lockedAggroDirection = lockedRunDirection > 0f ? Vector3.right : Vector3.left;
+        hasAggro = true;
         LogDebug($"Run direction locked: {(lockedRunDirection > 0f ? "Right" : "Left")}");
         ChangeState(BoomberState.Run);
     }
@@ -374,6 +431,12 @@ public class BoomberBrain : MonsterAIBase
                 continue;
             }
 
+            if (!MonsterWorldSimulationGate3D.AllowsPlayerInteraction(this) && IsPlayerHierarchy(candidate.transform))
+            {
+                continue;
+            }
+            if (!WorldDamageFilter3D.CanAffect(this, candidate)) continue;
+
             if (hits[i].distance < nearestDistance)
             {
                 nearestDistance = hits[i].distance;
@@ -398,6 +461,7 @@ public class BoomberBrain : MonsterAIBase
         {
             return;
         }
+        if (IsWorldPhysicsSuspended || body.isKinematic) return;
 
         Vector3 velocity = body.linearVelocity;
         velocity.x = 0f;
@@ -407,7 +471,7 @@ public class BoomberBrain : MonsterAIBase
 
     private void SetHorizontalMovementLocked(bool locked)
     {
-        if (body == null)
+        if (body == null || IsWorldPhysicsSuspended)
         {
             return;
         }
@@ -430,6 +494,7 @@ public class BoomberBrain : MonsterAIBase
         }
 
         isAttackStarted = true;
+        hasAggro = false;
         StopHorizontalMovement();
         ChangeState(BoomberState.PreAttack);
         LogDebug($"Attack started. Reason={reason}");
@@ -454,6 +519,7 @@ public class BoomberBrain : MonsterAIBase
         }
 
         ChangeState(BoomberState.Dead);
+        hasAggro = false;
         DisableColliders();
         LogDebug("Dead. Reason=Explosion finished");
 
@@ -597,10 +663,9 @@ public class BoomberBrain : MonsterAIBase
             return;
         }
 
-        bool hitPlayer = playerTarget != null &&
-            (other.transform == playerTarget ||
-             other.transform.IsChildOf(playerTarget) ||
-             playerTarget.IsChildOf(other.transform));
+        bool hitPlayer = IsPlayerHierarchy(other.transform);
+        if (hitPlayer && !MonsterWorldSimulationGate3D.AllowsPlayerInteraction(this)) return;
+        if (!WorldDamageFilter3D.CanAffect(this, other)) return;
         int stopMask = movementObstacleLayerMask.value |
             runObstacleLayerMask.value |
             objectStopLayerMask.value |
@@ -612,7 +677,9 @@ public class BoomberBrain : MonsterAIBase
             return;
         }
 
-        TryRegisterBoomberContactHit(other);
+        BlockObject weakWall = other.GetComponentInParent<BlockObject>();
+        if (weakWall != null) explosion?.RegisterContactCandidate(other);
+        else TryRegisterBoomberContactHit(other);
 
         StartAttack(hitPlayer
             ? $"Collision with Player: {other.name}"
@@ -690,6 +757,34 @@ public class BoomberBrain : MonsterAIBase
             IsPlayerVisible();
     }
 
+    private bool IsPlayerHierarchy(Transform candidate)
+    {
+        if (candidate == null) return false;
+        if (playerTarget != null &&
+            (candidate == playerTarget || candidate.IsChildOf(playerTarget) || playerTarget.IsChildOf(candidate)))
+            return true;
+
+        Transform root = candidate.root;
+        return candidate.CompareTag("Player") || (root != null && root.CompareTag("Player"));
+    }
+
+    private void InitializeRuntimeState()
+    {
+        currentTarget = null;
+        currentTargetType = MonsterTargetType.None;
+        lockedRunDirection = 0f;
+        hasAggro = false;
+        lockedAggroDirection = Vector3.zero;
+        lastKnownTargetPosition = Vector3.zero;
+        currentRunSpeed = baseRunSpeed;
+        runElapsedTime = 0f;
+        actualMoveSpeed = 0f;
+        isAttackStarted = false;
+        lastLoggedSpeedStep = -1;
+        contactHitReceivers.Clear();
+        explosion?.ResetExplosion();
+    }
+
     private void ChangeState(BoomberState nextState, bool force = false)
     {
         if (!force && currentState == nextState)
@@ -729,8 +824,16 @@ public class BoomberBrain : MonsterAIBase
 
         if (currentState == BoomberState.Idle)
         {
-            lockedRunDirection = 0f;
+            if (!hasAggro)
+            {
+                lockedRunDirection = 0f;
+                lockedAggroDirection = Vector3.zero;
+            }
             isAttackStarted = false;
+        }
+        else if (currentState == BoomberState.Dead)
+        {
+            hasAggro = false;
         }
 
         LogDebug($"State changed: {previous} -> {currentState}");

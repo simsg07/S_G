@@ -93,7 +93,7 @@ MonoBehaviour:
   blockMovementByObstacles: 1
   movementObstacleLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 2304
   collisionCheckRadius: 0.25
   collisionCheckDistance: 0.1
   useColliderBoundsForMovementCheck: 1
@@ -135,10 +135,10 @@ MonoBehaviour:
   actualMoveSpeed: 0
   runObstacleLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 2304
   objectStopLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 2304
   playerLayerMask:
     serializedVersion: 2
     m_Bits: 0
@@ -222,7 +222,7 @@ MonoBehaviour:
   blockMovementByObstacles: 1
   movementObstacleLayerMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 2304
   groundLayerMask:
     serializedVersion: 2
     m_Bits: 0

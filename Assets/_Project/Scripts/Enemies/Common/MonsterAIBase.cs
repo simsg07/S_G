@@ -115,6 +115,7 @@ public abstract class MonsterAIBase : MonoBehaviour
     private Animator cachedParameterAnimator;
     private RuntimeAnimatorController cachedParameterController;
     private readonly HashSet<long> cachedAnimatorParameters = new HashSet<long>();
+    private MonsterWorldSimulationGate3D worldSimulationGate;
     private bool hasLoggedDebugState;
     private Transform lastLoggedTarget;
     private MonsterTargetType lastLoggedTargetType;
@@ -131,6 +132,8 @@ public abstract class MonsterAIBase : MonoBehaviour
     public bool IsPlayerInAttackRange => IsInRange(playerTarget, attackRange);
     protected string LastBlockedColliderName => lastBlockedCollider != null ? lastBlockedCollider.name : "None";
     protected string LastSightBlockedColliderName => lastSightBlockedCollider != null ? lastSightBlockedCollider.name : "None";
+    protected bool CanInteractWithPlayer => worldSimulationGate == null || worldSimulationGate.PlayerInteractionAllowed;
+    protected bool IsWorldPhysicsSuspended => worldSimulationGate != null && worldSimulationGate.IsWorldPhysicsSuspended;
 
     protected virtual void Awake()
     {
@@ -196,6 +199,7 @@ public abstract class MonsterAIBase : MonoBehaviour
         {
             return;
         }
+        if (IsWorldPhysicsSuspended) return;
 
         UpdateGroundCheck();
         UpdateBaseMovement(Time.fixedDeltaTime);
@@ -214,6 +218,7 @@ public abstract class MonsterAIBase : MonoBehaviour
 
     protected virtual void CacheBaseReferences()
     {
+        if (worldSimulationGate == null) worldSimulationGate = GetComponentInParent<MonsterWorldSimulationGate3D>();
         if (body == null)
         {
             body = GetComponent<Rigidbody>();
@@ -789,6 +794,7 @@ public abstract class MonsterAIBase : MonoBehaviour
 
     protected bool IsPlayerDetected()
     {
+        if (worldSimulationGate != null && !worldSimulationGate.PlayerInteractionAllowed) return false;
         if (monsterDetection != null && !monsterDetection.enableDetection)
         {
             LogDebug("Detection disabled by MonsterDetection.");
@@ -828,6 +834,9 @@ public abstract class MonsterAIBase : MonoBehaviour
             return false;
         }
 
+        ElectricLightObject3D electricLight = target.GetComponentInParent<ElectricLightObject3D>();
+        if (electricLight == null) electricLight = target.GetComponentInChildren<ElectricLightObject3D>();
+        if (electricLight != null) return electricLight.IsProvidingLight;
         Light lightComponent = target.GetComponentInChildren<Light>();
         return lightComponent == null || lightComponent.enabled;
     }
@@ -846,7 +855,8 @@ public abstract class MonsterAIBase : MonoBehaviour
 
         if (currentTargetType == MonsterTargetType.Player)
         {
-            return detectPlayer && currentTarget.gameObject.activeInHierarchy;
+            return (worldSimulationGate == null || worldSimulationGate.PlayerInteractionAllowed)
+                && detectPlayer && currentTarget.gameObject.activeInHierarchy;
         }
 
         return false;
@@ -1184,6 +1194,7 @@ public abstract class MonsterAIBase : MonoBehaviour
 
     protected bool TryDamageTarget(Transform target, int damage)
     {
+        if (!CanInteractWithPlayer) return false;
         if (damage <= 0)
         {
             return false;

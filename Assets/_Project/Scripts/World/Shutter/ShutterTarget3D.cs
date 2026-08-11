@@ -43,13 +43,17 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
     private BoomberBrain boomber;
 
     public bool IsMarked => isMarked;
+    public bool HasWorldShifted => hasWorldShifted;
     public float VisualMarkEndTime => markDurationInfinite ? float.PositiveInfinity : Time.time + Mathf.Max(0f, markExpireTime - Time.unscaledTime);
 
     private void Awake()
     {
+        ShutterTargetRegistry3D.Register(this, this);
         CacheReferences();
         UpdateMarkVisual();
     }
+
+    private void OnDestroy() => ShutterTargetRegistry3D.Unregister(this);
 
     private void Update()
     {
@@ -192,8 +196,9 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
 
     public bool ApplyMark(float duration, CameraAbilitySystem3D source)
     {
-        if (!canBeShuttered || duration <= 0f || !isActiveAndEnabled) return false;
-        if (!isMarked) PauseByShutter();
+        if (duration <= 0f || !CanReceiveShutter()) return false;
+        PauseByShutter();
+        if (!isPausedByShutter) return false;
         isMarked = true;
         markDurationInfinite = false;
         markDuration = duration;

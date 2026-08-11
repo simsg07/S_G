@@ -35,6 +35,8 @@ public class DamageBlock3D : MonoBehaviour
     private readonly Dictionary<int, int> contactCountByRoot = new Dictionary<int, int>(4);
     private readonly HashSet<int> damagedRoots = new HashSet<int>();
 
+    public SpikeTrapState CurrentState => currentState;
+
     private void Awake()
     {
         ConfigureBlock();

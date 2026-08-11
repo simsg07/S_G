@@ -264,6 +264,12 @@ public sealed class CosmosLift3D : MonoBehaviour
 
     private bool LightReaches(Light light, Vector3 receiverPoint)
     {
+        if (GameplayLightSource3D.TryResolve(light, out IGameplayLightSource3D source))
+        {
+            if (source is Component sourceComponent &&
+                !WorldDamageFilter3D.CanAffect(sourceComponent, this)) return false;
+            return source.IsProvidingLight && source.IsIlluminating(receiverPoint);
+        }
         if (light == null || !light.isActiveAndEnabled || light.intensity <= 0f)
         {
             return false;

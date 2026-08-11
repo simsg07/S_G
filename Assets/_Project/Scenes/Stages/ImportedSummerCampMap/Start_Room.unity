@@ -1715,6 +1715,8 @@ MonoBehaviour:
   followSmoothTime: 0.125
   boundarySmoothTime: 0.18
   edgePadding: 0
+  referenceAspect: {x: 16, y: 9}
+  letterboxColor: {r: 0, g: 0, b: 0, a: 1}
   constrainToLayerBounds: 1
   boundaryLayerMask:
     serializedVersion: 2

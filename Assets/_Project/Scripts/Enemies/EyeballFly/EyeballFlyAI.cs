@@ -181,9 +181,9 @@ public class EyeballFlyAI : MonsterAIBase
         bool lightDetected = nearestLight != null;
         bool lightKept = detectionEnabled && previousType == MonsterTargetType.Light && IsLightAvailable(previousTarget) &&
             IsStrictTargetDetected(previousTarget, targetKeepRange, true);
-        bool playerDetected = detectionEnabled && detectPlayer &&
+        bool playerDetected = CanInteractWithPlayer && detectionEnabled && detectPlayer &&
             IsStrictTargetDetected(playerTarget, playerDetectRange, false);
-        bool playerKept = detectionEnabled && previousType == MonsterTargetType.Player && previousTarget != null &&
+        bool playerKept = CanInteractWithPlayer && detectionEnabled && previousType == MonsterTargetType.Player && previousTarget != null &&
             IsStrictTargetDetected(previousTarget, targetKeepRange, false);
 
         if (lightDetected || lightKept)
@@ -208,6 +208,7 @@ public class EyeballFlyAI : MonsterAIBase
     protected override void FixedUpdate()
     {
         if (dead || currentState == EyeballFlyState.DEAD) return;
+        if (IsWorldPhysicsSuspended) return;
 
         if (currentState == EyeballFlyState.DASH_ATTACK)
         {
@@ -423,6 +424,7 @@ public class EyeballFlyAI : MonsterAIBase
 
     private bool TryDamageDashTarget(Collider hitCollider, Vector3 hitPoint)
     {
+        if (!MonsterWorldSimulationGate3D.AllowsPlayerInteraction(this)) return false;
         if (currentState != EyeballFlyState.DASH_ATTACK || !dashDamageEnabled ||
             hitCollider == null || !IsLayerIncluded(hitCollider.gameObject.layer, damageableLayers)) return false;
 
@@ -531,6 +533,17 @@ public class EyeballFlyAI : MonsterAIBase
 
     private bool IsStrictTargetDetected(Transform target, float range, bool requireEnabledLight)
     {
+        if (requireEnabledLight)
+        {
+            ElectricLightObject3D electricLight = target != null
+                ? target.GetComponentInParent<ElectricLightObject3D>()
+                : null;
+            if (electricLight == null && target != null)
+                electricLight = target.GetComponentInChildren<ElectricLightObject3D>();
+            if (electricLight != null &&
+                (!WorldDamageFilter3D.CanAffect(electricLight, this) ||
+                 !electricLight.IsIlluminating(moveAnchorPosition))) return false;
+        }
         if (monsterDetection != null)
         {
             return monsterDetection.IsTargetDetected(transform, target, range, requireEnabledLight, out _);

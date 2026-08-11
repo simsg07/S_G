@@ -8,12 +8,14 @@ using UnityEditor;
 #endif
 
 [ExecuteAlways]
+[DefaultExecutionOrder(10000)]
 [DisallowMultipleComponent]
 public class WorldPresence : MonoBehaviour
 {
     [Header("World Presence")]
     [SerializeField] private WorldPresenceMode presenceMode = WorldPresenceMode.Both;
     [SerializeField] private bool applyOnStart = true;
+    [SerializeField, HideInInspector] private HiddenWorldSimulationPolicy hiddenWorldSimulationPolicy = HiddenWorldSimulationPolicy.PauseWhenHidden;
 
     [Header("Controlled Components")]
     [FormerlySerializedAs("affectRenderers")]
@@ -36,6 +38,7 @@ public class WorldPresence : MonoBehaviour
     [SerializeField] private Rigidbody primaryRigidbody;
     [SerializeField] private Rigidbody[] controlledRigidbodies = Array.Empty<Rigidbody>();
     [SerializeField] private Animator[] controlledAnimators = Array.Empty<Animator>();
+    [SerializeField] private Light[] controlledLights = Array.Empty<Light>();
 
     [Header("Debug")]
     [SerializeField] private bool debugMode;
@@ -47,8 +50,6 @@ public class WorldPresence : MonoBehaviour
     [SerializeField, HideInInspector] private bool legacyAffectRootActive;
     [FormerlySerializedAs("visualRoot")]
     [SerializeField, HideInInspector] private GameObject legacyVisualRoot;
-    [FormerlySerializedAs("affectMonsterAI")]
-    [SerializeField, HideInInspector] private bool legacyAffectMonsterAI = true;
     [FormerlySerializedAs("affectBehaviours")]
     [SerializeField, HideInInspector] private bool legacyAffectBehaviours;
 
@@ -56,17 +57,63 @@ public class WorldPresence : MonoBehaviour
     private ColliderState[] colliderStates = Array.Empty<ColliderState>();
     private BehaviourState[] behaviourStates = Array.Empty<BehaviourState>();
     private RigidbodyState[] rigidbodyStates = Array.Empty<RigidbodyState>();
+    private Vector3[] suspendedLinearVelocities = Array.Empty<Vector3>();
+    private Vector3[] suspendedAngularVelocities = Array.Empty<Vector3>();
+    private bool[] hasSuspendedRigidbodyState = Array.Empty<bool>();
     private AnimatorState[] animatorStates = Array.Empty<AnimatorState>();
+    private LightState[] lightStates = Array.Empty<LightState>();
     private bool referencesCached;
     private bool originalStatesCached;
     private WorldState lastAppliedWorld = WorldState.WorldA;
+    private bool hasAppliedPresence;
+    private bool worldEventsSubscribed;
+    private MonsterWorldSimulationGate3D monsterSimulationGate;
 
     public WorldPresenceMode PresenceMode => presenceMode;
     public bool IsPresentInCurrentWorld { get; private set; } = true;
 
+    /// <summary>Overrides this instance only; prefab asset data is never changed.</summary>
+    public void SetPresenceMode(WorldPresenceMode mode)
+    {
+        presenceMode = mode;
+    }
+
+    /// <summary>
+    /// Configures a newly-added runtime adapter to gate the whole spawned hierarchy.
+    /// Existing prefab WorldPresence components keep their authored target lists.
+    /// </summary>
+    public void ConfigureRuntimeAdapter(WorldPresenceMode mode)
+    {
+        presenceMode = mode;
+        autoCollectRenderers = true;
+        autoCollectColliders = true;
+        autoCollectRigidbodies = true;
+        autoCollectAnimators = true;
+        disableControlledBehavioursWhenAbsent = true;
+        autoCollectMonsterBehaviours = false;
+        controlledBehaviours = FilterControlledBehaviours(GetComponentsInChildren<MonoBehaviour>(true));
+        referencesCached = false;
+        originalStatesCached = false;
+        RefreshReferences();
+        CacheOriginalStates();
+    }
+
+    public void ConfigureHiddenWorldSimulation(HiddenWorldSimulationPolicy policy, GameObject monsterRoot)
+    {
+        hiddenWorldSimulationPolicy = policy;
+        monsterSimulationGate = null;
+        if (policy == HiddenWorldSimulationPolicy.ContinueMonsterLogic && monsterRoot != null)
+        {
+            monsterSimulationGate = monsterRoot.GetComponent<MonsterWorldSimulationGate3D>();
+            if (monsterSimulationGate == null) monsterSimulationGate = monsterRoot.AddComponent<MonsterWorldSimulationGate3D>();
+        }
+        hasAppliedPresence = false;
+    }
+
     private void Awake()
     {
         WorldPresenceRegistry.Register(this);
+        EnsureMonsterSimulationGate();
         RefreshReferences();
         CacheOriginalStates();
     }
@@ -74,10 +121,14 @@ public class WorldPresence : MonoBehaviour
     private void OnEnable()
     {
         WorldPresenceRegistry.Register(this);
+        EnsureMonsterSimulationGate();
         SubscribeWorldChanged();
 
         if (Application.isPlaying && applyOnStart)
         {
+            // Other components on the same object may restore their Rigidbody in OnEnable.
+            // Force the final world state after those initializers have run.
+            hasAppliedPresence = false;
             ApplyCurrentWorld();
         }
     }
@@ -97,6 +148,7 @@ public class WorldPresence : MonoBehaviour
 
     private void OnDestroy()
     {
+        monsterSimulationGate?.RemovePresence(this);
         WorldPresenceRegistry.Unregister(this);
         UnsubscribeWorldChanged();
     }
@@ -124,6 +176,7 @@ public class WorldPresence : MonoBehaviour
         controlledAnimators = autoCollectAnimators
             ? MergeComponents(GetComponentsInChildren<Animator>(true), controlledAnimators)
             : RemoveMissing(controlledAnimators);
+        controlledLights = MergeComponents(GetComponentsInChildren<Light>(true), controlledLights);
 
         controlledBehaviours = ResolveControlledBehaviours();
         referencesCached = true;
@@ -172,38 +225,45 @@ public class WorldPresence : MonoBehaviour
     public void SetPresenceEnabled(bool present)
     {
         EnsureCached();
+        if (hasAppliedPresence && IsPresentInCurrentWorld == present) return;
+        hasAppliedPresence = true;
         IsPresentInCurrentWorld = present;
 
         int disabledRenderers = ApplyRendererStates(present);
-        int disabledColliders = ApplyColliderStates(present);
-        int disabledBehaviours = disableControlledBehavioursWhenAbsent
+        int disabledLights = ApplyLightStates(present);
+        bool continueMonsterLogic = hiddenWorldSimulationPolicy == HiddenWorldSimulationPolicy.ContinueMonsterLogic;
+        int disabledColliders = continueMonsterLogic ? 0 : ApplyColliderStates(present);
+        int disabledBehaviours = !continueMonsterLogic && disableControlledBehavioursWhenAbsent
             ? ApplyBehaviourStates(present, IsMonsterDead())
             : 0;
-        int stoppedRigidbodies = ApplyRigidbodyStates(present);
-        int disabledAnimators = ApplyAnimatorStates(present);
+        int stoppedRigidbodies = continueMonsterLogic ? 0 : ApplyRigidbodyStates(present);
+        int disabledAnimators = continueMonsterLogic ? 0 : ApplyAnimatorStates(present);
+        if (continueMonsterLogic) monsterSimulationGate?.SetPresence(this, present);
 
         if (debugMode && Application.isPlaying)
         {
             Debug.Log(
                 $"[WorldPresence] {name} world={lastAppliedWorld}, mode={presenceMode}, present={present}, " +
                 $"renderersOff={disabledRenderers}, collidersOff={disabledColliders}, behavioursOff={disabledBehaviours}, " +
-                $"rigidbodiesStopped={stoppedRigidbodies}, animatorsOff={disabledAnimators}",
+                $"rigidbodiesStopped={stoppedRigidbodies}, animatorsOff={disabledAnimators}, lightsOff={disabledLights}",
                 this);
         }
     }
 
     private void SubscribeWorldChanged()
     {
-        WorldManager.WorldChanged -= HandleTimelineWorldChanged;
-        WorldSystem3D.ActiveWorldChanged -= HandleResearchWorldChanged;
+        if (worldEventsSubscribed) return;
         WorldManager.WorldChanged += HandleTimelineWorldChanged;
         WorldSystem3D.ActiveWorldChanged += HandleResearchWorldChanged;
+        worldEventsSubscribed = true;
     }
 
     private void UnsubscribeWorldChanged()
     {
+        if (!worldEventsSubscribed) return;
         WorldManager.WorldChanged -= HandleTimelineWorldChanged;
         WorldSystem3D.ActiveWorldChanged -= HandleResearchWorldChanged;
+        worldEventsSubscribed = false;
     }
 
     private void ApplyCurrentWorld()
@@ -240,6 +300,23 @@ public class WorldPresence : MonoBehaviour
         }
     }
 
+    private void EnsureMonsterSimulationGate()
+    {
+        if (hiddenWorldSimulationPolicy != HiddenWorldSimulationPolicy.ContinueMonsterLogic
+            || monsterSimulationGate != null)
+        {
+            return;
+        }
+
+        MonsterAIBase monster = GetComponentInParent<MonsterAIBase>();
+        if (monster == null) return;
+        monsterSimulationGate = monster.GetComponent<MonsterWorldSimulationGate3D>();
+        if (monsterSimulationGate == null && Application.isPlaying)
+        {
+            monsterSimulationGate = monster.gameObject.AddComponent<MonsterWorldSimulationGate3D>();
+        }
+    }
+
     private void CacheOriginalStates()
     {
         rendererStates = new RendererState[controlledRenderers != null ? controlledRenderers.Length : 0];
@@ -264,13 +341,19 @@ public class WorldPresence : MonoBehaviour
         }
 
         rigidbodyStates = new RigidbodyState[controlledRigidbodies != null ? controlledRigidbodies.Length : 0];
+        suspendedLinearVelocities = new Vector3[rigidbodyStates.Length];
+        suspendedAngularVelocities = new Vector3[rigidbodyStates.Length];
+        hasSuspendedRigidbodyState = new bool[rigidbodyStates.Length];
         for (int i = 0; i < rigidbodyStates.Length; i++)
         {
             Rigidbody target = controlledRigidbodies[i];
             rigidbodyStates[i] = new RigidbodyState(
                 target,
                 target != null && target.isKinematic,
-                target != null && target.useGravity);
+                target != null && target.useGravity,
+                target != null && target.detectCollisions,
+                target != null ? target.constraints : RigidbodyConstraints.None,
+                target != null ? target.interpolation : RigidbodyInterpolation.None);
         }
 
         animatorStates = new AnimatorState[controlledAnimators != null ? controlledAnimators.Length : 0];
@@ -278,6 +361,13 @@ public class WorldPresence : MonoBehaviour
         {
             Animator target = controlledAnimators[i];
             animatorStates[i] = new AnimatorState(target, target != null && target.enabled);
+        }
+
+        lightStates = new LightState[controlledLights != null ? controlledLights.Length : 0];
+        for (int i = 0; i < lightStates.Length; i++)
+        {
+            Light target = controlledLights[i];
+            lightStates[i] = new LightState(target, target != null && target.enabled);
         }
 
         originalStatesCached = true;
@@ -370,13 +460,28 @@ public class WorldPresence : MonoBehaviour
 
             if (present)
             {
+                target.constraints = rigidbodyStates[i].OriginalConstraints;
+                target.interpolation = rigidbodyStates[i].OriginalInterpolation;
                 target.isKinematic = rigidbodyStates[i].OriginalIsKinematic;
                 target.useGravity = rigidbodyStates[i].OriginalUseGravity;
-                StopDynamicMotion(target);
+                target.detectCollisions = rigidbodyStates[i].OriginalDetectCollisions;
+                if (hasSuspendedRigidbodyState[i] && !target.isKinematic)
+                {
+                    target.linearVelocity = suspendedLinearVelocities[i];
+                    target.angularVelocity = suspendedAngularVelocities[i];
+                }
+                hasSuspendedRigidbodyState[i] = false;
                 continue;
             }
 
+            if (!target.isKinematic)
+            {
+                suspendedLinearVelocities[i] = target.linearVelocity;
+                suspendedAngularVelocities[i] = target.angularVelocity;
+            }
+            hasSuspendedRigidbodyState[i] = true;
             StopDynamicMotion(target);
+            target.detectCollisions = false;
             target.isKinematic = true;
             target.useGravity = false;
             stoppedCount++;
@@ -416,6 +521,20 @@ public class WorldPresence : MonoBehaviour
             target.enabled = nextEnabled;
         }
 
+        return disabledCount;
+    }
+
+    private int ApplyLightStates(bool present)
+    {
+        int disabledCount = 0;
+        for (int i = 0; i < lightStates.Length; i++)
+        {
+            Light target = lightStates[i].Light;
+            if (target == null) continue;
+            bool nextEnabled = present && lightStates[i].OriginalEnabled;
+            if (!nextEnabled && target.enabled) disabledCount++;
+            target.enabled = nextEnabled;
+        }
         return disabledCount;
     }
 
@@ -677,6 +796,13 @@ public class WorldPresence : MonoBehaviour
         }
     }
 
+    private readonly struct LightState
+    {
+        public readonly Light Light;
+        public readonly bool OriginalEnabled;
+        public LightState(Light light, bool originalEnabled) { Light = light; OriginalEnabled = originalEnabled; }
+    }
+
     private readonly struct ColliderState
     {
         public readonly Collider Collider;
@@ -708,12 +834,24 @@ public class WorldPresence : MonoBehaviour
         public readonly Rigidbody Rigidbody;
         public readonly bool OriginalIsKinematic;
         public readonly bool OriginalUseGravity;
+        public readonly bool OriginalDetectCollisions;
+        public readonly RigidbodyConstraints OriginalConstraints;
+        public readonly RigidbodyInterpolation OriginalInterpolation;
 
-        public RigidbodyState(Rigidbody rigidbody, bool originalIsKinematic, bool originalUseGravity)
+        public RigidbodyState(
+            Rigidbody rigidbody,
+            bool originalIsKinematic,
+            bool originalUseGravity,
+            bool originalDetectCollisions,
+            RigidbodyConstraints originalConstraints,
+            RigidbodyInterpolation originalInterpolation)
         {
             Rigidbody = rigidbody;
             OriginalIsKinematic = originalIsKinematic;
             OriginalUseGravity = originalUseGravity;
+            OriginalDetectCollisions = originalDetectCollisions;
+            OriginalConstraints = originalConstraints;
+            OriginalInterpolation = originalInterpolation;
         }
     }
 

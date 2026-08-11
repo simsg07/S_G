@@ -28,14 +28,28 @@ public static class ElectricLightPrefabUtility
             lightObject.transform.SetParent(root.transform, false);
             Light gameplayLight = lightObject.GetComponent<Light>();
             gameplayLight.type = LightType.Point;
-            gameplayLight.range = 6.5f;
+            gameplayLight.range = 4f;
             gameplayLight.intensity = 7.5f;
             gameplayLight.color = new Color(0.78f, 0.95f, 1f, 1f);
             gameplayLight.shadows = LightShadows.None;
 
+            GameObject coneOriginObject = new GameObject("ConeOrigin");
+            coneOriginObject.transform.SetParent(root.transform, false);
+            coneOriginObject.transform.localPosition = new Vector3(0f, -0.6f, 0f);
+            GameObject coneVisualObject = new GameObject("Electric Light Cone");
+            coneVisualObject.transform.SetParent(coneOriginObject.transform, false);
+            coneVisualObject.transform.localPosition = new Vector3(0f, 0f, 0.05f);
+
             SerializedObject lightSettings = new SerializedObject(electricLight);
             lightSettings.FindProperty("gameplayLight").objectReferenceValue = gameplayLight;
-            lightSettings.FindProperty("gameplayRange").floatValue = 6.5f;
+            lightSettings.FindProperty("useDirectionalCone").boolValue = true;
+            lightSettings.FindProperty("coneOrigin").objectReferenceValue = coneOriginObject.transform;
+            lightSettings.FindProperty("directionTransform").objectReferenceValue = coneOriginObject.transform;
+            lightSettings.FindProperty("coneVisual").objectReferenceValue = coneVisualObject.transform;
+            lightSettings.FindProperty("lightRange").floatValue = 4f;
+            lightSettings.FindProperty("lightAngle").floatValue = 90f;
+            lightSettings.FindProperty("coneColor").colorValue = new Color(1f, 0.9f, 0.52f, 0.16f);
+            lightSettings.FindProperty("coneSegments").intValue = 32;
             lightSettings.FindProperty("gameplayIntensity").floatValue = 7.5f;
             lightSettings.FindProperty("gameplayColor").colorValue = new Color(0.78f, 0.95f, 1f, 1f);
             lightSettings.FindProperty("maxHP").intValue = 3;
@@ -84,8 +98,12 @@ public static class ElectricLightPrefabUtility
         Require(prefab.GetComponent<ITriggerableObject>() == null, "Electric light must not be Switch-controllable.");
 
         Light gameplayLight = prefab.GetComponentInChildren<Light>(true);
-        Require(gameplayLight != null && gameplayLight.type == LightType.Point, "Gameplay Point Light is missing.");
-        Require(Mathf.Abs(gameplayLight.range - 6.5f) <= 0.001f, "Player Light-compatible range is not 6.5.");
+        Require(gameplayLight != null && gameplayLight.type == LightType.Point, "Gameplay Light is missing.");
+        Require(Mathf.Abs(electricLight.LightRange - 4f) <= 0.001f, "Directional Light Range is not 4.");
+        Require(Mathf.Abs(electricLight.LightAngle - 90f) <= 0.001f, "Directional Light Angle is not 90 degrees.");
+        Require(electricLight.ConeOrigin != prefab.transform, "ConeOrigin must be a dedicated child Transform.");
+        Require(Vector3.Dot(electricLight.ConeDirection, -prefab.transform.up) > 0.999f,
+            "Default cone direction must be Local Down.");
         Require(Mathf.Abs(gameplayLight.intensity - 7.5f) <= 0.001f, "Player Light-compatible intensity is not 7.5.");
 
         WorldPresence presence = prefab.GetComponent<WorldPresence>();
