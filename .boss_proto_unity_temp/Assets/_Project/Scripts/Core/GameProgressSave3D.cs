@@ -1,0 +1,508 @@
+using System.Collections.Generic;
+using System;
+using UnityEngine;
+
+public static class GameProgressSave3D
+{
+    private const string PlayerPrefsKey = "S_G_CameraMetroidvaniaProgress";
+
+    private static SavePayload cachedPayload;
+    private static SavePayload transientPayload;
+    private static int transientSessionDepth;
+    private static readonly Dictionary<string, PersistentSceneObjectState> runtimePersistentStates =
+        new Dictionary<string, PersistentSceneObjectState>();
+
+    public static bool HasSaveData => PlayerPrefs.HasKey(PlayerPrefsKey);
+    public static event Action<string, string, string, string> ActiveCheckpointChanged;
+
+    public static CameraAbilityFlags GetUnlockedAbilities()
+    {
+        SavePayload payload = LoadPayload();
+        CameraAbilityFlags abilities = CameraAbilityFlags.None;
+
+        for (int i = 0; i < payload.unlockedAbilities.Count; i++)
+        {
+            if (System.Enum.TryParse(payload.unlockedAbilities[i], out CameraAbilityId ability))
+            {
+                abilities |= CameraAbilitySystem3D.ToFlag(ability);
+            }
+        }
+
+        return abilities;
+    }
+
+    public static bool IsItemCollected(string itemId)
+    {
+        return Contains(LoadPayload().collectedItems, itemId);
+    }
+
+    public static bool IsDeviceActivated(string deviceId)
+    {
+        return Contains(LoadPayload().activatedDevices, deviceId);
+    }
+
+    public static bool IsAreaExplored(string areaId)
+    {
+        return Contains(LoadPayload().exploredAreas, areaId);
+    }
+
+    public static bool HiddenEndingUnlocked()
+    {
+        return LoadPayload().hiddenEndingUnlocked;
+    }
+
+    public static bool IsCheckpointActivated(string checkpointId)
+    {
+        return Contains(LoadPayload().activatedCheckpointIds, checkpointId);
+    }
+
+    public static bool IsCurrentActiveCheckpoint(string sceneName, string checkpointId)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(checkpointId)) return false;
+        SavePayload payload = LoadPayload();
+        return string.Equals(payload.lastCheckpointScene, sceneName, StringComparison.Ordinal)
+            && string.Equals(payload.lastCheckpointId, checkpointId, StringComparison.Ordinal);
+    }
+
+    public static bool IsPuzzlePermanentlyCompleted(string puzzleId)
+    {
+        return Contains(LoadPayload().completedPuzzleIds, puzzleId);
+    }
+
+    public static void RecordPuzzlePermanentlyCompleted(string puzzleId)
+    {
+        if (string.IsNullOrWhiteSpace(puzzleId)) return;
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.completedPuzzleIds, puzzleId);
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 4);
+        WritePayload(payload);
+    }
+
+    public static bool TryGetLastCheckpoint(out string sceneName, out string checkpointId)
+    {
+        SavePayload payload = LoadPayload();
+        sceneName = payload.lastCheckpointScene;
+        checkpointId = payload.lastCheckpointId;
+        return !string.IsNullOrWhiteSpace(sceneName) && !string.IsNullOrWhiteSpace(checkpointId);
+    }
+
+    public static bool TryGetLastCheckpointPose(
+        out string sceneName,
+        out string checkpointId,
+        out Vector3 position,
+        out Quaternion rotation,
+        out ResearchWorldId world)
+    {
+        SavePayload payload = LoadPayload();
+        sceneName = payload.lastCheckpointScene;
+        checkpointId = payload.lastCheckpointId;
+        position = payload.lastCheckpointPosition;
+        rotation = payload.lastCheckpointRotation;
+        world = payload.lastCheckpointWorld;
+        return payload.hasLastCheckpointPose
+            && !string.IsNullOrWhiteSpace(sceneName)
+            && !string.IsNullOrWhiteSpace(checkpointId);
+    }
+
+    public static void RecordCheckpointActivated(string sceneName, string checkpointId)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(checkpointId))
+        {
+            Debug.LogWarning("[GameProgressSave3D] Checkpoint scene and ID are required. Save skipped.");
+            return;
+        }
+
+        SavePayload payload = LoadPayload();
+        string previousScene = payload.lastCheckpointScene;
+        string previousId = payload.lastCheckpointId;
+        AddUnique(payload.activatedCheckpointIds, checkpointId);
+        payload.lastCheckpointScene = sceneName;
+        payload.lastCheckpointId = checkpointId;
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 2);
+        ApplyRuntimePersistentStates(payload);
+        WritePayload(payload);
+        runtimePersistentStates.Clear();
+        ActiveCheckpointChanged?.Invoke(previousScene, previousId, sceneName, checkpointId);
+    }
+
+    public static void RecordCheckpointActivated(
+        string sceneName,
+        string checkpointId,
+        Vector3 position,
+        Quaternion rotation,
+        ResearchWorldId world)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(checkpointId))
+        {
+            Debug.LogWarning("[GameProgressSave3D] Checkpoint scene and ID are required. Save skipped.");
+            return;
+        }
+
+        SavePayload payload = LoadPayload();
+        string previousScene = payload.lastCheckpointScene;
+        string previousId = payload.lastCheckpointId;
+        AddUnique(payload.activatedCheckpointIds, checkpointId);
+        payload.lastCheckpointScene = sceneName;
+        payload.lastCheckpointId = checkpointId;
+        payload.lastCheckpointPosition = position;
+        payload.lastCheckpointRotation = rotation;
+        payload.lastCheckpointWorld = world;
+        payload.hasLastCheckpointPose = true;
+        payload.currentWorld = world;
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 5);
+        ApplyRuntimePersistentStates(payload);
+        WritePayload(payload);
+        runtimePersistentStates.Clear();
+        ActiveCheckpointChanged?.Invoke(previousScene, previousId, sceneName, checkpointId);
+    }
+
+    public static bool TryGetPersistentObjectState(string sceneName, string persistentId, out PersistentSceneObjectState state)
+    {
+        state = PersistentSceneObjectState.Exists;
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(persistentId)) return false;
+        if (runtimePersistentStates.TryGetValue(BuildRuntimePersistentKey(sceneName, persistentId), out state))
+        {
+            return true;
+        }
+        List<PersistentObjectRecord> records = LoadPayload().persistentObjectStates;
+        for (int i = 0; i < records.Count; i++)
+        {
+            if (records[i] != null
+                && string.Equals(records[i].sceneName, sceneName, System.StringComparison.Ordinal)
+                && string.Equals(records[i].persistentId, persistentId, System.StringComparison.Ordinal))
+            {
+                state = records[i].savedState;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void RecordPersistentObjectState(string sceneName, string persistentId, PersistentSceneObjectState state)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(persistentId)) return;
+        SavePayload payload = LoadPayload();
+        PersistentObjectRecord record = payload.persistentObjectStates.Find(item =>
+            item != null
+            && string.Equals(item.sceneName, sceneName, System.StringComparison.Ordinal)
+            && string.Equals(item.persistentId, persistentId, System.StringComparison.Ordinal));
+        if (record != null && record.savedState == state && record.sceneName == sceneName) return;
+        if (record == null)
+        {
+            record = new PersistentObjectRecord();
+            payload.persistentObjectStates.Add(record);
+        }
+        record.sceneName = sceneName;
+        record.persistentId = persistentId;
+        record.savedState = state;
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 3);
+        WritePayload(payload);
+    }
+
+    public static void RecordRuntimePersistentObjectState(
+        string sceneName, string persistentId, PersistentSceneObjectState state)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName) || string.IsNullOrWhiteSpace(persistentId)) return;
+        runtimePersistentStates[BuildRuntimePersistentKey(sceneName, persistentId)] = state;
+    }
+
+    public static void CommitCheckpointProgress()
+    {
+        SavePayload payload = LoadPayload();
+        ApplyRuntimePersistentStates(payload);
+        WritePayload(payload);
+        runtimePersistentStates.Clear();
+    }
+
+    public static void DiscardRuntimeProgress()
+    {
+        runtimePersistentStates.Clear();
+        cachedPayload = null;
+        transientPayload = null;
+        transientSessionDepth = 0;
+    }
+
+    public static void SaveNow()
+    {
+        if (transientSessionDepth > 0) return;
+        if (cachedPayload != null) PlayerPrefs.Save();
+    }
+
+    /// <summary>
+    /// Isolates progress mutations in memory until the matching transient session ends.
+    /// Intended for development/test scenes that must never overwrite live progress.
+    /// </summary>
+    public static void BeginTransientSession()
+    {
+        runtimePersistentStates.Clear();
+        if (transientSessionDepth == 0)
+        {
+            SavePayload source = LoadPayload();
+            transientPayload = JsonUtility.FromJson<SavePayload>(JsonUtility.ToJson(source)) ?? new SavePayload();
+            transientPayload.EnsureLists();
+        }
+
+        transientSessionDepth++;
+    }
+
+    public static void EndTransientSession()
+    {
+        if (transientSessionDepth <= 0)
+        {
+            return;
+        }
+
+        transientSessionDepth--;
+        if (transientSessionDepth == 0)
+        {
+            transientPayload = null;
+            runtimePersistentStates.Clear();
+        }
+    }
+
+    public static void RecordAbilityUnlocked(CameraAbilityId ability)
+    {
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.unlockedAbilities, ability.ToString());
+        WritePayload(payload);
+    }
+
+    public static void RecordItemCollected(string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            return;
+        }
+
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.collectedItems, itemId);
+        WritePayload(payload);
+    }
+
+    public static void RecordDeviceActivated(string deviceId)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId))
+        {
+            return;
+        }
+
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.activatedDevices, deviceId);
+        WritePayload(payload);
+    }
+
+    public static void RecordAreaExplored(string areaId)
+    {
+        if (string.IsNullOrWhiteSpace(areaId))
+        {
+            return;
+        }
+
+        SavePayload payload = LoadPayload();
+        AddUnique(payload.exploredAreas, areaId);
+        WritePayload(payload);
+    }
+
+    public static void SetCurrentWorld(ResearchWorldId world)
+    {
+        SavePayload payload = LoadPayload();
+        payload.currentWorld = world;
+        WritePayload(payload);
+    }
+
+    public static void SetHiddenEndingUnlocked(bool unlocked)
+    {
+        SavePayload payload = LoadPayload();
+        payload.hiddenEndingUnlocked = unlocked;
+        WritePayload(payload);
+    }
+
+    public static void ResetProgress()
+    {
+        if (transientSessionDepth > 0)
+        {
+            transientPayload = new SavePayload();
+            ActiveCheckpointChanged?.Invoke(string.Empty, string.Empty, string.Empty, string.Empty);
+            return;
+        }
+
+        cachedPayload = new SavePayload();
+        runtimePersistentStates.Clear();
+        PlayerPrefs.DeleteKey(PlayerPrefsKey);
+        PlayerPrefs.Save();
+        ActiveCheckpointChanged?.Invoke(string.Empty, string.Empty, string.Empty, string.Empty);
+    }
+
+    /// <summary>
+    /// Clears the live profile and every in-memory view of it before a title-screen New Game.
+    /// Unlike ResetProgress, this also exits any development-only transient save session.
+    /// </summary>
+    public static void ClearCurrentSaveForNewGame()
+    {
+        transientSessionDepth = 0;
+        transientPayload = null;
+        cachedPayload = new SavePayload();
+        runtimePersistentStates.Clear();
+        PlayerPrefs.DeleteKey(PlayerPrefsKey);
+        PlayerPrefs.Save();
+        ActiveCheckpointChanged?.Invoke(string.Empty, string.Empty, string.Empty, string.Empty);
+    }
+
+    private static SavePayload LoadPayload()
+    {
+        if (transientSessionDepth > 0)
+        {
+            transientPayload ??= new SavePayload();
+            transientPayload.EnsureLists();
+            return transientPayload;
+        }
+
+        if (cachedPayload != null)
+        {
+            return cachedPayload;
+        }
+
+        string json = PlayerPrefs.GetString(PlayerPrefsKey, string.Empty);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            cachedPayload = new SavePayload();
+            return cachedPayload;
+        }
+
+        cachedPayload = JsonUtility.FromJson<SavePayload>(json);
+        if (cachedPayload == null)
+        {
+            cachedPayload = new SavePayload();
+        }
+
+        cachedPayload.EnsureLists();
+        return cachedPayload;
+    }
+
+    private static void WritePayload(SavePayload payload)
+    {
+        payload.EnsureLists();
+        if (transientSessionDepth > 0)
+        {
+            transientPayload = payload;
+            return;
+        }
+
+        cachedPayload = payload;
+        PlayerPrefs.SetString(PlayerPrefsKey, JsonUtility.ToJson(payload));
+        PlayerPrefs.Save();
+    }
+
+    private static string BuildRuntimePersistentKey(string sceneName, string persistentId)
+    {
+        return $"{sceneName}\n{persistentId}";
+    }
+
+    private static void ApplyRuntimePersistentStates(SavePayload payload)
+    {
+        if (payload == null || runtimePersistentStates.Count == 0) return;
+        payload.EnsureLists();
+        foreach (KeyValuePair<string, PersistentSceneObjectState> runtimeState in runtimePersistentStates)
+        {
+            int separator = runtimeState.Key.IndexOf('\n');
+            if (separator <= 0 || separator >= runtimeState.Key.Length - 1) continue;
+            string sceneName = runtimeState.Key.Substring(0, separator);
+            string persistentId = runtimeState.Key.Substring(separator + 1);
+            PersistentObjectRecord record = payload.persistentObjectStates.Find(item =>
+                item != null
+                && string.Equals(item.sceneName, sceneName, System.StringComparison.Ordinal)
+                && string.Equals(item.persistentId, persistentId, System.StringComparison.Ordinal));
+            if (record == null)
+            {
+                record = new PersistentObjectRecord();
+                payload.persistentObjectStates.Add(record);
+            }
+            record.sceneName = sceneName;
+            record.persistentId = persistentId;
+            record.savedState = runtimeState.Value;
+        }
+        payload.saveVersion = Mathf.Max(payload.saveVersion, 3);
+    }
+
+    private static bool Contains(List<string> values, string value)
+    {
+        return !string.IsNullOrWhiteSpace(value) && values.Contains(value);
+    }
+
+    private static void AddUnique(List<string> values, string value)
+    {
+        if (!values.Contains(value))
+        {
+            values.Add(value);
+        }
+    }
+
+    [System.Serializable]
+    private class SavePayload
+    {
+        public int saveVersion = 2;
+        public List<string> unlockedAbilities = new List<string>();
+        public List<string> collectedItems = new List<string>();
+        public List<string> activatedDevices = new List<string>();
+        public List<string> exploredAreas = new List<string>();
+        public List<string> activatedCheckpointIds = new List<string>();
+        public List<string> completedPuzzleIds = new List<string>();
+        public string lastCheckpointScene = string.Empty;
+        public string lastCheckpointId = string.Empty;
+        public bool hasLastCheckpointPose;
+        public Vector3 lastCheckpointPosition;
+        public Quaternion lastCheckpointRotation = Quaternion.identity;
+        public ResearchWorldId lastCheckpointWorld = ResearchWorldId.WorldA;
+        public List<PersistentObjectRecord> persistentObjectStates = new List<PersistentObjectRecord>();
+        public ResearchWorldId currentWorld = ResearchWorldId.WorldA;
+        public bool hiddenEndingUnlocked;
+
+        public void EnsureLists()
+        {
+            if (unlockedAbilities == null)
+            {
+                unlockedAbilities = new List<string>();
+            }
+
+            if (collectedItems == null)
+            {
+                collectedItems = new List<string>();
+            }
+
+            if (activatedDevices == null)
+            {
+                activatedDevices = new List<string>();
+            }
+
+            if (exploredAreas == null)
+            {
+                exploredAreas = new List<string>();
+            }
+
+            if (activatedCheckpointIds == null)
+            {
+                activatedCheckpointIds = new List<string>();
+            }
+
+            if (completedPuzzleIds == null)
+            {
+                completedPuzzleIds = new List<string>();
+            }
+
+            if (persistentObjectStates == null)
+            {
+                persistentObjectStates = new List<PersistentObjectRecord>();
+            }
+
+            saveVersion = Mathf.Max(saveVersion, 1);
+        }
+    }
+
+    [System.Serializable]
+    private class PersistentObjectRecord
+    {
+        public string sceneName = string.Empty;
+        public string persistentId = string.Empty;
+        public PersistentSceneObjectState savedState = PersistentSceneObjectState.Exists;
+    }
+}
