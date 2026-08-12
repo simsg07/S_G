@@ -1,0 +1,15 @@
+skeleton.png
+size:1865,1257
+filter:Linear,Linear
+pma:true
+bubble
+bounds:1471,335,392,920
+offsets:312,327,1024,1536
+monster_front
+bounds:2,2,368,969
+offsets:310,249,1024,1536
+rotate:90
+monster_house_no
+bounds:2,372,883,1467
+offsets:0,69,1024,1536
+rotate:90

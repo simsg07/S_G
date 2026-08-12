@@ -1,0 +1,77 @@
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+[CustomEditor(typeof(TilemapTo3DBoxColliderBaker))]
+public class TilemapTo3DBoxColliderBakerEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+
+        EditorGUILayout.Space(8f);
+        EditorGUILayout.LabelField("Collider Bake Tools", EditorStyles.boldLabel);
+
+        TilemapTo3DBoxColliderBaker baker = (TilemapTo3DBoxColliderBaker)target;
+        if (GUILayout.Button("Validate Baker Setup"))
+        {
+            baker.ValidateBakerSetup();
+            MarkDirty(baker);
+        }
+
+        if (GUILayout.Button("Rebuild Colliders"))
+        {
+            baker.RebuildColliders();
+            MarkDirty(baker);
+        }
+
+        if (GUILayout.Button("Clear Colliders"))
+        {
+            baker.ClearColliders();
+            MarkDirty(baker);
+        }
+
+        if (GUILayout.Button("Apply Parent Layer To Generated Children"))
+        {
+            baker.ApplyParentLayerToGeneratedChildren();
+            MarkDirty(baker);
+        }
+
+        string sourceName = baker.ActiveSourceTilemap != null ? baker.ActiveSourceTilemap.name : "None";
+        string sourceMode = baker.UseVisualTilemapAsCollisionSource ? "Visual" : "Function";
+        string parentName = baker.GeneratedParent != null ? baker.GeneratedParent.name : "None";
+        string parentLayer = baker.GeneratedParent != null ? LayerMask.LayerToName(baker.GeneratedParent.gameObject.layer) : "None";
+        if (string.IsNullOrEmpty(parentLayer) && baker.GeneratedParent != null)
+        {
+            parentLayer = baker.GeneratedParent.gameObject.layer.ToString();
+        }
+
+        EditorGUILayout.HelpBox(
+            $"Source Mode: {sourceMode}\n" +
+            $"Active Source Tilemap: {sourceName}\n" +
+            $"Generated Parent: {parentName}\n" +
+            $"Generated Parent Layer: {parentLayer}\n\n" +
+            "Player가 밟으려면 Generated_GroundCollision의 Layer를 Ground로 수동 설정해야 합니다. " +
+            "Rebuild Colliders 후 Console의 Painted Tile Count / Generated Collider Count를 확인하세요.",
+            MessageType.Info);
+    }
+
+    private static void MarkDirty(TilemapTo3DBoxColliderBaker baker)
+    {
+        if (baker == null)
+        {
+            return;
+        }
+
+        EditorUtility.SetDirty(baker);
+        if (baker.GeneratedParent != null)
+        {
+            EditorUtility.SetDirty(baker.GeneratedParent.gameObject);
+        }
+
+        if (!Application.isPlaying && baker.gameObject.scene.IsValid())
+        {
+            EditorSceneManager.MarkSceneDirty(baker.gameObject.scene);
+        }
+    }
+}
