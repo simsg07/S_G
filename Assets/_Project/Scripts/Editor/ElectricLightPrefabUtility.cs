@@ -7,6 +7,39 @@ public static class ElectricLightPrefabUtility
 {
     public const string PrefabPath = "Assets/_Project/Prefabs/Objects/Light/Electric_Light.prefab";
 
+    [MenuItem("CONTEXT/ElectricLightObject3D/Setup Electric Light Cone")]
+    private static void SetupCone(MenuCommand command)
+    {
+        ElectricLightObject3D electricLight = command.context as ElectricLightObject3D;
+        if (electricLight == null) return;
+
+        SerializedObject settings = new SerializedObject(electricLight);
+        SerializedProperty originProperty = settings.FindProperty("coneOrigin");
+        Transform origin = originProperty.objectReferenceValue as Transform;
+        if (origin == null) origin = electricLight.transform;
+
+        Transform cone = origin.Find("Electric Light Cone");
+        if (cone == null)
+        {
+            GameObject coneObject = new GameObject("Electric Light Cone");
+            Undo.RegisterCreatedObjectUndo(coneObject, "Setup Electric Light Cone");
+            cone = coneObject.transform;
+            cone.SetParent(origin, false);
+            cone.localPosition = new Vector3(0f, 0f, 0.05f);
+        }
+
+        if (cone.GetComponent<MeshFilter>() == null)
+            Undo.AddComponent<MeshFilter>(cone.gameObject);
+        if (cone.GetComponent<MeshRenderer>() == null)
+            Undo.AddComponent<MeshRenderer>(cone.gameObject);
+
+        settings.Update();
+        settings.FindProperty("coneVisual").objectReferenceValue = cone;
+        settings.ApplyModifiedProperties();
+        electricLight.RefreshEditorConeVisual();
+        EditorUtility.SetDirty(electricLight);
+    }
+
     [MenuItem("Tools/Project/Build Electric Light")]
     public static void BuildPrefab()
     {
@@ -36,7 +69,7 @@ public static class ElectricLightPrefabUtility
             GameObject coneOriginObject = new GameObject("ConeOrigin");
             coneOriginObject.transform.SetParent(root.transform, false);
             coneOriginObject.transform.localPosition = new Vector3(0f, -0.6f, 0f);
-            GameObject coneVisualObject = new GameObject("Electric Light Cone");
+            GameObject coneVisualObject = new GameObject("Electric Light Cone", typeof(MeshFilter), typeof(MeshRenderer));
             coneVisualObject.transform.SetParent(coneOriginObject.transform, false);
             coneVisualObject.transform.localPosition = new Vector3(0f, 0f, 0.05f);
 
@@ -102,6 +135,10 @@ public static class ElectricLightPrefabUtility
         Require(Mathf.Abs(electricLight.LightRange - 4f) <= 0.001f, "Directional Light Range is not 4.");
         Require(Mathf.Abs(electricLight.LightAngle - 90f) <= 0.001f, "Directional Light Angle is not 90 degrees.");
         Require(electricLight.ConeOrigin != prefab.transform, "ConeOrigin must be a dedicated child Transform.");
+        Transform coneVisual = electricLight.ConeOrigin.Find("Electric Light Cone");
+        Require(coneVisual != null && coneVisual.GetComponent<MeshFilter>() != null &&
+                coneVisual.GetComponent<MeshRenderer>() != null,
+            "Electric Light Cone must contain its prebuilt MeshFilter and MeshRenderer.");
         Require(Vector3.Dot(electricLight.ConeDirection, -prefab.transform.up) > 0.999f,
             "Default cone direction must be Local Down.");
         Require(Mathf.Abs(gameplayLight.intensity - 7.5f) <= 0.001f, "Player Light-compatible intensity is not 7.5.");

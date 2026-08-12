@@ -1028,8 +1028,8 @@ MonoBehaviour:
   runtimeMarkInvokedCount: 0
   runtimeFreezeInvokedCount: 0
   runtimeLastMarkedObjectName: None
-  runtimeMarkDuration: 0
-  markDuration: 5
+  runtimeActiveMarks: 0 / 1
+  maxActiveMarks: 2
   focusCooldown: 0.2
   relayCooldown: 0.35
   flashLightIntensity: 7.5

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
+public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D, IShutterFreezable3D
 {
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
@@ -15,23 +15,36 @@ public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
 
     [Header("Mark Physics Target")]
     [SerializeField] private Rigidbody targetBody;
+    [SerializeField] private DamageDealer[] damageDealers = System.Array.Empty<DamageDealer>();
+    [SerializeField] private GravityObjectDamageDealer[] legacyDamageDealers = System.Array.Empty<GravityObjectDamageDealer>();
     [SerializeField] private bool pinTransformWhileMarked = true;
     [SerializeField] private bool restoreMarkedTransformOnRelease = true;
 
     [Header("Runtime Debug (Read Only)")]
     [SerializeField] private bool runtimeMarked;
-    [SerializeField] private float runtimeRemainingTime;
     [SerializeField] private Vector3 runtimeStoredLinearVelocity;
     [SerializeField] private Vector3 runtimeStoredAngularVelocity;
     [SerializeField] private bool runtimeStoredKinematic;
     [SerializeField] private bool runtimeStoredUseGravity;
     [SerializeField] private RigidbodyConstraints runtimeStoredConstraints;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [SerializeField] private bool runtimeHasMarkSnapshot;
+    [SerializeField] private int runtimeSnapshotCreatedCount;
+    [SerializeField] private int runtimeSnapshotDiscardedCount;
+    [SerializeField] private int runtimeRegistryRegisteredCount;
+    [SerializeField] private int runtimeRegistryReleasedCount;
+    [SerializeField] private int runtimeSnapshotInstanceId;
+    [SerializeField] private bool runtimeRegistryRegistered;
+    [SerializeField] private bool runtimeRigidbodyIsKinematic;
+    [SerializeField] private bool runtimeRigidbodyUseGravity;
+    [SerializeField] private FallingBoxState runtimeFallingBoxState;
+    [SerializeField] private bool runtimeDamageDealerEnabled;
+#endif
 
     private MeshRenderer markerRenderer;
     private MeshFilter markerFilter;
     private Renderer[] cachedRenderers = System.Array.Empty<Renderer>();
     private MaterialPropertyBlock propertyBlock;
-    private float markEndTime;
     private bool markPhysicsCaptured;
     private bool storedKinematic;
     private bool storedUseGravity;
@@ -42,14 +55,19 @@ public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
     private Vector3 storedAngularVelocity;
     private Vector3 markedPosition;
     private Quaternion markedRotation;
+    private FallingBoxObject fallingBox;
+    private bool[] storedDamageDealerEnabled = System.Array.Empty<bool>();
+    private bool[] storedLegacyDamageDealerEnabled = System.Array.Empty<bool>();
 
     public bool IsMarked => markPhysicsCaptured;
-    public float RemainingMarkTime => IsMarked ? Mathf.Max(0f, markEndTime - Time.time) : 0f;
+    public bool IsShutterFrozen => markPhysicsCaptured;
 
     private void Awake()
     {
         ShutterTargetRegistry3D.Register(this, this);
         if (targetBody == null) targetBody = GetComponent<Rigidbody>();
+        fallingBox = GetComponent<FallingBoxObject>();
+        CacheDamageDealerReferences();
         RefreshCache();
         EnsureMarker();
         ApplyVisual();
@@ -61,12 +79,14 @@ public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
     private void Update()
     {
         runtimeMarked = IsMarked;
-        runtimeRemainingTime = RemainingMarkTime;
-        if (IsMarked && Time.time >= markEndTime)
-        {
-            ReleaseMark();
-            return;
-        }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        runtimeRegistryRegistered = ShutterTargetRegistry3D.IsFreezeRegistered(this);
+        runtimeRigidbodyIsKinematic = targetBody != null && targetBody.isKinematic;
+        runtimeRigidbodyUseGravity = targetBody != null && targetBody.useGravity;
+        runtimeFallingBoxState = fallingBox != null ? fallingBox.CurrentState : FallingBoxState.GROUNDED;
+        runtimeDamageDealerEnabled = damageDealers != null && damageDealers.Length > 0
+            && damageDealers[0] != null && damageDealers[0].enabled;
+#endif
         ApplyVisual();
     }
 
@@ -78,23 +98,29 @@ public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
 
     private void OnDisable()
     {
-        ReleaseMark();
         if (markerRenderer != null) markerRenderer.enabled = false;
+        if (!IsMarked) return;
+        WorldPresence presence = GetComponentInParent<WorldPresence>(true);
+        if (presence == null || !presence.IsHiddenByCurrentWorld()) ReleaseShutterFreeze();
+    }
+
+    private void OnEnable()
+    {
+        if (!IsMarked) return;
+        ReapplyShutterFreeze();
+        ApplyVisual();
     }
 
     public bool ApplyMark(float duration, CameraAbilitySystem3D source)
     {
-        if (duration <= 0f || !gameObject.activeInHierarchy) return false;
+        if (!gameObject.activeInHierarchy) return false;
 
         if (!IsMarked)
         {
             CaptureAndStopPhysics();
         }
 
-        // Re촬영은 남은 시간에 더하지 않고 촬영 시점부터 전체 시간을 다시 부여한다.
-        markEndTime = Time.time + duration;
         runtimeMarked = true;
-        runtimeRemainingTime = duration;
         EnsureMarker();
         ApplyVisual();
         enabled = true;
@@ -103,13 +129,34 @@ public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
 
     public void ClearMark()
     {
-        ReleaseMark();
+        ReleaseShutterFreeze();
     }
+
+    public void ReapplyShutterFreeze()
+    {
+        if (!markPhysicsCaptured || targetBody == null) return;
+        if (!targetBody.isKinematic)
+        {
+            targetBody.linearVelocity = Vector3.zero;
+            targetBody.angularVelocity = Vector3.zero;
+        }
+        targetBody.useGravity = false;
+        targetBody.isKinematic = true;
+        SetMarkedDamageEnabled(false);
+    }
+
+    public void ReleaseShutterFreeze() => ReleaseMark();
 
     private void CaptureAndStopPhysics()
     {
         if (targetBody == null) targetBody = GetComponent<Rigidbody>();
         markPhysicsCaptured = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        runtimeHasMarkSnapshot = true;
+        runtimeSnapshotCreatedCount++;
+        runtimeRegistryRegisteredCount++;
+        runtimeSnapshotInstanceId = GetInstanceID();
+#endif
         Transform markedTransform = targetBody != null ? targetBody.transform : transform;
         markedPosition = markedTransform.position;
         markedRotation = markedTransform.rotation;
@@ -128,11 +175,13 @@ public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
         runtimeStoredConstraints = storedConstraints;
         runtimeStoredLinearVelocity = storedLinearVelocity;
         runtimeStoredAngularVelocity = storedAngularVelocity;
+        CaptureDamageDealerStates();
 
         targetBody.linearVelocity = Vector3.zero;
         targetBody.angularVelocity = Vector3.zero;
         targetBody.useGravity = false;
         targetBody.isKinematic = true;
+        SetMarkedDamageEnabled(false);
     }
 
     private void RestoreMarkedTransform()
@@ -152,12 +201,15 @@ public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
     {
         if (!markPhysicsCaptured)
         {
-            markEndTime = 0f;
+            ShutterTargetRegistry3D.RemoveFreezeEntry(this);
             runtimeMarked = false;
-            runtimeRemainingTime = 0f;
             return;
         }
 
+        // Mark state is cleared first so OnEnable/physics callbacks cannot
+        // observe the object as frozen while the snapshot is being restored.
+        markPhysicsCaptured = false;
+        runtimeMarked = false;
         if (restoreMarkedTransformOnRelease) RestoreMarkedTransform();
         if (targetBody != null)
         {
@@ -172,13 +224,82 @@ public class CameraMarkState3D : MonoBehaviour, IMarkable3D, IMarkState3D
                 targetBody.angularVelocity = storedAngularVelocity;
             }
         }
-
-        markPhysicsCaptured = false;
-        markEndTime = 0f;
-        runtimeMarked = false;
-        runtimeRemainingTime = 0f;
+        RestoreDamageDealerStates();
+        if (fallingBox == null) fallingBox = GetComponent<FallingBoxObject>();
+        fallingBox?.RefreshAfterMarkReleased();
+        ClearSnapshot();
+        ShutterTargetRegistry3D.RemoveFreezeEntry(this);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        runtimeRegistryReleasedCount++;
+        runtimeRegistryRegistered = false;
+#endif
         ApplyVisual();
         enabled = false;
+        ReapplyHiddenWorldPolicyOnly();
+    }
+
+    private void ReapplyHiddenWorldPolicyOnly()
+    {
+        WorldPresence presence = GetComponentInParent<WorldPresence>(true);
+        if (presence != null && presence.IsHiddenByCurrentWorld()) presence.ReapplyCurrentWorldPolicy();
+    }
+
+    private void ClearSnapshot()
+    {
+        storedKinematic = false;
+        storedUseGravity = false;
+        storedConstraints = RigidbodyConstraints.None;
+        storedCollisionDetectionMode = CollisionDetectionMode.Discrete;
+        storedInterpolation = RigidbodyInterpolation.None;
+        storedLinearVelocity = Vector3.zero;
+        storedAngularVelocity = Vector3.zero;
+        storedDamageDealerEnabled = System.Array.Empty<bool>();
+        storedLegacyDamageDealerEnabled = System.Array.Empty<bool>();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        runtimeHasMarkSnapshot = false;
+        runtimeSnapshotDiscardedCount++;
+        runtimeSnapshotInstanceId = 0;
+#endif
+    }
+
+    private void CaptureDamageDealerStates()
+    {
+        CacheDamageDealerReferences();
+        storedDamageDealerEnabled = new bool[damageDealers.Length];
+        for (int i = 0; i < damageDealers.Length; i++)
+            storedDamageDealerEnabled[i] = damageDealers[i] != null && damageDealers[i].enabled;
+        storedLegacyDamageDealerEnabled = new bool[legacyDamageDealers.Length];
+        for (int i = 0; i < legacyDamageDealers.Length; i++)
+            storedLegacyDamageDealerEnabled[i] = legacyDamageDealers[i] != null && legacyDamageDealers[i].enabled;
+    }
+
+    private void CacheDamageDealerReferences()
+    {
+        if (damageDealers == null || damageDealers.Length == 0)
+            damageDealers = GetComponentsInChildren<DamageDealer>(true);
+        if (legacyDamageDealers == null || legacyDamageDealers.Length == 0)
+            legacyDamageDealers = GetComponentsInChildren<GravityObjectDamageDealer>(true);
+    }
+
+    private void SetMarkedDamageEnabled(bool enabled)
+    {
+        for (int i = 0; i < damageDealers.Length; i++)
+        {
+            DamageDealer dealer = damageDealers[i];
+            if (dealer == null) continue;
+            dealer.enabled = enabled;
+            if (!enabled) dealer.ClearDamagedTargets();
+        }
+        for (int i = 0; i < legacyDamageDealers.Length; i++)
+            if (legacyDamageDealers[i] != null) legacyDamageDealers[i].enabled = enabled;
+    }
+
+    private void RestoreDamageDealerStates()
+    {
+        for (int i = 0; i < damageDealers.Length; i++)
+            if (damageDealers[i] != null) damageDealers[i].enabled = i < storedDamageDealerEnabled.Length && storedDamageDealerEnabled[i];
+        for (int i = 0; i < legacyDamageDealers.Length; i++)
+            if (legacyDamageDealers[i] != null) legacyDamageDealers[i].enabled = i < storedLegacyDamageDealerEnabled.Length && storedLegacyDamageDealerEnabled[i];
     }
 
     private void EnsureMarker()

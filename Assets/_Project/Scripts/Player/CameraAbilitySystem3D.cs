@@ -85,11 +85,12 @@ public class CameraAbilitySystem3D : MonoBehaviour
     [SerializeField, InspectorName("Mark Applied Count")] private int runtimeMarkInvokedCount;
     [SerializeField, InspectorName("Freeze Invoked Count")] private int runtimeFreezeInvokedCount;
     [SerializeField, InspectorName("Last Target Root Name")] private string runtimeLastMarkedObjectName = "None";
-    [SerializeField] private float runtimeMarkDuration;
+    [SerializeField, InspectorName("Active Marks")] private string runtimeActiveMarks = "0 / 1";
 
     [Header("Mark")]
     [FormerlySerializedAs("shutterFreezeDuration")]
-    [SerializeField, Min(0f), Tooltip("촬영 범위 안 기믹 오브젝트에 부여할 Mark 지속시간입니다.")] private float markDuration = 1.2f;
+    [SerializeField, Min(1), Tooltip("동시에 유지할 수 있는 Mark 정지 수입니다.")] private int maxActiveMarks = 1;
+    [SerializeField, Tooltip("가장 최근 Mark를 해제하는 키입니다.")] private Key markReleaseKey = Key.G;
 
     [Header("기타 능력 시간")]
     [SerializeField] private float focusCooldown = 0.2f; // 초점 기능 재사용 대기 시간입니다.
@@ -164,6 +165,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 #endif
     private void Awake()
     {
+        maxActiveMarks = Mathf.Max(1, maxActiveMarks);
         movement = GetComponent<PlatformerPlayer3D>();
         relayCandidatePredicate = CanResolveRelayTarget;
         targetCamera = Camera.main;
@@ -241,6 +243,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
 
     private void Update()
     {
+        runtimeActiveMarks = $"{ShutterTargetRegistry3D.ActiveMarkCount} / {maxActiveMarks}";
         runtimeCameraModeActive = cameraModeState == CameraModeState.Active;
         runtimeLeftClickDetectedThisFrame = false;
         runtimeInputBlockReason = "None";
@@ -262,6 +265,14 @@ public class CameraAbilitySystem3D : MonoBehaviour
             runtimeInputBlockReason = "Not in Play Mode";
             UpdateCameraFrame();
             return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null && keyboard[markReleaseKey].wasPressedThisFrame)
+        {
+            bool released = ShutterTargetRegistry3D.ReleaseMostRecentMark();
+            runtimeLastShutterExecutionResult = released ? "Latest Mark released" : "No active Mark";
+            runtimeActiveMarks = $"{ShutterTargetRegistry3D.ActiveMarkCount} / {maxActiveMarks}";
         }
 
         DetectPauseTimeOverride();
@@ -638,13 +649,6 @@ public class CameraAbilitySystem3D : MonoBehaviour
             return false;
         }
 
-        if (markDuration <= 0f)
-        {
-            runtimeLastShutterExecutionResult = "Blocked";
-            runtimeLastShutterBlockReason = "Mark Duration must be greater than zero";
-            return false;
-        }
-
         int targetCount = CollectMarkTargets();
         if (targetCount == 0)
         {
@@ -664,7 +668,21 @@ public class CameraAbilitySystem3D : MonoBehaviour
         {
             IMarkable3D target = markTargets[i];
             Component targetComponent = markTargetComponents[i];
-            if (target == null || targetComponent == null || !target.ApplyMark(markDuration, this)) continue;
+            if (target == null || targetComponent == null) continue;
+            IMarkState3D markState = target as IMarkState3D;
+            if (markState != null && markState.IsMarked) continue;
+            IShutterFreezable3D freezable = target as IShutterFreezable3D;
+            if (freezable == null || !ShutterTargetRegistry3D.TryRegisterMark(freezable, targetComponent, maxActiveMarks))
+            {
+                runtimeLastShutterBlockReason = "Mark slots full";
+                LogShutter("Mark 슬롯 부족");
+                continue;
+            }
+            if (!target.ApplyMark(0f, this))
+            {
+                ShutterTargetRegistry3D.RemoveFreezeEntry(freezable);
+                continue;
+            }
 
             runtimeMarkInvokedCount++;
             runtimeFreezeInvokedCount++;
@@ -672,9 +690,10 @@ public class CameraAbilitySystem3D : MonoBehaviour
         }
 
         runtimeLastShutterExecutionResult = runtimeMarkInvokedCount > 0
-            ? $"Mark/Freeze applied: {runtimeMarkInvokedCount}/{runtimeFreezeInvokedCount}"
+            ? $"Mark toggled: {runtimeMarkInvokedCount}"
             : "Targets rejected Mark";
-        runtimeLastShutterBlockReason = runtimeMarkInvokedCount > 0 ? "None" : "ApplyMark rejected";
+        if (runtimeMarkInvokedCount > 0) runtimeLastShutterBlockReason = "None";
+        else if (runtimeLastShutterBlockReason == "None") runtimeLastShutterBlockReason = "ApplyMark rejected";
         LogShutter($"Mark 적용 완료: {runtimeMarkInvokedCount}/{targetCount}");
         return runtimeMarkInvokedCount > 0;
     }
@@ -692,7 +711,7 @@ public class CameraAbilitySystem3D : MonoBehaviour
         runtimeMarkInvokedCount = 0;
         runtimeFreezeInvokedCount = 0;
         runtimeLastMarkedObjectName = "None";
-        runtimeMarkDuration = markDuration;
+        runtimeActiveMarks = $"{ShutterTargetRegistry3D.ActiveMarkCount} / {maxActiveMarks}";
         for (int i = 0; i < shutterElectronicRoots.Length; i++)
         {
             shutterElectronicRoots[i] = null;

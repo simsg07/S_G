@@ -221,6 +221,11 @@ MonoBehaviour:
   runtimeStoredKinematic: 0
   runtimeStoredUseGravity: 0
   runtimeStoredConstraints: 0
+  runtimeSnapshotInstanceId: 0
+  runtimeRegistryRegistered: 0
+  runtimeShutterEndTime: 0
+  runtimeRigidbodyIsKinematic: 0
+  runtimeRigidbodyUseGravity: 0
 --- !u!1 &1308674580908456456
 GameObject:
   m_ObjectHideFlags: 0

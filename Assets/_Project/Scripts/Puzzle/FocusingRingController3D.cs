@@ -261,6 +261,7 @@ public sealed class FocusingRingController3D : MonoBehaviour
         try
         {
             resetStarted.Invoke();
+            ShutterTargetRegistry3D.CancelAllFreezes();
 
             for (int i = 0; i < inPlaceResetSnapshot.Count; i++)
             {

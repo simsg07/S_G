@@ -2,17 +2,22 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
+public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D, IShutterFreezable3D
 {
     [Header("Shutter State")]
     [SerializeField, Tooltip("이 오브젝트가 셔터 입력을 받을 수 있습니다.")] private bool canBeShuttered = true;
     [SerializeField] private bool isMarked;
     [SerializeField] private bool isPausedByShutter;
     [SerializeField] private bool hasWorldShifted;
-
-    [Header("Mark Duration")]
-    [SerializeField, Min(0f), Tooltip("0보다 크면 Mark가 자동 해제되는 시간입니다.")] private float markDuration;
-    [SerializeField, Tooltip("Mark를 두 번째 셔터 입력까지 유지합니다.")] private bool markDurationInfinite = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [SerializeField] private bool runtimeSnapshotExists;
+    [SerializeField] private int runtimeSnapshotInstanceId;
+    [SerializeField] private bool runtimeRegistryRegistered;
+    [SerializeField] private int runtimePausedBehaviourCount;
+    [SerializeField] private bool runtimeRigidbodyIsKinematic;
+    [SerializeField] private bool runtimeRigidbodyUseGravity;
+    [SerializeField] private float runtimeAnimatorSpeed = 1f;
+#endif
 
     [Header("Behavior")]
     [SerializeField] private bool pauseOnFirstUse = true;
@@ -39,12 +44,12 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
     private bool storedUseGravity;
     private bool storedIsKinematic;
     private float storedAnimatorSpeed = 1f;
-    private float markExpireTime;
     private BoomberBrain boomber;
 
     public bool IsMarked => isMarked;
+    public bool IsShutterFrozen => isPausedByShutter;
     public bool HasWorldShifted => hasWorldShifted;
-    public float VisualMarkEndTime => markDurationInfinite ? float.PositiveInfinity : Time.time + Mathf.Max(0f, markExpireTime - Time.unscaledTime);
+    public float VisualMarkEndTime => isMarked ? float.PositiveInfinity : 0f;
 
     private void Awake()
     {
@@ -55,24 +60,33 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
 
     private void OnDestroy() => ShutterTargetRegistry3D.Unregister(this);
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
     private void Update()
     {
-        if (isMarked && !markDurationInfinite && markDuration > 0f && Time.unscaledTime >= markExpireTime)
-        {
-            ClearMark();
-            ResumeByShutter();
-        }
+        runtimeRegistryRegistered = ShutterTargetRegistry3D.IsFreezeRegistered(this);
+        runtimeRigidbodyIsKinematic = rb != null && rb.isKinematic;
+        runtimeRigidbodyUseGravity = rb != null && rb.useGravity;
+        runtimeAnimatorSpeed = animator != null ? animator.speed : 1f;
+        runtimePausedBehaviourCount = pausedBehaviours.Count;
     }
+#endif
 
     private void OnDisable()
     {
-        ResumeByShutter();
-        ClearMark();
+        UpdateMarkVisual();
+        if (!isMarked) return;
+        WorldPresence presence = worldPresence != null ? worldPresence : GetComponentInParent<WorldPresence>(true);
+        if (presence == null || !presence.IsHiddenByCurrentWorld()) ReleaseShutterFreeze();
+    }
+
+    private void OnEnable()
+    {
+        if (isPausedByShutter) ReapplyShutterFreeze();
+        UpdateMarkVisual();
     }
 
     private void OnValidate()
     {
-        markDuration = Mathf.Max(0f, markDuration);
         CacheReferences();
     }
 
@@ -100,7 +114,6 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
     {
         isMarked = true;
         hasWorldShifted = false;
-        markExpireTime = markDurationInfinite || markDuration <= 0f ? float.MaxValue : Time.unscaledTime + markDuration;
         UpdateMarkVisual();
         if (pauseOnFirstUse) PauseByShutter();
         Log("First use: Mark + Pause.");
@@ -121,6 +134,10 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
         if (boomber != null && !boomber.CanBePausedByShutter()) return;
 
         isPausedByShutter = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        runtimeSnapshotExists = true;
+        runtimeSnapshotInstanceId = GetInstanceID();
+#endif
         if (rb != null)
         {
             storedVelocity = SafeMath3D.SafeVector3(rb.linearVelocity, Vector3.zero);
@@ -141,12 +158,16 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
 
         boomber?.PauseByShutter();
         PauseListedBehaviours();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        runtimePausedBehaviourCount = pausedBehaviours.Count;
+#endif
         Log("Paused by shutter.");
     }
 
     [ContextMenu("Test Resume")]
     public void ResumeByShutter()
     {
+        ShutterTargetRegistry3D.RemoveFreezeEntry(this);
         if (!isPausedByShutter) return;
         isPausedByShutter = false;
 
@@ -164,7 +185,42 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
         if (animator != null) animator.speed = SafeMath3D.IsFinite(storedAnimatorSpeed) ? storedAnimatorSpeed : 1f;
         RestoreListedBehaviours();
         boomber?.ResumeByShutter();
+        ReapplyHiddenWorldPolicyOnly();
         Log("Resumed after shutter.");
+    }
+
+    public void ReapplyShutterFreeze()
+    {
+        if (!isPausedByShutter) return;
+        if (rb != null)
+        {
+            if (!rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+            rb.useGravity = false;
+            rb.isKinematic = true;
+        }
+        if (animator != null) animator.speed = 0f;
+        for (int i = 0; i < pausedBehaviours.Count; i++)
+        {
+            Behaviour target = pausedBehaviours[i].Target;
+            if (target != null) target.enabled = false;
+        }
+    }
+
+    public void ReleaseShutterFreeze()
+    {
+        ShutterTargetRegistry3D.RemoveFreezeEntry(this);
+        ClearMark();
+        ResumeByShutter();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        runtimeSnapshotExists = false;
+        runtimeSnapshotInstanceId = 0;
+        runtimeRegistryRegistered = false;
+        runtimePausedBehaviourCount = 0;
+#endif
     }
 
     public void SwitchObjectWorld()
@@ -183,7 +239,6 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
     public void ClearMark()
     {
         isMarked = false;
-        markExpireTime = 0f;
         UpdateMarkVisual();
     }
 
@@ -196,15 +251,21 @@ public sealed class ShutterTarget3D : MonoBehaviour, IMarkable3D, IMarkState3D
 
     public bool ApplyMark(float duration, CameraAbilitySystem3D source)
     {
-        if (duration <= 0f || !CanReceiveShutter()) return false;
+        if (!CanReceiveShutter()) return false;
         PauseByShutter();
         if (!isPausedByShutter) return false;
         isMarked = true;
-        markDurationInfinite = false;
-        markDuration = duration;
-        markExpireTime = Time.unscaledTime + duration;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        runtimeRegistryRegistered = true;
+#endif
         UpdateMarkVisual();
         return true;
+    }
+
+    private void ReapplyHiddenWorldPolicyOnly()
+    {
+        WorldPresence presence = worldPresence != null ? worldPresence : GetComponentInParent<WorldPresence>(true);
+        if (presence != null && presence.IsHiddenByCurrentWorld()) presence.ReapplyCurrentWorldPolicy();
     }
 
     private void CacheReferences()

@@ -26,7 +26,12 @@ public sealed class ElectricLightObject3DEditor : Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("gameplayLightActive"));
         }
 
-        serializedObject.ApplyModifiedProperties();
+        bool changed = serializedObject.ApplyModifiedProperties();
+        if (changed)
+        {
+            ((ElectricLightObject3D)target).RefreshEditorConeVisual();
+            SceneView.RepaintAll();
+        }
     }
 }
 #endif

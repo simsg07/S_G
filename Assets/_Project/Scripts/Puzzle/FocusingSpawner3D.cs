@@ -243,6 +243,7 @@ public sealed class FocusingSpawner3D : MonoBehaviour
 
             if (currentInstance != null)
             {
+                ShutterTargetRegistry3D.CancelFreezesInHierarchy(currentInstance);
                 NotifyBeforeDespawn(currentInstance);
                 currentInstance.SetActive(false);
                 Destroy(currentInstance);
@@ -355,6 +356,7 @@ public sealed class FocusingSpawner3D : MonoBehaviour
     private static void NotifyAfterSpawn(GameObject instance)
     {
         if (instance == null) return;
+        ShutterTargetRegistry3D.CancelFreezesInHierarchy(instance);
         MonoBehaviour[] behaviours = instance.GetComponentsInChildren<MonoBehaviour>(true);
         for (int i = 0; i < behaviours.Length; i++)
             if (behaviours[i] is IFocusingResettable3D resettable) resettable.AfterFocusingSpawn();

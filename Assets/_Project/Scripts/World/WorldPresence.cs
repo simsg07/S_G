@@ -43,6 +43,10 @@ public class WorldPresence : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool debugMode;
     [SerializeField] private bool showGizmos = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [SerializeField] private bool runtimePausedByWorldPolicy;
+    [SerializeField] private bool runtimePausedByShutter;
+#endif
 
     // Kept only so old prefabs that serialized this value do not lose data noisily.
     // WorldPresence never uses root GameObject.SetActive anymore.
@@ -60,6 +64,17 @@ public class WorldPresence : MonoBehaviour
     private Vector3[] suspendedLinearVelocities = Array.Empty<Vector3>();
     private Vector3[] suspendedAngularVelocities = Array.Empty<Vector3>();
     private bool[] hasSuspendedRigidbodyState = Array.Empty<bool>();
+    private bool[] suspendedIsKinematic = Array.Empty<bool>();
+    private bool[] suspendedUseGravity = Array.Empty<bool>();
+    private bool[] suspendedDetectCollisions = Array.Empty<bool>();
+    private RigidbodyConstraints[] suspendedConstraints = Array.Empty<RigidbodyConstraints>();
+    private RigidbodyInterpolation[] suspendedInterpolation = Array.Empty<RigidbodyInterpolation>();
+    private bool[] suspendedColliderEnabled = Array.Empty<bool>();
+    private bool[] hasSuspendedColliderState = Array.Empty<bool>();
+    private bool[] suspendedBehaviourEnabled = Array.Empty<bool>();
+    private bool[] hasSuspendedBehaviourState = Array.Empty<bool>();
+    private bool[] suspendedAnimatorEnabled = Array.Empty<bool>();
+    private bool[] hasSuspendedAnimatorState = Array.Empty<bool>();
     private AnimatorState[] animatorStates = Array.Empty<AnimatorState>();
     private LightState[] lightStates = Array.Empty<LightState>();
     private bool referencesCached;
@@ -68,6 +83,7 @@ public class WorldPresence : MonoBehaviour
     private bool hasAppliedPresence;
     private bool worldEventsSubscribed;
     private MonsterWorldSimulationGate3D monsterSimulationGate;
+    private IShutterFreezable3D shutterFreezable;
 
     public WorldPresenceMode PresenceMode => presenceMode;
     public bool IsPresentInCurrentWorld { get; private set; } = true;
@@ -205,9 +221,15 @@ public class WorldPresence : MonoBehaviour
         return IsPresentInWorld(currentWorld == TimelineWorldState.WorldA_Current ? WorldState.WorldA : WorldState.WorldB);
     }
 
+    public bool IsHiddenByCurrentWorld()
+    {
+        if (presenceMode == WorldPresenceMode.Both) return false;
+        if (WorldManager.Instance != null) return !IsPresentInWorld(WorldManager.Instance.CurrentWorld);
+        return !IsPresentInWorld(WorldSystem3D.ActiveWorld);
+    }
+
     public void ApplyWorldState(WorldState currentWorld)
     {
-        EnsureCached();
         lastAppliedWorld = currentWorld;
         SetPresenceEnabled(IsPresentInWorld(currentWorld));
     }
@@ -224,10 +246,26 @@ public class WorldPresence : MonoBehaviour
 
     public void SetPresenceEnabled(bool present)
     {
+        // Both-world objects never enter the hidden-world policy. In particular,
+        // do not call EnsureCached here: a world switch can arrive while the
+        // shutter owns isKinematic/useGravity/Behaviour.enabled, and caching
+        // those temporary values would turn the freeze into the new base state.
+        if (presenceMode == WorldPresenceMode.Both)
+        {
+            hasAppliedPresence = true;
+            IsPresentInCurrentWorld = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            runtimePausedByWorldPolicy = false;
+            runtimePausedByShutter = shutterFreezable != null && shutterFreezable.IsShutterFrozen;
+#endif
+            return;
+        }
+
         EnsureCached();
         if (hasAppliedPresence && IsPresentInCurrentWorld == present) return;
         hasAppliedPresence = true;
         IsPresentInCurrentWorld = present;
+        if (!present && !IsMarkOverlayActive()) CaptureRuntimeStateBeforeHide();
 
         int disabledRenderers = ApplyRendererStates(present);
         int disabledLights = ApplyLightStates(present);
@@ -239,6 +277,16 @@ public class WorldPresence : MonoBehaviour
         int stoppedRigidbodies = continueMonsterLogic ? 0 : ApplyRigidbodyStates(present);
         int disabledAnimators = continueMonsterLogic ? 0 : ApplyAnimatorStates(present);
         if (continueMonsterLogic) monsterSimulationGate?.SetPresence(this, present);
+        if (present && shutterFreezable != null && shutterFreezable.IsShutterFrozen)
+        {
+            // WorldPresence owns the base state. The temporary shutter layer is
+            // always applied last and never becomes WorldPresence's snapshot.
+            shutterFreezable.ReapplyShutterFreeze();
+        }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        runtimePausedByWorldPolicy = !present && !continueMonsterLogic;
+        runtimePausedByShutter = shutterFreezable != null && shutterFreezable.IsShutterFrozen;
+#endif
 
         if (debugMode && Application.isPlaying)
         {
@@ -248,6 +296,12 @@ public class WorldPresence : MonoBehaviour
                 $"rigidbodiesStopped={stoppedRigidbodies}, animatorsOff={disabledAnimators}, lightsOff={disabledLights}",
                 this);
         }
+    }
+
+    public void ReapplyCurrentWorldPolicy()
+    {
+        hasAppliedPresence = false;
+        ApplyCurrentWorld();
     }
 
     private void SubscribeWorldChanged()
@@ -319,6 +373,7 @@ public class WorldPresence : MonoBehaviour
 
     private void CacheOriginalStates()
     {
+        CacheShutterFreezable();
         rendererStates = new RendererState[controlledRenderers != null ? controlledRenderers.Length : 0];
         for (int i = 0; i < rendererStates.Length; i++)
         {
@@ -327,6 +382,8 @@ public class WorldPresence : MonoBehaviour
         }
 
         colliderStates = new ColliderState[controlledColliders != null ? controlledColliders.Length : 0];
+        suspendedColliderEnabled = new bool[colliderStates.Length];
+        hasSuspendedColliderState = new bool[colliderStates.Length];
         for (int i = 0; i < colliderStates.Length; i++)
         {
             Collider target = controlledColliders[i];
@@ -334,6 +391,8 @@ public class WorldPresence : MonoBehaviour
         }
 
         behaviourStates = new BehaviourState[controlledBehaviours != null ? controlledBehaviours.Length : 0];
+        suspendedBehaviourEnabled = new bool[behaviourStates.Length];
+        hasSuspendedBehaviourState = new bool[behaviourStates.Length];
         for (int i = 0; i < behaviourStates.Length; i++)
         {
             MonoBehaviour target = controlledBehaviours[i];
@@ -344,6 +403,11 @@ public class WorldPresence : MonoBehaviour
         suspendedLinearVelocities = new Vector3[rigidbodyStates.Length];
         suspendedAngularVelocities = new Vector3[rigidbodyStates.Length];
         hasSuspendedRigidbodyState = new bool[rigidbodyStates.Length];
+        suspendedIsKinematic = new bool[rigidbodyStates.Length];
+        suspendedUseGravity = new bool[rigidbodyStates.Length];
+        suspendedDetectCollisions = new bool[rigidbodyStates.Length];
+        suspendedConstraints = new RigidbodyConstraints[rigidbodyStates.Length];
+        suspendedInterpolation = new RigidbodyInterpolation[rigidbodyStates.Length];
         for (int i = 0; i < rigidbodyStates.Length; i++)
         {
             Rigidbody target = controlledRigidbodies[i];
@@ -357,6 +421,8 @@ public class WorldPresence : MonoBehaviour
         }
 
         animatorStates = new AnimatorState[controlledAnimators != null ? controlledAnimators.Length : 0];
+        suspendedAnimatorEnabled = new bool[animatorStates.Length];
+        hasSuspendedAnimatorState = new bool[animatorStates.Length];
         for (int i = 0; i < animatorStates.Length; i++)
         {
             Animator target = controlledAnimators[i];
@@ -371,6 +437,18 @@ public class WorldPresence : MonoBehaviour
         }
 
         originalStatesCached = true;
+    }
+
+    private void CacheShutterFreezable()
+    {
+        shutterFreezable = null;
+        MonoBehaviour[] candidates = GetComponentsInChildren<MonoBehaviour>(true);
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            if (!(candidates[i] is IShutterFreezable3D candidate)) continue;
+            shutterFreezable = candidate;
+            return;
+        }
     }
 
     private int ApplyRendererStates(bool present)
@@ -407,13 +485,17 @@ public class WorldPresence : MonoBehaviour
                 continue;
             }
 
-            bool nextEnabled = present && colliderStates[i].OriginalEnabled;
+            bool baseEnabled = hasSuspendedColliderState[i]
+                ? suspendedColliderEnabled[i]
+                : colliderStates[i].OriginalEnabled;
+            bool nextEnabled = present && baseEnabled;
             if (!nextEnabled && target.enabled)
             {
                 disabledCount++;
             }
 
             target.enabled = nextEnabled;
+            if (present) hasSuspendedColliderState[i] = false;
         }
 
         return disabledCount;
@@ -435,13 +517,17 @@ public class WorldPresence : MonoBehaviour
                 continue;
             }
 
-            bool nextEnabled = present && behaviourStates[i].OriginalEnabled;
+            bool baseEnabled = hasSuspendedBehaviourState[i]
+                ? suspendedBehaviourEnabled[i]
+                : behaviourStates[i].OriginalEnabled;
+            bool nextEnabled = present && baseEnabled;
             if (!nextEnabled && target.enabled)
             {
                 disabledCount++;
             }
 
             target.enabled = nextEnabled;
+            if (present) hasSuspendedBehaviourState[i] = false;
         }
 
         return disabledCount;
@@ -460,11 +546,12 @@ public class WorldPresence : MonoBehaviour
 
             if (present)
             {
-                target.constraints = rigidbodyStates[i].OriginalConstraints;
-                target.interpolation = rigidbodyStates[i].OriginalInterpolation;
-                target.isKinematic = rigidbodyStates[i].OriginalIsKinematic;
-                target.useGravity = rigidbodyStates[i].OriginalUseGravity;
-                target.detectCollisions = rigidbodyStates[i].OriginalDetectCollisions;
+                bool hasRuntimeState = hasSuspendedRigidbodyState[i];
+                target.constraints = hasRuntimeState ? suspendedConstraints[i] : rigidbodyStates[i].OriginalConstraints;
+                target.interpolation = hasRuntimeState ? suspendedInterpolation[i] : rigidbodyStates[i].OriginalInterpolation;
+                target.isKinematic = hasRuntimeState ? suspendedIsKinematic[i] : rigidbodyStates[i].OriginalIsKinematic;
+                target.useGravity = hasRuntimeState ? suspendedUseGravity[i] : rigidbodyStates[i].OriginalUseGravity;
+                target.detectCollisions = hasRuntimeState ? suspendedDetectCollisions[i] : rigidbodyStates[i].OriginalDetectCollisions;
                 if (hasSuspendedRigidbodyState[i] && !target.isKinematic)
                 {
                     target.linearVelocity = suspendedLinearVelocities[i];
@@ -474,12 +561,6 @@ public class WorldPresence : MonoBehaviour
                 continue;
             }
 
-            if (!target.isKinematic)
-            {
-                suspendedLinearVelocities[i] = target.linearVelocity;
-                suspendedAngularVelocities[i] = target.angularVelocity;
-            }
-            hasSuspendedRigidbodyState[i] = true;
             StopDynamicMotion(target);
             target.detectCollisions = false;
             target.isKinematic = true;
@@ -512,16 +593,66 @@ public class WorldPresence : MonoBehaviour
                 continue;
             }
 
-            bool nextEnabled = present && animatorStates[i].OriginalEnabled;
+            bool baseEnabled = hasSuspendedAnimatorState[i]
+                ? suspendedAnimatorEnabled[i]
+                : animatorStates[i].OriginalEnabled;
+            bool nextEnabled = present && baseEnabled;
             if (!nextEnabled && target.enabled)
             {
                 disabledCount++;
             }
 
             target.enabled = nextEnabled;
+            if (present) hasSuspendedAnimatorState[i] = false;
         }
 
         return disabledCount;
+    }
+
+    private bool IsMarkOverlayActive()
+    {
+        return shutterFreezable != null && shutterFreezable.IsShutterFrozen;
+    }
+
+    private void CaptureRuntimeStateBeforeHide()
+    {
+        for (int i = 0; i < colliderStates.Length; i++)
+        {
+            Collider target = colliderStates[i].Collider;
+            if (target == null) continue;
+            suspendedColliderEnabled[i] = target.enabled;
+            hasSuspendedColliderState[i] = true;
+        }
+        for (int i = 0; i < behaviourStates.Length; i++)
+        {
+            MonoBehaviour target = behaviourStates[i].Behaviour;
+            if (target == null || target == this) continue;
+            suspendedBehaviourEnabled[i] = target.enabled;
+            hasSuspendedBehaviourState[i] = true;
+        }
+        for (int i = 0; i < animatorStates.Length; i++)
+        {
+            Animator target = animatorStates[i].Animator;
+            if (target == null) continue;
+            suspendedAnimatorEnabled[i] = target.enabled;
+            hasSuspendedAnimatorState[i] = true;
+        }
+        for (int i = 0; i < rigidbodyStates.Length; i++)
+        {
+            Rigidbody target = rigidbodyStates[i].Rigidbody;
+            if (target == null) continue;
+            suspendedIsKinematic[i] = target.isKinematic;
+            suspendedUseGravity[i] = target.useGravity;
+            suspendedDetectCollisions[i] = target.detectCollisions;
+            suspendedConstraints[i] = target.constraints;
+            suspendedInterpolation[i] = target.interpolation;
+            if (!target.isKinematic)
+            {
+                suspendedLinearVelocities[i] = target.linearVelocity;
+                suspendedAngularVelocities[i] = target.angularVelocity;
+            }
+            hasSuspendedRigidbodyState[i] = true;
+        }
     }
 
     private int ApplyLightStates(bool present)

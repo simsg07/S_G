@@ -81,7 +81,7 @@ public sealed class ElectricLightObject3D : MonoBehaviour, IDamageable, IGamepla
     private void Awake()
     {
         CacheReferences();
-        if (useDirectionalCone) EnsureConeVisual();
+        InitializeConeVisualResources();
         RefreshConeVisual(true);
         currentHP = maxHP;
         currentState = ElectricLightState.ACTIVE;
@@ -125,6 +125,7 @@ public sealed class ElectricLightObject3D : MonoBehaviour, IDamageable, IGamepla
             : maxHP;
         CacheReferences();
         ApplyLightSettings();
+        TryBindConeVisualComponents();
         RefreshConeVisual(true);
     }
 
@@ -307,26 +308,25 @@ public sealed class ElectricLightObject3D : MonoBehaviour, IDamageable, IGamepla
         return false;
     }
 
-    private void EnsureConeVisual()
+    private void TryBindConeVisualComponents()
     {
         if (coneVisual == null)
         {
             Transform existing = LightSourceTransform.Find("Electric Light Cone");
             if (existing != null) coneVisual = existing;
-            else if (Application.isPlaying)
-            {
-                GameObject generated = new GameObject("Electric Light Cone", typeof(MeshFilter), typeof(MeshRenderer));
-                generated.transform.SetParent(LightSourceTransform, false);
-                generated.transform.localPosition = new Vector3(0f, 0f, 0.05f);
-                coneVisual = generated.transform;
-            }
         }
         if (coneVisual == null) return;
         MeshFilter filter = coneVisual.GetComponent<MeshFilter>();
-        if (filter == null && Application.isPlaying) filter = coneVisual.gameObject.AddComponent<MeshFilter>();
         coneRenderer = coneVisual.GetComponent<MeshRenderer>();
-        if (coneRenderer == null && Application.isPlaying) coneRenderer = coneVisual.gameObject.AddComponent<MeshRenderer>();
         if (filter == null || coneRenderer == null) return;
+    }
+
+    private void InitializeConeVisualResources()
+    {
+        TryBindConeVisualComponents();
+        if (coneVisual == null || coneRenderer == null) return;
+        MeshFilter filter = coneVisual.GetComponent<MeshFilter>();
+        if (filter == null) return;
         if (coneMesh == null)
         {
             coneMesh = new Mesh { name = "Electric Light Cone Mesh" };
@@ -348,7 +348,10 @@ public sealed class ElectricLightObject3D : MonoBehaviour, IDamageable, IGamepla
             SetConeVisible(false);
             return;
         }
-        if (Application.isPlaying) EnsureConeVisual();
+        if (Application.isPlaying && (coneMesh == null || coneRenderer == null))
+        {
+            InitializeConeVisualResources();
+        }
         if (coneMesh == null || coneRenderer == null) return;
         Transform origin = LightSourceTransform;
         Quaternion directionRotation = directionTransform != null ? directionTransform.rotation : origin.rotation;
@@ -387,6 +390,17 @@ public sealed class ElectricLightObject3D : MonoBehaviour, IDamageable, IGamepla
         cachedRange = lightRange;
         cachedAngle = lightAngle;
     }
+
+#if UNITY_EDITOR
+    public void RefreshEditorConeVisual()
+    {
+        if (Application.isPlaying) return;
+        CacheReferences();
+        InitializeConeVisualResources();
+        ApplyLightSettings();
+        RefreshConeVisual(true);
+    }
+#endif
 
     private void SetConeVisible(bool visible)
     {

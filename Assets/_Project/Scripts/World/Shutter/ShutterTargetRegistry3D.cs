@@ -4,9 +4,14 @@ using UnityEngine;
 public static class ShutterTargetRegistry3D
 {
     private static readonly List<Entry> Entries = new List<Entry>(64);
+    private static readonly List<MarkEntry> ActiveMarks = new List<MarkEntry>(32);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() => Entries.Clear();
+    private static void ResetStatics()
+    {
+        Entries.Clear();
+        ActiveMarks.Clear();
+    }
 
     public static int Count => Entries.Count;
 
@@ -33,6 +38,113 @@ public static class ShutterTargetRegistry3D
             if (entry == null || entry.Component == null || ReferenceEquals(entry.Target, target))
                 Entries.RemoveAt(i);
         }
+        if (target is IShutterFreezable3D freezable) RemoveFreezeEntry(freezable);
+    }
+
+    public static void CancelAllFreezes()
+    {
+        for (int i = ActiveMarks.Count - 1; i >= 0; i--)
+        {
+            MarkEntry entry = ActiveMarks[i];
+            ActiveMarks.RemoveAt(i);
+            if (entry.Component != null) entry.Target.ReleaseShutterFreeze();
+        }
+    }
+
+    public static void CancelFreezesInHierarchy(GameObject root)
+    {
+        if (root == null) return;
+        Transform rootTransform = root.transform;
+        for (int i = ActiveMarks.Count - 1; i >= 0; i--)
+        {
+            MarkEntry entry = ActiveMarks[i];
+            Component component = entry.Component;
+            if (component == null)
+            {
+                ActiveMarks.RemoveAt(i);
+                continue;
+            }
+            Transform targetTransform = component.transform;
+            if (targetTransform != rootTransform && !targetTransform.IsChildOf(rootTransform)) continue;
+            ActiveMarks.RemoveAt(i);
+            entry.Target.ReleaseShutterFreeze();
+        }
+    }
+
+    public static void RemoveFreezeEntry(IShutterFreezable3D target)
+    {
+        if (target == null) return;
+        for (int i = ActiveMarks.Count - 1; i >= 0; i--)
+        {
+            MarkEntry entry = ActiveMarks[i];
+            if (entry.Component == null || ReferenceEquals(entry.Target, target)) ActiveMarks.RemoveAt(i);
+        }
+    }
+
+    public static bool IsFreezeRegistered(IShutterFreezable3D target)
+    {
+        if (target == null) return false;
+        for (int i = ActiveMarks.Count - 1; i >= 0; i--)
+        {
+            MarkEntry entry = ActiveMarks[i];
+            if (entry.Component == null)
+            {
+                ActiveMarks.RemoveAt(i);
+                continue;
+            }
+            if (ReferenceEquals(entry.Target, target)) return true;
+        }
+        return false;
+    }
+
+    public static int ActiveMarkCount
+    {
+        get { RemoveDeadMarks(); return ActiveMarks.Count; }
+    }
+
+    public static bool TryRegisterMark(IShutterFreezable3D target, Component component, int maxActiveMarks)
+    {
+        if (target == null || component == null || maxActiveMarks < 1) return false;
+        RemoveDeadMarks();
+        for (int i = 0; i < ActiveMarks.Count; i++)
+            if (ReferenceEquals(ActiveMarks[i].Target, target)) return true;
+        if (ActiveMarks.Count >= maxActiveMarks) return false;
+        ActiveMarks.Add(new MarkEntry(target, component));
+        return true;
+    }
+
+    public static bool ReleaseMostRecentMark()
+    {
+        RemoveDeadMarks();
+        if (ActiveMarks.Count == 0) return false;
+        int index = ActiveMarks.Count - 1;
+        MarkEntry entry = ActiveMarks[index];
+        if (entry.Component == null)
+        {
+            ActiveMarks.RemoveAt(index);
+            return false;
+        }
+        entry.Target.ReleaseShutterFreeze();
+        return true;
+    }
+
+    private static void RemoveDeadMarks()
+    {
+        for (int i = ActiveMarks.Count - 1; i >= 0; i--)
+        {
+            if (ActiveMarks[i].Component == null) ActiveMarks.RemoveAt(i);
+        }
+    }
+
+    private sealed class MarkEntry
+    {
+        public MarkEntry(IShutterFreezable3D target, Component component)
+        {
+            Target = target;
+            Component = component;
+        }
+        public readonly IShutterFreezable3D Target;
+        public readonly Component Component;
     }
 
     public sealed class Entry

@@ -651,6 +651,71 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 7, y: 1, z: 1}
   m_Center: {x: 8.5, y: 1.5, z: 0}
+--- !u!1001 &980468172
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3652928530755479595, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_Name
+      value: Dionaea
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 12.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071687537872847772, guid: 4453808903a3d134cac15a5f41611973, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 90
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4453808903a3d134cac15a5f41611973, type: 3}
 --- !u!1 &1075262258
 GameObject:
   m_ObjectHideFlags: 0
@@ -2839,17 +2904,14 @@ MonoBehaviour:
   followSmoothTime: 0.125
   boundarySmoothTime: 0.18
   edgePadding: 0
+  referenceAspect: {x: 16, y: 9}
+  letterboxColor: {r: 0, g: 0, b: 0, a: 1}
   constrainToLayerBounds: 1
   boundaryLayerMask:
     serializedVersion: 2
     m_Bits: 512
   layerBoundsPadding: 0
-  layerBoundsRefreshInterval: 0.25
   includeTriggerBoundaries: 0
-  stopHorizontalViewAtLayerWalls: 1
-  stopVerticalViewAtLayerWalls: 0
-  horizontalWallProbeHeight: 1.5
-  verticalWallProbeWidth: 1.5
   drawLayerBoundaryGizmos: 1
 --- !u!81 &1925809827
 AudioListener:
@@ -2932,3 +2994,4 @@ SceneRoots:
   - {fileID: 1925809829}
   - {fileID: 75412014}
   - {fileID: 1276253}
+  - {fileID: 980468172}

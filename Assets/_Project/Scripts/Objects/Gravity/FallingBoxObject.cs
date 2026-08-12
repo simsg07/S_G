@@ -52,6 +52,19 @@ public class FallingBoxObject : MonoBehaviour, IGravityActivatable3D
     public bool IsFalling => currentState == FallingBoxState.FALLING;
     public bool HasLanded => currentState == FallingBoxState.GROUNDED;
 
+    public void RefreshAfterMarkReleased()
+    {
+        CacheReferences();
+        bool isMagnetReserved = magneticCarryable != null && magneticCarryable.IsReserved;
+        wasMagnetReserved = isMagnetReserved;
+        SetDamageEnabled(currentState == FallingBoxState.FALLING && !isMagnetReserved);
+        if (mainCollider != null)
+        {
+            mainCollider.enabled = true;
+            mainCollider.isTrigger = false;
+        }
+    }
+
     private void Awake()
     {
         CacheReferences();
@@ -96,6 +109,11 @@ public class FallingBoxObject : MonoBehaviour, IGravityActivatable3D
     {
         if (Application.isPlaying)
         {
+            if (markState != null && markState.IsMarked)
+            {
+                SetDamageEnabled(false);
+                return;
+            }
             bool isMagnetReserved = magneticCarryable != null && magneticCarryable.IsReserved;
             SetDamageEnabled(IsFalling && !isMagnetReserved);
         }
